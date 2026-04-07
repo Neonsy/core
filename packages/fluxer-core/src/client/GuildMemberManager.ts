@@ -1,5 +1,7 @@
 import { Collection } from '@fluxerjs/collection';
 import { APIGuildMember, Routes } from '@fluxerjs/types';
+import { ErrorCodes } from '../errors/ErrorCodes.js';
+import { FluxerError } from '../errors/FluxerError.js';
 import { Guild } from '../structures/Guild.js';
 import { GuildMember } from '../structures/GuildMember.js';
 
@@ -48,7 +50,7 @@ export class GuildMemberManager extends Collection<string, GuildMember> {
    * Fetch the current bot user as a GuildMember in this guild.
    * Caches the result in guild.members.
    *
-   * @throws Error if client.user is null (client not ready)
+   * @throws FluxerError with CLIENT_NOT_READY if client.user is null
    * @example
    * const me = await guild.members.fetchMe();
    * console.log(me.displayName);
@@ -56,7 +58,9 @@ export class GuildMemberManager extends Collection<string, GuildMember> {
   async fetchMe(): Promise<GuildMember> {
     const userId = this.guild.client.user?.id;
     if (!userId) {
-      throw new Error('Cannot fetch me: client.user is null (client not ready)');
+      throw new FluxerError('Cannot fetch me: client.user is null (client not ready)', {
+        code: ErrorCodes.ClientNotReady,
+      });
     }
     return this.guild.fetchMember(userId);
   }

@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import { APIGatewayBotResponse, GatewayPresenceUpdateData } from '@fluxerjs/types';
 import { WebSocketShard } from './WebSocketShard.js';
 import { getDefaultWebSocket } from './utils/getWebSocket.js';
@@ -22,6 +23,8 @@ export interface WebSocketManagerOptions {
   presence?: GatewayPresenceUpdateData;
   shardIds?: number[];
   shardCount?: number;
+  /** When `false`, shard debug events are not emitted. Default: `true`. */
+  debug?: boolean;
   WebSocket?: WebSocketConstructor;
 }
 
@@ -55,8 +58,12 @@ export class WebSocketManager extends EventEmitter {
           delayMs = Math.min(RETRY_MAX_MS, Math.floor(delayMs * 1.5));
         }
       }
-      if (this._aborted) throw new Error('Connection aborted');
-      if (!WS) throw new Error('Failed to load WebSocket');
+      if (this._aborted) {
+        throw new FluxerError('Connection aborted', { code: ErrorCodes.GatewayConnectionAborted });
+      }
+      if (!WS) {
+        throw new FluxerError('Failed to load WebSocket', { code: ErrorCodes.WebSocketLoadFailed });
+      }
     }
 
     let gateway: APIGatewayBotResponse | null = null;
@@ -72,8 +79,12 @@ export class WebSocketManager extends EventEmitter {
       }
     }
 
-    if (this._aborted) throw new Error('Connection aborted');
-    if (!gateway) throw new Error('Failed to fetch gateway');
+    if (this._aborted) {
+      throw new FluxerError('Connection aborted', { code: ErrorCodes.GatewayConnectionAborted });
+    }
+    if (!gateway) {
+      throw new FluxerError('Failed to fetch gateway', { code: ErrorCodes.GatewayFetchFailed });
+    }
 
     this.gatewayUrl = gateway.url;
     this.shardCount = this.options.shardCount ?? gateway.shards;
@@ -91,6 +102,7 @@ export class WebSocketManager extends EventEmitter {
         shardId: id,
         numShards: this.shardCount,
         version,
+        debug: this.options.debug,
         WebSocket: WS,
       });
 

@@ -13,12 +13,17 @@ const require = createRequire(import.meta.url);
 
 const PACKAGES = [
   '@fluxerjs/types',
+  '@fluxerjs/types/routes',
   '@fluxerjs/util',
   '@fluxerjs/collection',
   '@fluxerjs/rest',
+  '@fluxerjs/rest/request-manager',
   '@fluxerjs/ws',
   '@fluxerjs/builders',
   '@fluxerjs/core',
+  '@fluxerjs/core/client',
+  '@fluxerjs/core/errors',
+  '@fluxerjs/core/message',
   '@fluxerjs/voice',
 ];
 

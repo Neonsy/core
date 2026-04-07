@@ -19,6 +19,7 @@ export class REST extends EventEmitter {
 
   constructor(options: RESTOptions = {}) {
     super();
+    this.setMaxListeners(0);
     this.requestManager = new RequestManager({
       api: options.api ?? 'https://api.fluxer.app',
       version: options.version ?? '1',
@@ -42,8 +43,11 @@ export class REST extends EventEmitter {
   }
 
   /** Send a GET request. */
-  async get<T>(route: string, options?: { auth?: boolean }): Promise<T> {
-    return this.requestManager.request<T>('GET', route, { auth: options?.auth });
+  async get<T>(route: string, options?: { auth?: boolean; signal?: AbortSignal }): Promise<T> {
+    return this.requestManager.request<T>('GET', route, {
+      auth: options?.auth,
+      signal: options?.signal,
+    });
   }
 
   /** Send a POST request. */
@@ -52,35 +56,48 @@ export class REST extends EventEmitter {
     options?: {
       body?: unknown;
       auth?: boolean;
+      signal?: AbortSignal;
       files?: Array<{ name: string; data: Blob | ArrayBuffer | Uint8Array; filename?: string }>;
     },
   ): Promise<T> {
     return this.requestManager.request<T>('POST', route, {
       body: options?.body,
       auth: options?.auth,
+      signal: options?.signal,
       files: options?.files,
     });
   }
 
   /** Send a PATCH request. */
-  async patch<T>(route: string, options?: { body?: unknown; auth?: boolean }): Promise<T> {
+  async patch<T>(
+    route: string,
+    options?: { body?: unknown; auth?: boolean; signal?: AbortSignal },
+  ): Promise<T> {
     return this.requestManager.request<T>('PATCH', route, {
       body: options?.body,
       auth: options?.auth,
+      signal: options?.signal,
     });
   }
 
   /** Send a PUT request. */
-  async put<T>(route: string, options?: { body?: unknown; auth?: boolean }): Promise<T> {
+  async put<T>(
+    route: string,
+    options?: { body?: unknown; auth?: boolean; signal?: AbortSignal },
+  ): Promise<T> {
     return this.requestManager.request<T>('PUT', route, {
       body: options?.body,
       auth: options?.auth,
+      signal: options?.signal,
     });
   }
 
   /** Send a DELETE request. */
-  async delete<T>(route: string, options?: { auth?: boolean }): Promise<T> {
-    return this.requestManager.request<T>('DELETE', route, { auth: options?.auth });
+  async delete<T>(route: string, options?: { auth?: boolean; signal?: AbortSignal }): Promise<T> {
+    return this.requestManager.request<T>('DELETE', route, {
+      auth: options?.auth,
+      signal: options?.signal,
+    });
   }
 
   /** Route helpers (from @fluxerjs/types) for building paths. */

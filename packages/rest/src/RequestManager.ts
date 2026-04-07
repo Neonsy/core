@@ -12,6 +12,8 @@ export interface RequestOptions {
     filename?: string;
   }>;
   auth?: boolean;
+  /** Aborts the request when triggered (e.g. shutdown). Combined with the client timeout. */
+  signal?: AbortSignal;
 }
 
 export interface RestOptions {
@@ -23,10 +25,21 @@ export interface RestOptions {
   userAgent: string;
 }
 
+const ROUTE_HASH_CACHE_MAX = 1000;
+
+function isAbortError(err: unknown): boolean {
+  if (err instanceof Error && err.name === 'AbortError') return true;
+  if (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError') {
+    return true;
+  }
+  return false;
+}
+
 export class RequestManager {
   private token: string | null = null;
   private readonly options: RestOptions;
   private readonly rateLimiter = new RateLimitManager();
+  private readonly routeHashCache = new Map<string, string>();
 
   constructor(options: Partial<RestOptions>) {
     this.options = {
@@ -47,9 +60,21 @@ export class RequestManager {
     return `${this.options.api}/v${this.options.version}`;
   }
 
-  /** Hash route for rate limit bucket (use path without ids for grouping). */
+  /** Hash route for rate limit bucket (use path without ids for grouping). LRU via Map insertion order refresh on hit. */
   private getRouteHash(route: string): string {
-    return route.replace(/\d{17,19}/g, ':id');
+    const cached = this.routeHashCache.get(route);
+    if (cached !== undefined) {
+      this.routeHashCache.delete(route);
+      this.routeHashCache.set(route, cached);
+      return cached;
+    }
+    const hash = route.replace(/\d{17,19}/g, ':id');
+    if (this.routeHashCache.size >= ROUTE_HASH_CACHE_MAX) {
+      const first = this.routeHashCache.keys().next().value;
+      if (first !== undefined) this.routeHashCache.delete(first);
+    }
+    this.routeHashCache.set(route, hash);
+    return hash;
   }
 
   private async waitForRateLimit(routeHash: string): Promise<void> {
@@ -102,7 +127,25 @@ export class RequestManager {
     for (let attempt = 0; attempt <= this.options.retries; attempt++) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.options.timeout);
+      const userSignal = options.signal;
+      const onUserAbort = (): void => {
+        controller.abort();
+      };
+      if (userSignal) {
+        if (userSignal.aborted) {
+          clearTimeout(timeoutId);
+          controller.abort();
+        } else {
+          userSignal.addEventListener('abort', onUserAbort);
+        }
+      }
       try {
+        if (controller.signal.aborted) {
+          const aborted = new Error('The operation was aborted');
+          aborted.name = 'AbortError';
+          throw aborted;
+        }
+
         const response = await fetch(url, {
           method,
           headers,
@@ -129,8 +172,10 @@ export class RequestManager {
           );
         }
 
-        const text = await response.text();
+        const contentType = (response.headers.get('Content-Type') ?? '').toLowerCase();
+
         if (!response.ok) {
+          const text = await response.text();
           let parsed: APIErrorBody;
           try {
             parsed = JSON.parse(text) as APIErrorBody;
@@ -140,9 +185,21 @@ export class RequestManager {
           throw new FluxerAPIError(parsed, response.status);
         }
 
-        if (response.status === 204 || text.length === 0) return undefined as T;
+        if (response.status === 204) return undefined as T;
+
+        if (contentType.includes('application/json')) {
+          try {
+            return (await response.json()) as T;
+          } catch {
+            return undefined as T;
+          }
+        }
+
+        const text = await response.text();
+        if (text.length === 0) return undefined as T;
         return JSON.parse(text) as T;
       } catch (err) {
+        if (isAbortError(err)) throw err;
         const wrapped = err instanceof Error ? err : new Error(String(err));
         lastError =
           attempt > 0
@@ -165,6 +222,7 @@ export class RequestManager {
         throw lastError;
       } finally {
         clearTimeout(timeoutId);
+        userSignal?.removeEventListener('abort', onUserAbort);
       }
     }
     throw lastError ?? new Error('Request failed');

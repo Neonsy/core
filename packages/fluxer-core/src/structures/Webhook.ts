@@ -1,13 +1,20 @@
 import { Client } from '../client/Client.js';
 import { Base } from './Base.js';
 import { APIEmbed, APIMessage } from '@fluxerjs/types';
-import { APIWebhook, APIWebhookUpdateRequest, APIWebhookTokenUpdateRequest } from '@fluxerjs/types';
+import {
+  APIWebhook,
+  APIWebhookUpdateRequest,
+  APIWebhookTokenUpdateRequest,
+  APIWebhookEditMessageRequest,
+} from '@fluxerjs/types';
 import { Routes } from '@fluxerjs/types';
 import { EmbedBuilder } from '@fluxerjs/builders';
 import { buildSendBody, resolveMessageFiles, type MessageFileData } from '../util/messageUtils.js';
 import { Message } from './Message.js';
 import { User } from './User.js';
 import { cdnAvatarURL } from '../util/cdn.js';
+import { FluxerError } from '../errors/FluxerError.js';
+import { ErrorCodes } from '../errors/ErrorCodes.js';
 
 /** File data for webhook attachment uploads. Use `data` for buffers or `url` to fetch from a URL. */
 export type WebhookFileData = MessageFileData;
@@ -39,6 +46,11 @@ export interface WebhookSendOptions {
   /** Attachment metadata for files (id = index). Use when files are provided. */
   attachments?: WebhookAttachmentMeta[];
 }
+
+/** Options for editing a webhook message; `EmbedBuilder` values are serialized like channel messages. */
+export type WebhookMessageEditOptions = Omit<APIWebhookEditMessageRequest, 'embeds'> & {
+  embeds?: (APIEmbed | EmbedBuilder)[];
+};
 
 /**
  * Represents a Discord/Fluxer webhook. Supports creating, fetching, sending, and deleting.
@@ -130,8 +142,9 @@ export class Webhook extends Base {
    */
   async send(options: string | WebhookSendOptions, wait?: boolean): Promise<Message | undefined> {
     if (!this.token) {
-      throw new Error(
+      throw new FluxerError(
         'Webhook token is required to send. The token is only returned when creating a webhook; fetched webhooks cannot send.',
+        { code: ErrorCodes.WebhookTokenRequired },
       );
     }
     const opts = typeof options === 'string' ? { content: options } : options;
@@ -156,6 +169,62 @@ export class Webhook extends Base {
       return new Message(this.client, data);
     }
     return undefined;
+  }
+
+  /**
+   * Edit a message previously sent by this webhook.
+   * Requires the webhook token.
+   */
+  async editMessage(messageId: string, options: WebhookMessageEditOptions): Promise<Message> {
+    if (!this.token) {
+      throw new FluxerError(
+        'Webhook token is required to edit messages. The token is only returned when creating a webhook; fetched webhooks cannot edit messages.',
+        { code: ErrorCodes.WebhookTokenRequired },
+      );
+    }
+    const body: Record<string, unknown> = { ...options };
+    if (options.embeds !== undefined) {
+      body.embeds = options.embeds.map((e) => (e instanceof EmbedBuilder ? e.toJSON() : e));
+    }
+    const data = await this.client.rest.patch<APIMessage>(
+      Routes.webhookMessage(this.id, this.token, messageId),
+      { body, auth: false },
+    );
+    return new Message(this.client, data);
+  }
+
+  /**
+   * Fetch a message sent by this webhook.
+   * Requires the webhook token.
+   */
+  async fetchMessage(messageId: string): Promise<Message> {
+    if (!this.token) {
+      throw new FluxerError(
+        'Webhook token is required to fetch messages. The token is only returned when creating a webhook; fetched webhooks cannot fetch messages.',
+        { code: ErrorCodes.WebhookTokenRequired },
+      );
+    }
+    const data = await this.client.rest.get<APIMessage>(
+      Routes.webhookMessage(this.id, this.token, messageId),
+      { auth: false },
+    );
+    return new Message(this.client, data);
+  }
+
+  /**
+   * Delete a message sent by this webhook.
+   * Requires the webhook token.
+   */
+  async deleteMessage(messageId: string): Promise<void> {
+    if (!this.token) {
+      throw new FluxerError(
+        'Webhook token is required to delete messages. The token is only returned when creating a webhook; fetched webhooks cannot delete messages.',
+        { code: ErrorCodes.WebhookTokenRequired },
+      );
+    }
+    await this.client.rest.delete(Routes.webhookMessage(this.id, this.token, messageId), {
+      auth: false,
+    });
   }
 
   /**

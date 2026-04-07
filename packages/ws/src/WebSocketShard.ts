@@ -28,6 +28,8 @@ export interface WebSocketShardOptions {
   numShards: number;
   /** Gateway API version (e.g. "1" for Fluxer). Defaults to "1" when not set. */
   version?: string;
+  /** When `false`, internal shard debug events are not emitted. Default: `true`. */
+  debug?: boolean;
   WebSocket?: WebSocketConstructor;
 }
 
@@ -46,6 +48,7 @@ const RECONNECT_MAX_MS = 45000;
 export class WebSocketShard extends EventEmitter {
   private ws: WebSocketLike | null = null;
   private readonly options: WebSocketShardOptions;
+  private readonly debugEnabled: boolean;
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private heartbeatAt = 0;
   /** True until we send a heartbeat; then false until we get HeartbeatAck. Avoids closing before first heartbeat. */
@@ -74,6 +77,7 @@ export class WebSocketShard extends EventEmitter {
   constructor(options: WebSocketShardOptions) {
     super();
     this.options = options;
+    this.debugEnabled = options.debug !== false;
     this.WS = options.WebSocket ?? (getDefaultWebSocketSync() as unknown as WebSocketConstructor);
     const version = options.version ?? '1';
     const params = new URLSearchParams({ v: version, encoding: 'json' });
@@ -158,6 +162,7 @@ export class WebSocketShard extends EventEmitter {
   }
 
   private debug(message: string): void {
+    if (!this.debugEnabled) return;
     this.emit('debug', `[Shard ${this.id}] ${message}`);
   }
 
@@ -194,6 +199,17 @@ export class WebSocketShard extends EventEmitter {
         this.ws?.close(1000);
         setTimeout(() => this.connect(), 100);
         break;
+      case GatewayOpcodes.GatewayError: {
+        const detail =
+          typeof payload.d === 'string'
+            ? payload.d
+            : payload.d !== undefined
+              ? JSON.stringify(payload.d)
+              : 'unknown gateway error';
+        this.debug(`Gateway error: ${detail}`);
+        this.emit('error', new Error(`Gateway error: ${detail}`));
+        break;
+      }
       default:
         break;
     }

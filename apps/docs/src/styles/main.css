@@ -1,19 +1,29 @@
 :root {
-  --bg-primary: #0a0b0e;
-  --bg-secondary: #12141a;
-  --bg-tertiary: #1a1c24;
-  --bg-hover: rgba(255, 255, 255, 0.04);
-  --bg-active: rgba(99, 179, 237, 0.08);
-  --text-primary: #e8e9ed;
-  --text-secondary: #9ba0ab;
-  --text-muted: #5f6472;
-  --accent: #63b3ed;
-  --accent-hover: #7dc3f4;
-  --border: #2a2c35;
-  --border-subtle: #22242a;
-  --code-bg: #1a1c23;
-  --radius: 8px;
-  --radius-sm: 4px;
+  --bg-primary: #08090d;
+  --bg-secondary: #101218;
+  --bg-tertiary: #181a22;
+  --surface-1: #12141c;
+  --surface-2: #1a1d28;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(99, 179, 237, 0.1);
+  --text-primary: #eceef3;
+  --text-secondary: #9ba0b0;
+  --text-muted: #5c6270;
+  --accent: #6bb8f0;
+  --accent-hover: #8ecbf7;
+  --border: #2a2d38;
+  --border-subtle: #1e2129;
+  --code-bg: #14161e;
+  --radius: 10px;
+  --radius-sm: 5px;
+  --radius-lg: 14px;
+
+  /* Breaking changes (changelog) */
+  --breaking: #fb7185;
+  --breaking-fg: #fecdd3;
+  --breaking-bg: rgba(251, 113, 133, 0.1);
+  --breaking-bg-strong: rgba(251, 113, 133, 0.18);
+  --breaking-border: rgba(251, 113, 133, 0.35);
 
   /* Type signature syntax highlighting */
   --ts-keyword: #c792ea;
@@ -197,11 +207,20 @@ body::before {
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(99, 179, 237, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 179, 237, 0.03) 1px, transparent 1px);
-  background-size: 48px 48px;
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 64px 64px;
   pointer-events: none;
   z-index: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 a {

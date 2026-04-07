@@ -377,8 +377,7 @@ watch(
   inset: 0;
   top: 56px;
   z-index: 200;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.72);
 }
 
 .mobile-menu {

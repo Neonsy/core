@@ -32,3 +32,5 @@ export {
 export { getUnicodeFromShortcode } from './emojiShortcodes.js';
 export { resolveTenorToImageUrl, type TenorMediaResult } from './tenorUtils.js';
 export { emitDeprecationWarning } from './deprecation.js';
+export { FluxerError, type FluxerErrorOptions } from './errors/FluxerError.js';
+export { ErrorCodes } from './errors/ErrorCodes.js';

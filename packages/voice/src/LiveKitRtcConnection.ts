@@ -2,6 +2,7 @@ import { execFile, spawn } from 'node:child_process';
 import { EventEmitter } from 'events';
 import { Client } from '@fluxerjs/core';
 import { VoiceChannel } from '@fluxerjs/core';
+import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import {
   GatewayVoiceServerUpdateDispatchData,
   GatewayVoiceStateUpdateDispatchData,
@@ -627,11 +628,20 @@ export class LiveKitRtcConnection extends EventEmitter {
     if (typeof urlOrBuffer === 'string') {
       try {
         const response = await fetch(urlOrBuffer);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+          throw new FluxerError(`HTTP ${response.status}`, { code: ErrorCodes.VoiceHttpError });
+        }
         const buf = await response.arrayBuffer();
         arrayBuffer = buf;
       } catch (e) {
-        this.emit('error', e instanceof Error ? e : new Error(String(e)));
+        const err =
+          e instanceof FluxerError
+            ? e
+            : new FluxerError(e instanceof Error ? e.message : String(e), {
+                code: ErrorCodes.FileFetchFailed,
+                cause: e instanceof Error ? e : undefined,
+              });
+        this.emit('error', err);
         return;
       }
     } else if (urlOrBuffer instanceof Uint8Array) {
@@ -1537,11 +1547,22 @@ export class LiveKitRtcConnection extends EventEmitter {
     if (typeof urlOrStream === 'string') {
       try {
         const response = await fetch(urlOrStream);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        if (!response.body) throw new Error('No response body');
+        if (!response.ok) {
+          throw new FluxerError(`HTTP ${response.status}`, { code: ErrorCodes.VoiceHttpError });
+        }
+        if (!response.body) {
+          throw new FluxerError('No response body', { code: ErrorCodes.VoiceNoResponseBody });
+        }
         inputStream = Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]);
       } catch (e) {
-        this.emit('error', e instanceof Error ? e : new Error(String(e)));
+        const err =
+          e instanceof FluxerError
+            ? e
+            : new FluxerError(e instanceof Error ? e.message : String(e), {
+                code: ErrorCodes.FileFetchFailed,
+                cause: e instanceof Error ? e : undefined,
+              });
+        this.emit('error', err);
         return;
       }
     } else {

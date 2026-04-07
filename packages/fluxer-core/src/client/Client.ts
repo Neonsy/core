@@ -2,7 +2,6 @@ import { EventEmitter } from 'events';
 import { REST } from '@fluxerjs/rest';
 import { WebSocketManager } from '@fluxerjs/ws';
 import {
-  APIApplicationCommandInteraction,
   GatewayGuildRoleCreateDispatchData,
   GatewayGuildRoleDeleteDispatchData,
   GatewayGuildRoleUpdateDispatchData,
@@ -38,9 +37,11 @@ import {
   GatewayChannelPinsUpdateDispatchData,
   GatewayPresenceUpdateDispatchData,
   GatewayWebhooksUpdateDispatchData,
+  GatewayGuildMembersChunkDispatchData,
 } from '@fluxerjs/types';
 import {
   APIChannel,
+  APIGatewayBotResponse,
   APIGuild,
   APIMessage,
   APIUser,
@@ -64,6 +65,7 @@ import { MessageReaction } from '../structures/MessageReaction';
 import { GuildMember } from '../structures/GuildMember';
 import { GuildBan } from '../structures/GuildBan';
 import { Invite } from '../structures/Invite';
+import type { AnyInteraction } from '../structures/interactions/index.js';
 
 /**
  * Callback parameter types for client events. Use with client.on(Events.X, handler).
@@ -92,7 +94,7 @@ export interface ClientEvents {
   ];
   [Events.MessageReactionRemoveAll]: [data: GatewayMessageReactionRemoveAllDispatchData];
   [Events.MessageReactionRemoveEmoji]: [data: GatewayMessageReactionRemoveEmojiDispatchData];
-  [Events.InteractionCreate]: [interaction: APIApplicationCommandInteraction];
+  [Events.InteractionCreate]: [interaction: AnyInteraction];
   [Events.GuildCreate]: [guild: Guild];
   [Events.GuildUpdate]: [oldGuild: Guild, newGuild: Guild];
   [Events.GuildDelete]: [guild: Guild];
@@ -102,6 +104,7 @@ export interface ClientEvents {
   [Events.GuildMemberAdd]: [member: GuildMember];
   [Events.GuildMemberUpdate]: [oldMember: GuildMember, newMember: GuildMember];
   [Events.GuildMemberRemove]: [member: GuildMember];
+  [Events.GuildMembersChunk]: [data: GatewayGuildMembersChunkDispatchData];
   [Events.VoiceStateUpdate]: [data: GatewayVoiceStateUpdateDispatchData];
   [Events.VoiceServerUpdate]: [data: GatewayVoiceServerUpdateDispatchData];
   [Events.VoiceStatesSync]: [
@@ -130,6 +133,9 @@ export interface ClientEvents {
   [Events.Error]: [error: Error];
   [Events.Debug]: [message: string];
 }
+
+type ClientEventName = keyof ClientEvents;
+type ClientEventListener<K extends ClientEventName> = (...args: ClientEvents[K]) => void;
 
 /** Typed event handler methods. Use client.events.MessageReactionAdd((reaction, user, messageId, channelId, emoji, userId) => {...}) or client.on(Events.MessageReactionAdd, ...). */
 export type ClientEventMethods = {
@@ -171,6 +177,7 @@ export class Client extends EventEmitter {
   /** @param options - Token, REST config, WebSocket, presence, etc. */
   constructor(public readonly options: ClientOptions = {}) {
     super();
+    this.setMaxListeners(0);
     this.events = createEventMethods(this);
     Object.defineProperty(this.channels, 'cache', {
       get: () => this.channels,
@@ -189,6 +196,34 @@ export class Client extends EventEmitter {
       version: options.rest?.version ?? '1',
       ...options.rest,
     });
+  }
+
+  /** Typed EventEmitter.on for known client events. */
+  override on<K extends ClientEventName>(event: K, listener: ClientEventListener<K>): this;
+  override on(event: string | symbol, listener: (...args: unknown[]) => void): this;
+  override on(event: string | symbol, listener: (...args: unknown[]) => void): this {
+    return super.on(event, listener);
+  }
+
+  /** Typed EventEmitter.once for known client events. */
+  override once<K extends ClientEventName>(event: K, listener: ClientEventListener<K>): this;
+  override once(event: string | symbol, listener: (...args: unknown[]) => void): this;
+  override once(event: string | symbol, listener: (...args: unknown[]) => void): this {
+    return super.once(event, listener);
+  }
+
+  /** Typed EventEmitter.off for known client events. */
+  override off<K extends ClientEventName>(event: K, listener: ClientEventListener<K>): this;
+  override off(event: string | symbol, listener: (...args: unknown[]) => void): this;
+  override off(event: string | symbol, listener: (...args: unknown[]) => void): this {
+    return super.off(event, listener);
+  }
+
+  /** Typed EventEmitter.emit for known client events. */
+  override emit<K extends ClientEventName>(event: K, ...args: ClientEvents[K]): boolean;
+  override emit(event: string | symbol, ...args: unknown[]): boolean;
+  override emit(event: string | symbol, ...args: unknown[]): boolean {
+    return super.emit(event, ...args);
   }
 
   /**
@@ -213,7 +248,9 @@ export class Client extends EventEmitter {
     const parsed = parseEmoji(
       typeof emoji === 'string' ? emoji : emoji.id ? `:${emoji.name}:` : emoji.name,
     );
-    if (!parsed) throw new Error('Invalid emoji');
+    if (!parsed) {
+      throw new FluxerError('Invalid emoji', { code: ErrorCodes.InvalidEmoji });
+    }
     if (parsed.id) {
       if (guildId) {
         await this.assertEmojiInGuild(parsed.id, guildId);
@@ -234,13 +271,15 @@ export class Client extends EventEmitter {
       }>;
       const found = list.find((e) => e.name && e.name.toLowerCase() === parsed!.name.toLowerCase());
       if (found) return formatEmoji({ ...parsed, id: found.id, animated: found.animated });
-      throw new Error(
+      throw new FluxerError(
         `Custom emoji ":${parsed.name}:" not found in guild. Use name:id or <:name:id> format.`,
+        { code: ErrorCodes.EmojiNotFound },
       );
     }
     if (/^\w+$/.test(parsed.name)) {
-      throw new Error(
+      throw new FluxerError(
         `Custom emoji ":${parsed.name}:" requires guild context. Use message.react() in a guild channel, or pass guildId to client.resolveEmoji().`,
+        { code: ErrorCodes.EmojiRequiresGuild },
       );
     }
     return parsed.name;
@@ -270,6 +309,22 @@ export class Client extends EventEmitter {
    */
   async fetchInstance(): Promise<APIInstance> {
     return this.rest.get<APIInstance>(Routes.instance(), { auth: false });
+  }
+
+  /**
+   * Fetch instance discovery document (API URL, gateway URL, features). GET /.well-known/fluxer.
+   * Does not require authentication.
+   */
+  async fetchInstanceDiscovery(): Promise<APIInstance> {
+    return this.rest.get<APIInstance>(Routes.instanceDiscovery(), { auth: false });
+  }
+
+  /**
+   * Fetch gateway connection metadata (WebSocket URL, recommended shards, session limits).
+   * GET /gateway/bot (authenticated).
+   */
+  async fetchGatewayInfo(): Promise<APIGatewayBotResponse> {
+    return this.rest.get<APIGatewayBotResponse>(Routes.gatewayBot());
   }
 
   /**
@@ -361,7 +416,11 @@ export class Client extends EventEmitter {
 
   /** WebSocket manager. Throws if not logged in. */
   get ws(): WebSocketManager {
-    if (!this._ws) throw new Error('Client is not logged in');
+    if (!this._ws) {
+      throw new FluxerError('Client is not logged in. Call login() first.', {
+        code: ErrorCodes.NotLoggedIn,
+      });
+    }
     return this._ws;
   }
 
@@ -374,15 +433,38 @@ export class Client extends EventEmitter {
     this.ws.send(shardId, payload);
   }
 
-  private async handleDispatch(payload: GatewayReceivePayload): Promise<void> {
-    if (payload.op !== 0 || !payload.t) return;
+  /**
+   * Run gateway event handlers. By default (see {@link ClientOptions.gatewayDeferHandlers}) work is deferred to the next
+   * macrotask so user code does not block the WebSocket `message` callback.
+   */
+  private handleDispatch(payload: GatewayReceivePayload): Promise<void> {
+    if (payload.op !== 0 || !payload.t) return Promise.resolve();
     const { t: event, d } = payload;
-    try {
-      const handler = eventHandlers.get(event);
-      if (handler) await handler(this, d);
-    } catch (err) {
-      this.emit(Events.Error, err instanceof Error ? err : new Error(String(err)));
+    const handler = eventHandlers.get(event);
+    if (!handler) return Promise.resolve();
+
+    const run = async (): Promise<void> => {
+      try {
+        await handler(this, d);
+      } catch (err) {
+        this.emit(Events.Error, err instanceof Error ? err : new Error(String(err)));
+      }
+    };
+
+    if (this.options.gatewayDeferHandlers === false) {
+      return run();
     }
+
+    return new Promise<void>((resolve, reject) => {
+      const start = (): void => {
+        void run().then(resolve).catch(reject);
+      };
+      if (typeof setImmediate === 'function') {
+        setImmediate(start);
+      } else {
+        setTimeout(start, 0);
+      }
+    });
   }
 
   /**
@@ -415,6 +497,7 @@ export class Client extends EventEmitter {
       presence: this.options.presence,
       rest: { get: (route: string) => this.rest.get(route) },
       version: this.options.rest?.version ?? '1',
+      debug: this.options.gatewayDebug !== false,
       WebSocket: this.options.WebSocket,
     });
     this._ws.on('dispatch', ({ payload }: { payload: GatewayReceivePayload }) => {

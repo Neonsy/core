@@ -11,6 +11,56 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    version: '1.3.0',
+    date: '2026-04-07',
+    sections: [
+      {
+        title: '@fluxerjs/types — REST and gateway',
+        items: [
+          'Routes.webhookMessage(id, token, messageId) for webhook-owned messages',
+          'Routes.instanceDiscovery() — GET /.well-known/fluxer',
+          'Gateway opcodes: VoiceServerPing (5), GatewayError (12), LazyRequest (14)',
+          'Tighter gateway payload types (member list ops, INVITE_CREATE partials, sessions, settings, favorite memes, etc.)',
+          'APIWebhookEditMessageRequest for webhook message PATCH bodies',
+        ],
+      },
+      {
+        title: '@fluxerjs/core — client and structures',
+        items: [
+          'Client.fetchGatewayInfo() — GET /gateway/bot',
+          'Client.fetchInstanceDiscovery() — GET /.well-known/fluxer (GET /instance unchanged on fetchInstance())',
+          'Typed Client.on / once / off / emit overloads for known events',
+          'Events.guildMembersChunk — GUILD_MEMBERS_CHUNK populates member cache when guild is cached',
+          'INVITE_CREATE normalizes partial gateway payloads (guild_id / channel_id) using cache fallbacks',
+          'Webhook.fetchMessage / editMessage / deleteMessage; Webhook.send uses FluxerError when token missing',
+          'Guild.fetchInvites, fetchInvite, fetchStickers, fetchSticker; guild.stickers collection',
+          'Invite.fetch(client, codeOrUrl) with URL.canParse-based code/URL parsing',
+          '**Breaking:** `interactionCreate` emits `BaseInteraction` / `ChatInputCommandInteraction` (use `.raw` for the API payload); helpers `getString`, `getInteger`, `getBoolean`, `getSubcommand`, etc.',
+          'Client options: `gatewayDebug`, `gatewayDeferHandlers` (default on); deferred dispatch yields before user handlers; `setMaxListeners(0)` on Client',
+          'Subpath exports: `@fluxerjs/core/client`, `/errors`, `/message` for smaller bundles',
+          'Additional `FluxerError` / `ErrorCodes` (e.g. `NOT_LOGGED_IN`, attachment and interaction codes)',
+        ],
+      },
+      {
+        title: '@fluxerjs/util, @fluxerjs/rest, @fluxerjs/builders, @fluxerjs/voice',
+        items: [
+          '`FluxerError` and `ErrorCodes` live in `@fluxerjs/util`; `@fluxerjs/core` re-exports them',
+          'REST: optional `signal` on requests (combined with timeout); route-hash LRU cache; `setMaxListeners(0)` on REST client',
+          'Builders: invalid attachment/embed URLs throw `FluxerError` with codes',
+          'Voice: fetch/setup failures use `FluxerError` with `cause` where applicable',
+        ],
+      },
+      {
+        title: '@fluxerjs/ws',
+        items: [
+          'Handle opcode 12 (GatewayError) with error + debug emission',
+          'WebSocketShard unit tests and package vitest config',
+          'Optional `debug: false` on shards; connect/loader failures throw `FluxerError` (`WEBSOCKET_LOAD_FAILED`, `GATEWAY_CONNECTION_ABORTED`, `GATEWAY_FETCH_FAILED`)',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.2.4',
     date: '2026-03-19',
     sections: [
@@ -200,7 +250,7 @@ export const changelogEntries: ChangelogEntry[] = [
           'Support banner — closable with × button; preference persisted in localStorage',
           'Guides page — wider content area and improved layout to use more screen space',
           'Join our Fluxer community — prominent callout on homepage, Guides sidebar, Docs sidebar, REST API sidebar, and Footer',
-          'CommunityCallout component with hero and sidebar variants linking to fluxer.gg/fluxer-js',
+          'CommunityCallout component in docs sidebars linking to fluxer.gg/fluxer-js',
         ],
       },
       {

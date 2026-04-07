@@ -5,6 +5,7 @@
  * Users never need to install ws themselves.
  */
 
+import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import ws from 'ws';
 
 type WSConstructor = new (url: string) => {
@@ -31,8 +32,9 @@ export function getDefaultWebSocketSync(): WSConstructor {
       // fall through
     }
   }
-  throw new Error(
+  throw new FluxerError(
     'No WebSocket implementation. Use Node 22+, or run with CommonJS. The "ws" package is bundled with @fluxerjs/ws.',
+    { code: ErrorCodes.WebSocketLoadFailed },
   );
 }
 

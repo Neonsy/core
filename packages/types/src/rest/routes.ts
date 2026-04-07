@@ -70,6 +70,8 @@ export const Routes = {
   guildWebhooks: (id: Snowflake) => `/guilds/${id}/webhooks` as const,
   webhook: (id: Snowflake) => `/webhooks/${id}` as const,
   webhookExecute: (id: Snowflake, token: string) => `/webhooks/${id}/${token}` as const,
+  webhookMessage: (id: Snowflake, token: string, messageId: Snowflake) =>
+    `/webhooks/${id}/${token}/messages/${messageId}` as const,
 
   // Users
   user: (id: Snowflake) => `/users/${id}` as const,
@@ -82,6 +84,8 @@ export const Routes = {
     guildId ? `/users/${id}/profile?guild_id=${guildId}` : `/users/${id}/profile`,
 
   // Instance (unauthenticated)
+  /** Canonical instance discovery document (may mirror GET /instance). */
+  instanceDiscovery: () => '/.well-known/fluxer' as const,
   instance: () => '/instance' as const,
 
   // Gateway

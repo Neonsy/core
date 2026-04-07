@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { Client } from '@fluxerjs/core';
 import { VoiceChannel } from '@fluxerjs/core';
+import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import {
   GatewayVoiceServerUpdateDispatchData,
   GatewayVoiceStateUpdateDispatchData,
@@ -206,8 +207,11 @@ export class VoiceConnection extends EventEmitter {
   private async getWebSocketConstructor(): Promise<new (url: string) => VoiceWebSocket> {
     try {
       return ws.default as new (url: string) => VoiceWebSocket;
-    } catch {
-      throw new Error('Install "ws" for voice support: pnpm add ws');
+    } catch (err) {
+      throw new FluxerError('Install "ws" for voice support: pnpm add ws', {
+        code: ErrorCodes.VoiceWebSocketRequired,
+        cause: err instanceof Error ? err : undefined,
+      });
     }
   }
 
@@ -301,11 +305,21 @@ export class VoiceConnection extends EventEmitter {
     if (typeof urlOrStream === 'string') {
       try {
         const response = await fetch(urlOrStream);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        if (!response.body) throw new Error('No response body');
+        if (!response.ok) {
+          throw new FluxerError(`HTTP ${response.status}`, { code: ErrorCodes.VoiceHttpError });
+        }
+        if (!response.body) {
+          throw new FluxerError('No response body', { code: ErrorCodes.VoiceNoResponseBody });
+        }
         inputStream = Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]);
       } catch (e) {
-        const err = e instanceof Error ? e : new Error(String(e));
+        const err =
+          e instanceof FluxerError
+            ? e
+            : new FluxerError(e instanceof Error ? e.message : String(e), {
+                code: ErrorCodes.FileFetchFailed,
+                cause: e instanceof Error ? e : undefined,
+              });
         this.emit('error', err);
         return;
       }

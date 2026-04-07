@@ -24,3 +24,13 @@ await client.login(process.env.FLUXER_BOT_TOKEN);
 ```
 
 For voice, add `@fluxerjs/voice`. For embeds, use `EmbedBuilder`.
+
+## Subpath imports (tree-shaking)
+
+Bundlers can pull smaller graphs when you import only what you need:
+
+- `@fluxerjs/core/client` — `Client`, `Events`, `ClientOptions`
+- `@fluxerjs/core/errors` — `FluxerError`, `ErrorCodes`
+- `@fluxerjs/core/message` — `Message`, `PartialMessage`, send/edit types
+
+Related: `@fluxerjs/types/routes` (route builders only), `@fluxerjs/rest/request-manager` (HTTP layer without the full `REST` facade).

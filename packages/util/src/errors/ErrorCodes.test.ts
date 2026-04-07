@@ -7,6 +7,11 @@ describe('ErrorCodes', () => {
     expect(ErrorCodes.ChannelNotFound).toBe('CHANNEL_NOT_FOUND');
     expect(ErrorCodes.GuildNotFound).toBe('GUILD_NOT_FOUND');
     expect(ErrorCodes.EmojiNotFound).toBe('EMOJI_NOT_FOUND');
+    expect(ErrorCodes.WebhookTokenRequired).toBe('WEBHOOK_TOKEN_REQUIRED');
+    expect(ErrorCodes.InvalidInvite).toBe('INVALID_INVITE');
+    expect(ErrorCodes.NotLoggedIn).toBe('NOT_LOGGED_IN');
+    expect(ErrorCodes.InvalidEmoji).toBe('INVALID_EMOJI');
+    expect(ErrorCodes.WebSocketLoadFailed).toBe('WEBSOCKET_LOAD_FAILED');
   });
 
   it('has all required codes', () => {

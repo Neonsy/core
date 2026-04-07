@@ -14,7 +14,7 @@
       @click="sidebarOpen = false" />
     <aside class="guides-sidebar sidebar-base" :class="{ 'is-open': sidebarOpen }">
       <h3 class="sidebar-title">Guides</h3>
-      <CommunityCallout variant="sidebar" />
+      <CommunityCallout />
       <router-link :to="versionedPath('/api')" class="guides-rest-api-link">REST API →</router-link>
       <div class="sidebar-filter-wrap">
         <input

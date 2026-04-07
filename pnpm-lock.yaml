@@ -288,6 +288,9 @@ importers:
       '@fluxerjs/types':
         specifier: workspace:*
         version: link:../types
+      '@fluxerjs/util':
+        specifier: workspace:*
+        version: link:../util
       '@livekit/rtc-node':
         specifier: ^0.13.24
         version: 0.13.24
@@ -332,6 +335,9 @@ importers:
       '@fluxerjs/types':
         specifier: workspace:*
         version: link:../types
+      '@fluxerjs/util':
+        specifier: workspace:*
+        version: link:../util
       ws:
         specifier: ^8.18.0
         version: 8.19.0
@@ -345,6 +351,9 @@ importers:
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@20.19.33)(jiti@1.21.7)(jsdom@28.1.0)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
 
 packages:
 

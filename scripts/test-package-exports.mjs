@@ -16,6 +16,12 @@ const TESTS = [
     },
   },
   {
+    pkg: '@fluxerjs/types/routes',
+    exercise: async (m) => {
+      if (typeof m.Routes?.channel !== 'function') throw new Error('subpath Routes.channel missing');
+    },
+  },
+  {
     pkg: '@fluxerjs/util',
     exercise: async (m) => {
       if (!m.SnowflakeUtil?.isValid('0')) throw new Error('SnowflakeUtil.isValid failed');
@@ -35,8 +41,15 @@ const TESTS = [
   {
     pkg: '@fluxerjs/rest',
     exercise: async (m) => {
-      const rm = new m.RequestManager({ baseURL: 'https://example.com' });
+      const rm = new m.RequestManager({ api: 'https://example.com' });
       if (typeof rm.request !== 'function') throw new Error('RequestManager.request missing');
+    },
+  },
+  {
+    pkg: '@fluxerjs/rest/request-manager',
+    exercise: async (m) => {
+      const rm = new m.RequestManager({});
+      if (typeof rm.request !== 'function') throw new Error('subpath RequestManager.request missing');
     },
   },
   {
@@ -62,6 +75,26 @@ const TESTS = [
       if (typeof m.Client !== 'function') throw new Error('Client missing');
       if (typeof m.Events !== 'object') throw new Error('Events missing');
       if (!m.Events.Ready) throw new Error('Events.Ready missing');
+    },
+  },
+  {
+    pkg: '@fluxerjs/core/client',
+    exercise: async (m) => {
+      if (typeof m.Client !== 'function') throw new Error('subpath Client missing');
+      if (!m.Events?.Ready) throw new Error('subpath Events missing');
+    },
+  },
+  {
+    pkg: '@fluxerjs/core/errors',
+    exercise: async (m) => {
+      if (typeof m.FluxerError !== 'function') throw new Error('subpath FluxerError missing');
+      if (!m.ErrorCodes?.ClientNotReady) throw new Error('subpath ErrorCodes missing');
+    },
+  },
+  {
+    pkg: '@fluxerjs/core/message',
+    exercise: async (m) => {
+      if (typeof m.Message !== 'function') throw new Error('subpath Message missing');
     },
   },
   {

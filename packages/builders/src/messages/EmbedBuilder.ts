@@ -1,5 +1,5 @@
 import { APIEmbed, APIEmbedAuthor, APIEmbedFooter, APIEmbedMedia } from '@fluxerjs/types';
-import { resolveColor } from '@fluxerjs/util';
+import { ErrorCodes, FluxerError, resolveColor } from '@fluxerjs/util';
 
 /** Options for embed media (image, thumbnail, video, audio). */
 export interface EmbedMediaOptions {
@@ -29,7 +29,7 @@ function toEmbedMedia(input: string | EmbedMediaOptions): APIEmbedMedia {
     return { url: input };
   }
   if (!URL.canParse(input.url)) {
-    throw new Error('Invalid embed media URL');
+    throw new FluxerError('Invalid embed media URL', { code: ErrorCodes.InvalidEmbedMediaUrl });
   }
   const media: APIEmbedMedia = { url: input.url };
   if (input.content_type != null) media.content_type = input.content_type;
@@ -89,7 +89,7 @@ export class EmbedBuilder {
   /** Set the embed URL (title becomes a link). */
   setURL(url: string | null): this {
     if (url != null && url !== '' && !URL.canParse(url)) {
-      throw new Error('Invalid embed URL');
+      throw new FluxerError('Invalid embed URL', { code: ErrorCodes.InvalidEmbedUrl });
     }
     this.data.url = url ?? undefined;
     return this;

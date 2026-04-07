@@ -105,6 +105,15 @@ describe('Routes', () => {
     it('instance builds path', () => {
       expect(Routes.instance()).toBe('/instance');
     });
+    it('instanceDiscovery builds path', () => {
+      expect(Routes.instanceDiscovery()).toBe('/.well-known/fluxer');
+    });
+  });
+
+  describe('webhook messages', () => {
+    it('webhookMessage builds path', () => {
+      expect(Routes.webhookMessage('wh1', 'tok', 'msg1')).toBe('/webhooks/wh1/tok/messages/msg1');
+    });
   });
 
   describe('stream preview', () => {

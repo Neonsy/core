@@ -1,5 +1,7 @@
 import { APIEmbed } from '@fluxerjs/types';
 import { EmbedBuilder } from '@fluxerjs/builders';
+import { ErrorCodes } from '../errors/ErrorCodes.js';
+import { FluxerError } from '../errors/FluxerError.js';
 
 /** Resolved file data (after URL fetch). Used internally by REST layer. */
 export interface ResolvedMessageFile {
@@ -33,20 +35,37 @@ export async function resolveMessageFiles(
     const filename = f.filename ?? f.name;
     if ('url' in f && f.url) {
       if (!URL.canParse(f.url)) {
-        throw new Error(`Invalid file URL at index ${i}: ${f.url}`);
+        throw new FluxerError(`Invalid file URL at index ${i}: ${f.url}`, {
+          code: ErrorCodes.InvalidFileUrl,
+        });
       }
-      const res = await fetch(f.url, {
-        signal: AbortSignal.timeout(FILE_FETCH_TIMEOUT_MS),
-      });
+      let res: Response;
+      try {
+        res = await fetch(f.url, {
+          signal: AbortSignal.timeout(FILE_FETCH_TIMEOUT_MS),
+        });
+      } catch (err) {
+        throw new FluxerError(`Failed to fetch file from ${f.url}`, {
+          code: ErrorCodes.FileFetchFailed,
+          cause: err instanceof Error ? err : undefined,
+        });
+      }
       if (!res.ok) {
-        throw new Error(`Failed to fetch file from ${f.url}: ${res.status} ${res.statusText}`);
+        throw new FluxerError(
+          `Failed to fetch file from ${f.url}: ${res.status} ${res.statusText}`,
+          {
+            code: ErrorCodes.FileFetchFailed,
+          },
+        );
       }
       const data = await res.arrayBuffer();
       result.push({ name: f.name, data, filename });
     } else if ('data' in f && f.data != null) {
       result.push({ name: f.name, data: f.data, filename });
     } else {
-      throw new Error(`File at index ${i} must have either "data" or "url"`);
+      throw new FluxerError(`File at index ${i} must have either "data" or "url"`, {
+        code: ErrorCodes.InvalidAttachment,
+      });
     }
   }
   return result;

@@ -1,3 +1,5 @@
+import { ErrorCodes, FluxerError } from '@fluxerjs/util';
+
 /**
  * Builder for message attachment metadata (filename, description, spoiler).
  * Actual file data is passed separately when sending (e.g. FormData).
@@ -25,7 +27,7 @@ export class AttachmentBuilder {
   /** @param id - Index of the attachment (0-based). Must match the FormData part order. */
   constructor(id: number, filename: string, options?: Partial<AttachmentPayloadOptions>) {
     if (!filename?.trim()) {
-      throw new Error('Filename is required');
+      throw new FluxerError('Filename is required', { code: ErrorCodes.AttachmentFilenameRequired });
     }
     this.id = id;
     this.filename = options?.spoiler ? `SPOILER_${filename}` : filename;
@@ -36,7 +38,7 @@ export class AttachmentBuilder {
   /** Set the displayed filename. */
   setName(name: string): this {
     if (!name?.trim()) {
-      throw new Error('Filename is required');
+      throw new FluxerError('Filename is required', { code: ErrorCodes.AttachmentFilenameRequired });
     }
     this.filename = this.spoiler ? `SPOILER_${name}` : name;
     return this;

@@ -36,6 +36,18 @@ describe('RequestManager', () => {
     expect(result).toEqual({ id: '123' });
   });
 
+  it('request uses response.json when Content-Type is application/json', async () => {
+    const rm = new RequestManager({ retries: 0 });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      json: () => Promise.resolve({ id: 'from-json' }),
+    });
+    const result = await rm.request('GET', '/channels/1');
+    expect(result).toEqual({ id: 'from-json' });
+  });
+
   it('request returns undefined for 204', async () => {
     const rm = new RequestManager({ retries: 0 });
     fetchMock.mockResolvedValueOnce({
@@ -83,5 +95,39 @@ describe('RequestManager', () => {
       'https://cdn.example.com/asset/123',
       expect.objectContaining({ method: 'GET' }),
     );
+  });
+
+  it('request aborts when signal is aborted before fetch', async () => {
+    const rm = new RequestManager({ retries: 3 });
+    const ac = new AbortController();
+    ac.abort();
+    await expect(rm.request('GET', '/channels/1', { signal: ac.signal })).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('request does not retry on AbortError from fetch', async () => {
+    const rm = new RequestManager({ retries: 3 });
+    fetchMock.mockRejectedValueOnce(Object.assign(new Error('Aborted'), { name: 'AbortError' }));
+    await expect(rm.request('GET', '/channels/1')).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('getRouteHash LRU keeps repeatedly used route when cache is full', () => {
+    const rm = new RequestManager({});
+    const getRouteHash = (
+      rm as unknown as { getRouteHash: (r: string) => string }
+    ).getRouteHash.bind(rm);
+    const hot = '/channels/11111111111111111';
+    for (let i = 0; i < 1000; i++) {
+      getRouteHash(`/channels/${100000000000000000n + BigInt(i)}`);
+    }
+    getRouteHash(hot);
+    getRouteHash(hot);
+    for (let i = 0; i < 999; i++) {
+      getRouteHash(`/guilds/${200000000000000000n + BigInt(i)}`);
+    }
+    expect(getRouteHash(hot)).toBe('/channels/:id');
   });
 });

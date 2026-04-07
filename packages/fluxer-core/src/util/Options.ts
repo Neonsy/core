@@ -1,7 +1,14 @@
 import { REST } from '@fluxerjs/rest';
 import { GatewayPresenceUpdateData } from '@fluxerjs/types';
 
-/** Optional cache size limits. When exceeded, oldest entries are evicted (FIFO). Omit or use 0 for unbounded. */
+/**
+ * Optional cache size limits. When exceeded, oldest entries are evicted (FIFO).
+ * Omit a key or use `0` for **unbounded** growth for that bucket (memory use scales with guild/channel/user/message traffic).
+ *
+ * **Recommended starter** for bots in many guilds (tune to your workload):
+ * `{ guilds: 200, users: 10_000, channels: 5_000, messages: 50 }`
+ * — caps RSS from cached structures; raise limits if you rely heavily on cache hits.
+ */
 export interface CacheSizeLimits {
   channels?: number;
   guilds?: number;
@@ -18,10 +25,19 @@ export interface ClientOptions {
   suppressIntentWarning?: boolean;
   /** When true, delay the Ready event until all guilds from READY (including unavailable) have been received via GUILD_CREATE. Default: false. */
   waitForGuilds?: boolean;
-  /** Cache size limits (channels, guilds, users). When exceeded, oldest entries are evicted. Omit or 0 = unbounded. */
+  /** Cache size limits (channels, guilds, users, messages). Omit or 0 = unbounded per field—see {@link CacheSizeLimits}. */
   cache?: CacheSizeLimits;
   /** Initial presence (status, custom_status, etc.) sent on identify. Can also update via PresenceUpdate after connect. */
   presence?: GatewayPresenceUpdateData;
+  /**
+   * When `false`, gateway shards do not emit internal debug strings (fewer allocations; less `Events.Debug` noise). Default: `true`.
+   */
+  gatewayDebug?: boolean;
+  /**
+   * When `true` (default), each gateway dispatch runs user handlers on the next macrotask (`setImmediate` / `setTimeout(0)`)
+   * so heavy handlers do not block the WebSocket `message` callback. When `false`, handlers run immediately (useful for tests).
+   */
+  gatewayDeferHandlers?: boolean;
   /** Optional WebSocket constructor (e.g. `require('ws')` in Node for compatibility) */
   WebSocket?: new (url: string) => {
     send(data: string | ArrayBufferLike): void;

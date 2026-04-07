@@ -1,7 +1,10 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: {
+    index: 'src/index.ts',
+    'request-manager': 'src/subpath-request-manager.ts',
+  },
   format: ['cjs', 'esm'],
   dts: true,
   splitting: false,

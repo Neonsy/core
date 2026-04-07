@@ -72,35 +72,37 @@ onMounted(async () => {
   font-weight: 600;
   color: var(--accent);
   text-decoration: none;
-  transition: color 0.15s;
 }
 
 .footer-community:hover {
   color: var(--accent-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .footer-nav {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 1rem 1.5rem;
+  gap: 0.75rem 1.25rem;
 }
 
 .footer-link {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: color 0.15s;
 }
 
 .footer-link:hover {
   color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .footer-copy {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   color: var(--text-muted);
 }
 </style>

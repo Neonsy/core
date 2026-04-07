@@ -24,7 +24,11 @@ export {
 } from './structures/Message.js';
 export type { PartialMessage } from './structures/PartialMessage.js';
 export { MessageReaction } from './structures/MessageReaction.js';
-export { Webhook, type WebhookSendOptions } from './structures/Webhook.js';
+export {
+  Webhook,
+  type WebhookSendOptions,
+  type WebhookMessageEditOptions,
+} from './structures/Webhook.js';
 export { GuildMember } from './structures/GuildMember.js';
 export {
   GuildMemberRoleManager,
@@ -35,6 +39,13 @@ export { Invite } from './structures/Invite.js';
 export { GuildBan } from './structures/GuildBan.js';
 export { GuildEmoji } from './structures/GuildEmoji.js';
 export { GuildSticker } from './structures/GuildSticker.js';
+export {
+  BaseInteraction,
+  ChatInputCommandInteraction,
+  createInteraction,
+  isChatInputCommandInteraction,
+  type AnyInteraction,
+} from './structures/interactions/index.js';
 export { Events } from './util/Events.js';
 export {
   MessageCollector,
