@@ -29,7 +29,11 @@ const ROUTE_HASH_CACHE_MAX = 1000;
 
 function isAbortError(err: unknown): boolean {
   if (err instanceof Error && err.name === 'AbortError') return true;
-  if (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError') {
+  if (
+    typeof DOMException !== 'undefined' &&
+    err instanceof DOMException &&
+    err.name === 'AbortError'
+  ) {
     return true;
   }
   return false;

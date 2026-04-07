@@ -27,7 +27,9 @@ export class AttachmentBuilder {
   /** @param id - Index of the attachment (0-based). Must match the FormData part order. */
   constructor(id: number, filename: string, options?: Partial<AttachmentPayloadOptions>) {
     if (!filename?.trim()) {
-      throw new FluxerError('Filename is required', { code: ErrorCodes.AttachmentFilenameRequired });
+      throw new FluxerError('Filename is required', {
+        code: ErrorCodes.AttachmentFilenameRequired,
+      });
     }
     this.id = id;
     this.filename = options?.spoiler ? `SPOILER_${filename}` : filename;
@@ -38,7 +40,9 @@ export class AttachmentBuilder {
   /** Set the displayed filename. */
   setName(name: string): this {
     if (!name?.trim()) {
-      throw new FluxerError('Filename is required', { code: ErrorCodes.AttachmentFilenameRequired });
+      throw new FluxerError('Filename is required', {
+        code: ErrorCodes.AttachmentFilenameRequired,
+      });
     }
     this.filename = this.spoiler ? `SPOILER_${name}` : name;
     return this;

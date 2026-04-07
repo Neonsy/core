@@ -5,8 +5,8 @@
         <p class="hero-kicker">Fluxer.js SDK</p>
         <h1>Build bots on Fluxer</h1>
         <p class="lead">
-          TypeScript-first client, REST helpers, and gateway events — with docs generated from the same
-          packages you install.
+          TypeScript-first client, REST helpers, and gateway events — with docs generated from the
+          same packages you install.
         </p>
 
         <section class="hero-panel" aria-label="Get started">
@@ -41,7 +41,15 @@
       <nav class="card-grid" aria-label="Documentation sections">
         <router-link to="/v/latest/guides" class="nav-card">
           <span class="nav-card-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
               <path d="M8 7h8M8 11h6" />
@@ -52,7 +60,15 @@
         </router-link>
         <router-link to="/v/latest/api" class="nav-card">
           <span class="nav-card-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
           </span>
@@ -61,7 +77,15 @@
         </router-link>
         <router-link to="/v/latest/docs" class="nav-card">
           <span class="nav-card-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round">
               <polyline points="16 18 22 12 16 6" />
               <polyline points="8 6 2 12 8 18" />
             </svg>
@@ -71,7 +95,15 @@
         </router-link>
         <router-link to="/changelog" class="nav-card">
           <span class="nav-card-icon nav-card-icon--breaking" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round">
               <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
             </svg>
           </span>
@@ -81,11 +113,19 @@
       </nav>
 
       <footer class="home-footer" aria-label="External links">
-        <a href="https://github.com/fluxerjs/core" target="_blank" rel="noopener noreferrer" class="footer-link">
+        <a
+          href="https://github.com/fluxerjs/core"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="footer-link">
           GitHub
         </a>
         <span class="footer-sep" aria-hidden="true" />
-        <a href="https://fluxer.gg/fluxer-js" target="_blank" rel="noopener noreferrer" class="footer-link">
+        <a
+          href="https://fluxer.gg/fluxer-js"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="footer-link">
           Fluxer.gg
         </a>
       </footer>

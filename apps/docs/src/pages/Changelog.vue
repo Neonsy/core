@@ -21,7 +21,9 @@
       </div>
       <div class="changelog-version-field">
         <ChangelogVersionCombobox v-model="selectedVersion" :versions="versions" />
-        <p id="changelog-version-hint" class="version-hint">Search or pick a release; leave as “All releases” for the full list.</p>
+        <p id="changelog-version-hint" class="version-hint">
+          Search or pick a release; leave as “All releases” for the full list.
+        </p>
       </div>
     </header>
 
@@ -34,7 +36,9 @@
         <div class="release-head">
           <div>
             <h2 class="release-version">v{{ wrap.entry.version }}</h2>
-            <time class="release-date" :datetime="wrap.entry.date">{{ formatDate(wrap.entry.date) }}</time>
+            <time class="release-date" :datetime="wrap.entry.date">{{
+              formatDate(wrap.entry.date)
+            }}</time>
           </div>
           <div v-if="wrap.breakingCount > 0" class="breaking-tag" role="status">
             <svg class="breaking-tag-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -45,7 +49,10 @@
                 stroke-linecap="round"
                 stroke-linejoin="round" />
             </svg>
-            <span>{{ wrap.breakingCount }} breaking {{ wrap.breakingCount === 1 ? 'change' : 'changes' }}</span>
+            <span
+              >{{ wrap.breakingCount }} breaking
+              {{ wrap.breakingCount === 1 ? 'change' : 'changes' }}</span
+            >
           </div>
         </div>
 
@@ -59,7 +66,10 @@
             <li
               v-for="(item, i) in section.items"
               :key="i"
-              :class="['change-line', isBreakingChangelogItem(item) ? 'change-line--breaking' : '']">
+              :class="[
+                'change-line',
+                isBreakingChangelogItem(item) ? 'change-line--breaking' : '',
+              ]">
               <div v-if="isBreakingChangelogItem(item)" class="breaking-rail" aria-hidden="true">
                 <svg class="breaking-row-icon" viewBox="0 0 24 24" fill="none">
                   <path
@@ -71,7 +81,9 @@
                 </svg>
               </div>
               <div class="change-line-body">
-                <span v-if="isBreakingChangelogItem(item)" class="breaking-eyebrow">Breaking change</span>
+                <span v-if="isBreakingChangelogItem(item)" class="breaking-eyebrow"
+                  >Breaking change</span
+                >
                 <span class="change-text">
                   <template
                     v-for="(seg, si) in splitBoldSegments(stripBreakingPrefix(item))"

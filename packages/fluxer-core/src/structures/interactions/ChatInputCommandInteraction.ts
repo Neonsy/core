@@ -1,4 +1,7 @@
-import type { APIApplicationCommandInteraction, APIApplicationCommandOptionValue } from '@fluxerjs/types';
+import type {
+  APIApplicationCommandInteraction,
+  APIApplicationCommandOptionValue,
+} from '@fluxerjs/types';
 import { ErrorCodes } from '../../errors/ErrorCodes.js';
 import { FluxerError } from '../../errors/FluxerError.js';
 import type { Client } from '../../client/Client.js';
@@ -38,9 +41,12 @@ export class ChatInputCommandInteraction extends BaseInteraction {
   constructor(client: Client, raw: APIApplicationCommandInteraction) {
     super(client, raw);
     if (raw.data?.name == null) {
-      throw new FluxerError('ChatInputCommandInteraction requires interaction data with a command name', {
-        code: ErrorCodes.InteractionInvalidPayload,
-      });
+      throw new FluxerError(
+        'ChatInputCommandInteraction requires interaction data with a command name',
+        {
+          code: ErrorCodes.InteractionInvalidPayload,
+        },
+      );
     }
   }
 

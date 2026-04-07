@@ -18,7 +18,8 @@ const TESTS = [
   {
     pkg: '@fluxerjs/types/routes',
     exercise: async (m) => {
-      if (typeof m.Routes?.channel !== 'function') throw new Error('subpath Routes.channel missing');
+      if (typeof m.Routes?.channel !== 'function')
+        throw new Error('subpath Routes.channel missing');
     },
   },
   {
@@ -49,7 +50,8 @@ const TESTS = [
     pkg: '@fluxerjs/rest/request-manager',
     exercise: async (m) => {
       const rm = new m.RequestManager({});
-      if (typeof rm.request !== 'function') throw new Error('subpath RequestManager.request missing');
+      if (typeof rm.request !== 'function')
+        throw new Error('subpath RequestManager.request missing');
     },
   },
   {

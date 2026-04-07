@@ -12,15 +12,32 @@
       :aria-controls="listboxId"
       @click="toggle">
       <span class="combo-trigger-text">{{ displayLabel }}</span>
-      <svg class="combo-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <svg
+        class="combo-chevron"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true">
+        <path
+          d="M6 9l6 6 6-6"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
       </svg>
     </button>
 
     <Transition name="combo-drop">
       <div v-if="open" class="combo-panel" role="presentation">
         <div class="combo-search-wrap">
-          <svg class="combo-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg
+            class="combo-search-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true">
             <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
             <path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
@@ -61,7 +78,10 @@
               v{{ v }}
             </button>
           </li>
-          <li v-if="filteredVersions.length === 0 && query.trim()" role="presentation" class="combo-empty">
+          <li
+            v-if="filteredVersions.length === 0 && query.trim()"
+            role="presentation"
+            class="combo-empty">
             No versions match “{{ query.trim() }}”
           </li>
         </ul>
