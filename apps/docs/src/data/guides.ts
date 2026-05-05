@@ -1288,12 +1288,12 @@ voiceManager.leave(guildId);`,
       {
         title: 'Overview',
         description:
-          'By default, Ready fires as soon as the gateway sends the READY payload. Some guilds may be sent as unavailable stubs and arrive later via GUILD_CREATE. Enable waitForGuilds if your Ready handler needs every guild to be in client.guilds before proceeding.',
+          'By default, Ready fires as soon as the gateway sends the READY payload. Some guilds may be sent as unavailable stubs and arrive later via GUILD_CREATE. Enable waitForGuilds if your Ready handler needs every guild to be in client.guilds before proceeding. While guilds are loading, other gateway events (such as MESSAGE_CREATE) are held until after Ready so database connections or other setup you attach in Ready cannot race ahead of those handlers.',
       },
       {
         title: 'Usage',
         description:
-          'Pass waitForGuilds: true in ClientOptions. Ready will emit only after all guilds from READY (including those marked unavailable) have been received via GUILD_CREATE.',
+          'Pass waitForGuilds: true in ClientOptions. Ready will emit only after all guilds from READY (including those marked unavailable) have been received via GUILD_CREATE. Earlier gateway traffic is queued and replayed in order after Ready (except GUILD_CREATE, which must run during sync to populate the cache).',
         code: `import { Client, Events } from '@fluxerjs/core';
 
 const client = new Client({

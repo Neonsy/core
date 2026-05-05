@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Routes } from '@fluxerjs/types';
+import type { APIUser } from '@fluxerjs/types';
 import { Client } from './Client.js';
 import { Events } from '../util/Events.js';
 import { Invite } from '../structures/Invite.js';
 import { Guild } from '../structures/Guild.js';
+import { ClientUser } from './ClientUser.js';
 
 describe('Client gateway helpers and dispatch', () => {
   let client: Client;
@@ -194,5 +196,76 @@ describe('Client gateway helpers and dispatch', () => {
 
     expect(guild.members.get('u2')).toBeTruthy();
     expect(guild.members.size).toBe(1);
+  });
+
+  it('defers MESSAGE_CREATE until Ready when waitForGuilds is true', async () => {
+    const client = new Client({ waitForGuilds: true, gatewayDeferHandlers: false });
+    client.user = new ClientUser(client, {
+      id: 'bot1',
+      username: 'bot',
+      discriminator: '0',
+    } as APIUser);
+    const emit = vi.spyOn(client, 'emit');
+
+    await (
+      client as unknown as { handleDispatch: (dispatchPayload: unknown) => Promise<void> }
+    ).handleDispatch({
+      op: 0,
+      t: 'MESSAGE_CREATE',
+      d: {
+        id: 'm1',
+        channel_id: 'c1',
+        guild_id: 'g1',
+        content: 'hi',
+        timestamp: new Date().toISOString(),
+        pinned: false,
+        author: { id: 'u1', username: 'alice', discriminator: '0' },
+      },
+    });
+
+    expect(emit.mock.calls.some((c) => c[0] === Events.MessageCreate)).toBe(false);
+
+    client._finalizeReady();
+
+    expect(emit.mock.calls.some((c) => c[0] === Events.Ready)).toBe(true);
+    expect(emit.mock.calls.some((c) => c[0] === Events.MessageCreate)).toBe(true);
+    const readyIdx = emit.mock.calls.findIndex((c) => c[0] === Events.Ready);
+    const msgIdx = emit.mock.calls.findIndex((c) => c[0] === Events.MessageCreate);
+    expect(readyIdx).toBeLessThan(msgIdx);
+  });
+
+  it('still runs GUILD_CREATE before Ready when waitForGuilds is true', async () => {
+    const client = new Client({ waitForGuilds: true, gatewayDeferHandlers: false });
+    client.user = new ClientUser(client, {
+      id: 'bot1',
+      username: 'bot',
+      discriminator: '0',
+    } as APIUser);
+    const emit = vi.spyOn(client, 'emit');
+
+    await (
+      client as unknown as { handleDispatch: (dispatchPayload: unknown) => Promise<void> }
+    ).handleDispatch({
+      op: 0,
+      t: 'GUILD_CREATE',
+      d: {
+        id: 'g1',
+        name: 'Test',
+        icon: null,
+        banner: null,
+        splash: null,
+        owner_id: 'o1',
+        features: [],
+        afk_timeout: 0,
+        nsfw_level: 0,
+        verification_level: 0,
+        mfa_level: 0,
+        explicit_content_filter: 0,
+        default_message_notifications: 0,
+      },
+    });
+
+    expect(emit.mock.calls.some((c) => c[0] === Events.GuildCreate)).toBe(true);
+    expect(emit.mock.calls.some((c) => c[0] === Events.Ready)).toBe(false);
   });
 });

@@ -171,6 +171,11 @@ export class Client extends EventEmitter {
   _pendingGuildIds: Set<string> | null = null;
   /** Timeout for guild stream when READY has no guilds (gateway sends only GUILD_CREATE). Cleared in finally. */
   private _guildStreamSettleTimeout: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * When waitForGuilds delays Ready, gateway dispatches (except GUILD_CREATE) are queued and replayed after Ready.
+   * Ensures user handlers that assume post-Ready setup (e.g. DB in Ready) do not run during the guild sync window.
+   */
+  private _deferredGatewayDispatches: GatewayReceivePayload[] = [];
   /** Per-channel message cache (channelId -> messageId -> APIMessage). Used when options.cache.messages > 0. */
   private _messageCaches: Map<string, Map<string, APIMessage>> | null = null;
 
@@ -434,12 +439,33 @@ export class Client extends EventEmitter {
   }
 
   /**
+   * While {@link ClientOptions.waitForGuilds} delays Ready, defer user-facing dispatch handling until Ready fires.
+   * GUILD_CREATE must still run immediately so guild cache and {@link Client._onGuildReceived} can finish the handshake.
+   */
+  private _shouldDeferGatewayDispatchUntilReady(payload: GatewayReceivePayload): boolean {
+    if (this.options.waitForGuilds !== true || this.readyAt !== null) return false;
+    if (payload.op !== 0 || !payload.t) return false;
+    if (payload.t === 'GUILD_CREATE') return false;
+    return true;
+  }
+
+  /**
    * Run gateway event handlers. By default (see {@link ClientOptions.gatewayDeferHandlers}) work is deferred to the next
    * macrotask so user code does not block the WebSocket `message` callback.
    */
   private handleDispatch(payload: GatewayReceivePayload): Promise<void> {
     if (payload.op !== 0 || !payload.t) return Promise.resolve();
-    const { t: event, d } = payload;
+    if (this._shouldDeferGatewayDispatchUntilReady(payload)) {
+      this._deferredGatewayDispatches.push(payload);
+      return Promise.resolve();
+    }
+    return this._dispatchGatewayPayload(payload);
+  }
+
+  private _dispatchGatewayPayload(payload: GatewayReceivePayload): Promise<void> {
+    const event = payload.t;
+    if (!event) return Promise.resolve();
+    const { d } = payload;
     const handler = eventHandlers.get(event);
     if (!handler) return Promise.resolve();
 
@@ -465,6 +491,16 @@ export class Client extends EventEmitter {
         setTimeout(start, 0);
       }
     });
+  }
+
+  private async _flushDeferredGatewayDispatches(): Promise<void> {
+    while (this._deferredGatewayDispatches.length > 0) {
+      const batch = this._deferredGatewayDispatches;
+      this._deferredGatewayDispatches = [];
+      for (const p of batch) {
+        await this._dispatchGatewayPayload(p);
+      }
+    }
   }
 
   /**
@@ -573,6 +609,9 @@ export class Client extends EventEmitter {
     this._pendingGuildIds = null;
     this.readyAt = new Date();
     this.emit(Events.Ready);
+    void this._flushDeferredGatewayDispatches().catch((err: unknown) =>
+      this.emit(Events.Error, err instanceof Error ? err : new Error(String(err))),
+    );
   }
 
   /**
@@ -592,6 +631,7 @@ export class Client extends EventEmitter {
       clearTimeout(this._guildStreamSettleTimeout);
       this._guildStreamSettleTimeout = null;
     }
+    this._deferredGatewayDispatches = [];
     if (this._ws) {
       this._ws.destroy();
       this._ws = null;

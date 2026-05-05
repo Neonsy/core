@@ -11,6 +11,35 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    version: '1.3.1',
+    date: '2026-05-05',
+    sections: [
+      {
+        title: '@fluxerjs/core — waitForGuilds event ordering',
+        items: [
+          'When waitForGuilds is true, gateway dispatches other than GUILD_CREATE are queued until Ready fires, then replayed in order — avoids MESSAGE_CREATE and similar handlers running before Ready-based initialization (e.g. DB pools)',
+          'GUILD_CREATE still runs during the guild sync window so the guild cache can populate before Ready',
+          'Deferred dispatches are flushed after Ready; flush errors emit Events.Error; queue cleared on disconnect',
+          'ClientOptions.waitForGuilds JSDoc updated to describe the deferral behavior',
+          'Gateway tests: MESSAGE_CREATE deferred until Ready; GUILD_CREATE still runs before Ready',
+        ],
+      },
+      {
+        title: '@fluxerjs/voice — local WebM/Opus playback',
+        items: [
+          'VoiceConnection.play and LiveKitRtcConnection.play: http(s):// strings are still fetched; file:// and all other strings are read from disk (filesystem path)',
+          'Clarified playOpus JSDoc (raw Opus streams vs WebM/Opus via play)',
+        ],
+      },
+      {
+        title: 'Documentation',
+        items: [
+          'Guides (waitForGuilds): document that non–GUILD_CREATE gateway events are held until after Ready during guild sync',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.3.0',
     date: '2026-04-07',
     sections: [

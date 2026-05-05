@@ -23,7 +23,11 @@ export interface ClientOptions {
   intents?: number;
   /** Suppress the warning when intents are set (Fluxer does not support intents yet). */
   suppressIntentWarning?: boolean;
-  /** When true, delay the Ready event until all guilds from READY (including unavailable) have been received via GUILD_CREATE. Default: false. */
+  /**
+   * When true, delay the Ready event until all guilds from READY (including unavailable) have been received via GUILD_CREATE.
+   * Other gateway dispatches (e.g. MESSAGE_CREATE) are queued and delivered after Ready so handlers can rely on post-Ready setup.
+   * GUILD_CREATE still runs during sync so the guild cache can finish loading. Default: false.
+   */
   waitForGuilds?: boolean;
   /** Cache size limits (channels, guilds, users, messages). Omit or 0 = unbounded per field—see {@link CacheSizeLimits}. */
   cache?: CacheSizeLimits;

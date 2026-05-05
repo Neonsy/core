@@ -9,7 +9,9 @@ import {
 import * as nacl from 'tweetnacl';
 import * as dgram from 'dgram';
 import * as ws from 'ws';
+import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
+import { fileURLToPath } from 'node:url';
 import { opus } from 'prism-media';
 /** Minimal WebSocket type for voice (ws module). */
 interface VoiceWebSocket {
@@ -256,7 +258,7 @@ export class VoiceConnection extends EventEmitter {
 
   /**
    * Play a stream of raw Opus packets
-   * Uses the same queue and 20ms pacing as play(). Use this for local files (MP3 → PCM → Opus) or other Opus sources.
+   * Uses the same queue and 20ms pacing as play(). Use this for raw Opus packet streams (e.g. MP3 → PCM → Opus pipelines) when you are not using WebM/Opus.
    */
   playOpus(stream: NodeJS.ReadableStream): void {
     this.stop();
@@ -295,8 +297,13 @@ export class VoiceConnection extends EventEmitter {
   }
 
   /**
-   * Play a direct WebM/Opus URL or stream. Fetches the URL (if string), demuxes with prism-media WebmDemuxer,
-   * and sends Opus packets to the voice connection. No FFmpeg or encoding; input must be WebM with Opus.
+   * Play a direct WebM/Opus source. When `urlOrStream` is a string:
+   * - `http://` / `https://` — fetched over the network
+   * - `file://` — read from the local filesystem
+   * - any other string — treated as a filesystem path (e.g. `./music/track.webm`)
+   *
+   * You can also pass a Node.js Readable stream. Demuxes with prism-media WebmDemuxer; no FFmpeg;
+   * input must be WebM with Opus.
    */
   async play(urlOrStream: string | NodeJS.ReadableStream): Promise<void> {
     this.stop();
@@ -304,14 +311,22 @@ export class VoiceConnection extends EventEmitter {
     let inputStream: NodeJS.ReadableStream;
     if (typeof urlOrStream === 'string') {
       try {
-        const response = await fetch(urlOrStream);
-        if (!response.ok) {
-          throw new FluxerError(`HTTP ${response.status}`, { code: ErrorCodes.VoiceHttpError });
+        const spec = urlOrStream.trim();
+        const lower = spec.toLowerCase();
+        if (lower.startsWith('http://') || lower.startsWith('https://')) {
+          const response = await fetch(spec);
+          if (!response.ok) {
+            throw new FluxerError(`HTTP ${response.status}`, { code: ErrorCodes.VoiceHttpError });
+          }
+          if (!response.body) {
+            throw new FluxerError('No response body', { code: ErrorCodes.VoiceNoResponseBody });
+          }
+          inputStream = Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]);
+        } else if (lower.startsWith('file:')) {
+          inputStream = createReadStream(fileURLToPath(new URL(spec)));
+        } else {
+          inputStream = createReadStream(spec);
         }
-        if (!response.body) {
-          throw new FluxerError('No response body', { code: ErrorCodes.VoiceNoResponseBody });
-        }
-        inputStream = Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]);
       } catch (e) {
         const err =
           e instanceof FluxerError

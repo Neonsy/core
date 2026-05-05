@@ -27,7 +27,9 @@ import {
 import { buildLiveKitUrlForRtcSdk } from './livekit.js';
 import { parseOpusPacketBoundaries, concatUint8Arrays } from './opusUtils.js';
 import { VoiceConnectionEvents } from './VoiceConnection.js';
+import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
+import { fileURLToPath } from 'node:url';
 import { OpusDecoder } from 'opus-decoder';
 import { opus } from 'prism-media';
 import { promisify } from 'node:util';
@@ -1531,10 +1533,13 @@ export class LiveKitRtcConnection extends EventEmitter {
   }
 
   /**
-   * Play audio from a WebM/Opus URL or readable stream. Publishes to the LiveKit room as an audio track.
+   * Play audio from a WebM/Opus source. Publishes to the LiveKit room as an audio track.
    *
-   * @param urlOrStream - Audio source: HTTP(S) URL to a WebM/Opus file, or a Node.js ReadableStream
-   * @emits error - On fetch failure or decode errors
+   * When `urlOrStream` is a string: `http(s)://` is fetched; `file://` or any other string is read
+   * from the local filesystem (path). Otherwise pass a Node.js ReadableStream.
+   *
+   * @param urlOrStream - WebM/Opus HTTP(S) URL, `file://` URL, filesystem path, or ReadableStream
+   * @emits error - On fetch/read failure or decode errors
    */
   async play(urlOrStream: string | NodeJS.ReadableStream): Promise<void> {
     this.stop();
@@ -1546,14 +1551,22 @@ export class LiveKitRtcConnection extends EventEmitter {
     let inputStream: NodeJS.ReadableStream;
     if (typeof urlOrStream === 'string') {
       try {
-        const response = await fetch(urlOrStream);
-        if (!response.ok) {
-          throw new FluxerError(`HTTP ${response.status}`, { code: ErrorCodes.VoiceHttpError });
+        const spec = urlOrStream.trim();
+        const lower = spec.toLowerCase();
+        if (lower.startsWith('http://') || lower.startsWith('https://')) {
+          const response = await fetch(spec);
+          if (!response.ok) {
+            throw new FluxerError(`HTTP ${response.status}`, { code: ErrorCodes.VoiceHttpError });
+          }
+          if (!response.body) {
+            throw new FluxerError('No response body', { code: ErrorCodes.VoiceNoResponseBody });
+          }
+          inputStream = Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]);
+        } else if (lower.startsWith('file:')) {
+          inputStream = createReadStream(fileURLToPath(new URL(spec)));
+        } else {
+          inputStream = createReadStream(spec);
         }
-        if (!response.body) {
-          throw new FluxerError('No response body', { code: ErrorCodes.VoiceNoResponseBody });
-        }
-        inputStream = Readable.fromWeb(response.body as Parameters<typeof Readable.fromWeb>[0]);
       } catch (e) {
         const err =
           e instanceof FluxerError
