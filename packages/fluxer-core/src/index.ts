@@ -68,7 +68,18 @@ export { ErrorCodes } from './errors/ErrorCodes.js';
 export { EmbedBuilder, MessagePayload, AttachmentBuilder } from '@fluxerjs/builders';
 
 // Re-export Routes, GatewayOpcodes, MessageAttachmentFlags for REST/gateway API calls
-export { Routes, GatewayOpcodes, MessageAttachmentFlags } from '@fluxerjs/types';
+export {
+  Routes,
+  GatewayOpcodes,
+  MessageAttachmentFlags,
+  MessageFlags,
+  type APIAllowedMentions,
+  type AllowedMentionType,
+  type APIGuildMemberSearchRequest,
+  type APIGuildMemberSearchResponse,
+  type APIRtcRegion,
+  type APIChannelSlowmodeState,
+} from '@fluxerjs/types';
 
 // Re-export Tenor URL resolver and mention parsers for embeds and moderation
 export { resolveTenorToImageUrl, parseUserMention, parsePrefixCommand } from '@fluxerjs/util';

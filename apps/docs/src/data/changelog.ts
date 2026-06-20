@@ -11,32 +11,45 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
-    version: '1.3.2',
+    version: '1.4.0',
     date: '2026-06-21',
     sections: [
       {
         title: '@fluxerjs/core — messages and mentions',
         items: [
-          'MessageManager.fetch({ limit, before, after, around }) — list/paginate channel messages (GET /channels/{id}/messages)',
-          'Reply without pinging: message.reply(text, { ping: false }) or allowedMentions: AllowedMentions.suppressReplyPing — sets allowed_mentions.replied_user and SuppressNotifications',
-          'channel.send() and client.channels.send() support replyTo + ping, allowedMentions, tts, stickerIds, nonce, and favoriteMemeId',
+          'MessageManager.fetch({ limit, before, after, around }) — paginate channel messages (GET /channels/{id}/messages)',
+          'Reply without pinging: message.reply(text, { ping: false }) or allowedMentions: AllowedMentions.suppressReplyPing — sets allowed_mentions.replied_user and SuppressNotifications (rare in JS SDKs)',
+          'AllowedMentions presets: suppressReplyPing, none, all — exported from @fluxerjs/core',
+          'channel.send() / client.channels.send() support replyTo, ping, allowedMentions, tts, stickerIds, nonce, and favoriteMemeId',
           'Message.edit() accepts allowedMentions; WebhookSendOptions accepts allowedMentions',
-          'Centralized prepareMessagePostPayload() for all send paths',
+          'prepareMessagePostPayload() centralizes send/reply body building across Message, Channel, and ChannelManager',
           'Channel.fetchRtcRegions() and Channel.fetchSlowmode()',
-          'GuildMemberManager.search() — POST /guilds/{id}/members-search',
+          'GuildMemberManager.search() — POST /guilds/{id}/members-search with query, role filters, and pagination',
         ],
       },
       {
         title: '@fluxerjs/types',
         items: [
-          'APIAllowedMentions, APIRtcRegion, APIChannelSlowmodeState',
-          'APIGuildMemberSearchRequest/Response types',
+          'APIAllowedMentions, AllowedMentionType',
+          'APIRtcRegion, APIChannelSlowmodeState',
+          'APIGuildMemberSearchRequest, APIGuildMemberSearchResponse',
           'Routes.channelRtcRegions, Routes.channelSlowmode, Routes.guildMembersSearch',
         ],
       },
       {
         title: '@fluxerjs/builders',
-        items: ['MessagePayload.setAllowedMentions() for reply ping control in builders'],
+        items: ['MessagePayload.setAllowedMentions() for reply ping control in builder workflows'],
+      },
+      {
+        title: 'Infrastructure and dependencies',
+        items: [
+          'CI publish workflow uses npm trusted publishing (OIDC) — no NPM_TOKEN required',
+          'Security: bumped ws to ^8.21.0; pnpm overrides for brace-expansion, postcss, and tar',
+        ],
+      },
+      {
+        title: 'Examples',
+        items: ['ping-bot: !replynoping command demonstrates silent replies (no @mention ping)'],
       },
     ],
   },
