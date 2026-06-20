@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  buildSendBody,
-  prepareMessagePostPayload,
-  AllowedMentions,
-} from './messageUtils.js';
+import { buildSendBody, prepareMessagePostPayload, AllowedMentions } from './messageUtils.js';
 import { Message } from '../';
 import { EmbedBuilder } from '@fluxerjs/builders';
 

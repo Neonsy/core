@@ -1,5 +1,10 @@
 import { Collection } from '@fluxerjs/collection';
-import { APIGuildMember, APIGuildMemberSearchRequest, APIGuildMemberSearchResponse, Routes } from '@fluxerjs/types';
+import {
+  APIGuildMember,
+  APIGuildMemberSearchRequest,
+  APIGuildMemberSearchResponse,
+  Routes,
+} from '@fluxerjs/types';
 import { ErrorCodes } from '../errors/ErrorCodes.js';
 import { FluxerError } from '../errors/FluxerError.js';
 import { Guild } from '../structures/Guild.js';
