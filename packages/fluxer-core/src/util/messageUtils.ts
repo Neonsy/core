@@ -1,9 +1,4 @@
-import {
-  APIAllowedMentions,
-  APIEmbed,
-  APIMessageReference,
-  MessageFlags,
-} from '@fluxerjs/types';
+import { APIAllowedMentions, APIEmbed, APIMessageReference, MessageFlags } from '@fluxerjs/types';
 import { EmbedBuilder } from '@fluxerjs/builders';
 import { ErrorCodes } from '../errors/ErrorCodes.js';
 import { FluxerError } from '../errors/FluxerError.js';

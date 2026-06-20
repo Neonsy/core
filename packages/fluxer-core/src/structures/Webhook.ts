@@ -9,7 +9,13 @@ import {
 } from '@fluxerjs/types';
 import { Routes } from '@fluxerjs/types';
 import { EmbedBuilder } from '@fluxerjs/builders';
-import { buildSendBody, prepareMessagePostPayload, resolveMessageFiles, type MessageFileData, type AllowedMentionsOptions } from '../util/messageUtils.js';
+import {
+  buildSendBody,
+  prepareMessagePostPayload,
+  resolveMessageFiles,
+  type MessageFileData,
+  type AllowedMentionsOptions,
+} from '../util/messageUtils.js';
 import { Message } from './Message.js';
 import { User } from './User.js';
 import { cdnAvatarURL } from '../util/cdn.js';
