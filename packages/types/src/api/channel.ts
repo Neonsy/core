@@ -63,3 +63,17 @@ export interface APIChannel extends APIChannelPartial {
   rate_limit_per_user?: number;
   nicks?: Record<string, string>;
 }
+
+/** RTC region from GET /channels/{id}/rtc-regions */
+export interface APIRtcRegion {
+  id: string;
+  name: string;
+  emoji: string;
+}
+
+/** Slowmode state from GET /channels/{id}/slowmode */
+export interface APIChannelSlowmodeState {
+  rate_limit_per_user: number;
+  retry_after_ms: number;
+  next_send_allowed_at: string | null;
+}

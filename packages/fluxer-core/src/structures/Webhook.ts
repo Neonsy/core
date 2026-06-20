@@ -9,7 +9,7 @@ import {
 } from '@fluxerjs/types';
 import { Routes } from '@fluxerjs/types';
 import { EmbedBuilder } from '@fluxerjs/builders';
-import { buildSendBody, resolveMessageFiles, type MessageFileData } from '../util/messageUtils.js';
+import { buildSendBody, prepareMessagePostPayload, resolveMessageFiles, type MessageFileData, type AllowedMentionsOptions } from '../util/messageUtils.js';
 import { Message } from './Message.js';
 import { User } from './User.js';
 import { cdnAvatarURL } from '../util/cdn.js';
@@ -41,6 +41,8 @@ export interface WebhookSendOptions {
   avatar_url?: string;
   /** Text-to-speech */
   tts?: boolean;
+  /** Controls which mentions trigger notifications. */
+  allowedMentions?: AllowedMentionsOptions;
   /** File attachments. When present, uses multipart/form-data (same as channel.send). */
   files?: WebhookFileData[];
   /** Attachment metadata for files (id = index). Use when files are provided. */

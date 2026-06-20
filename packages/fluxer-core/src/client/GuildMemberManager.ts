@@ -1,5 +1,5 @@
 import { Collection } from '@fluxerjs/collection';
-import { APIGuildMember, Routes } from '@fluxerjs/types';
+import { APIGuildMember, APIGuildMemberSearchRequest, APIGuildMemberSearchResponse, Routes } from '@fluxerjs/types';
 import { ErrorCodes } from '../errors/ErrorCodes.js';
 import { FluxerError } from '../errors/FluxerError.js';
 import { Guild } from '../structures/Guild.js';
@@ -91,5 +91,19 @@ export class GuildMemberManager extends Collection<string, GuildMember> {
       members.push(member);
     }
     return members;
+  }
+
+  /**
+   * Search guild members. POST /guilds/{id}/members-search.
+   * @param options - Search query, filters, and pagination
+   * @returns Search results with matching members
+   * @example
+   * const { members } = await guild.members.search({ query: 'alex', limit: 25 });
+   */
+  async search(options: APIGuildMemberSearchRequest): Promise<APIGuildMemberSearchResponse> {
+    return this.guild.client.rest.post(Routes.guildMembersSearch(this.guild.id), {
+      body: options,
+      auth: true,
+    });
   }
 }

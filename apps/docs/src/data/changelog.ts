@@ -11,6 +11,36 @@ export interface ChangelogEntry {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    version: '1.3.2',
+    date: '2026-06-21',
+    sections: [
+      {
+        title: '@fluxerjs/core — messages and mentions',
+        items: [
+          'MessageManager.fetch({ limit, before, after, around }) — list/paginate channel messages (GET /channels/{id}/messages)',
+          'Reply without pinging: message.reply(text, { ping: false }) or allowedMentions: AllowedMentions.suppressReplyPing — sets allowed_mentions.replied_user and SuppressNotifications',
+          'channel.send() and client.channels.send() support replyTo + ping, allowedMentions, tts, stickerIds, nonce, and favoriteMemeId',
+          'Message.edit() accepts allowedMentions; WebhookSendOptions accepts allowedMentions',
+          'Centralized prepareMessagePostPayload() for all send paths',
+          'Channel.fetchRtcRegions() and Channel.fetchSlowmode()',
+          'GuildMemberManager.search() — POST /guilds/{id}/members-search',
+        ],
+      },
+      {
+        title: '@fluxerjs/types',
+        items: [
+          'APIAllowedMentions, APIRtcRegion, APIChannelSlowmodeState',
+          'APIGuildMemberSearchRequest/Response types',
+          'Routes.channelRtcRegions, Routes.channelSlowmode, Routes.guildMembersSearch',
+        ],
+      },
+      {
+        title: '@fluxerjs/builders',
+        items: ['MessagePayload.setAllowedMentions() for reply ping control in builders'],
+      },
+    ],
+  },
+  {
     version: '1.3.1',
     date: '2026-05-05',
     sections: [

@@ -1,4 +1,4 @@
-import { APIEmbed, APIMessageReference } from '@fluxerjs/types';
+import { APIAllowedMentions, APIEmbed, APIMessageReference } from '@fluxerjs/types';
 import { EmbedBuilder } from './EmbedBuilder.js';
 import { AttachmentBuilder } from './AttachmentBuilder.js';
 
@@ -8,6 +8,7 @@ export interface MessagePayloadData {
   embeds?: APIEmbed[] | null;
   attachments?: Array<{ id: number; filename: string; description?: string | null }>;
   message_reference?: APIMessageReference | null;
+  allowed_mentions?: APIAllowedMentions | null;
   tts?: boolean;
   flags?: number;
 }
@@ -84,6 +85,12 @@ export class MessagePayload {
     return this;
   }
 
+  /** Set allowed mentions (e.g. `{ replied_user: false }` to reply without pinging). */
+  setAllowedMentions(allowedMentions: APIAllowedMentions | null): this {
+    this.data.allowed_mentions = allowedMentions ?? undefined;
+    return this;
+  }
+
   /** Enable text-to-speech. */
   setTTS(tts: boolean): this {
     this.data.tts = tts;
@@ -114,6 +121,8 @@ export class MessagePayload {
         payload.setAttachments(contentOrOptions.attachments);
       if (contentOrOptions.message_reference)
         payload.setReply(contentOrOptions.message_reference as APIMessageReference);
+      if (contentOrOptions.allowed_mentions)
+        payload.setAllowedMentions(contentOrOptions.allowed_mentions);
       if (contentOrOptions.tts !== undefined) payload.setTTS(contentOrOptions.tts);
       if (contentOrOptions.flags !== undefined) payload.setFlags(contentOrOptions.flags);
     }

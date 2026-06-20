@@ -9,21 +9,22 @@ import {
   APIMessageReference,
   APIMessageSnapshot,
   APIMessageCall,
+  APIAllowedMentions,
   APIEmbed,
   APIUserPartial,
 } from '@fluxerjs/types';
-import { MessageType, MessageFlags, Routes } from '@fluxerjs/types';
+import { MessageType, Routes } from '@fluxerjs/types';
 import { EmbedBuilder } from '@fluxerjs/builders';
 import { User } from './User.js';
 import { Channel, TextChannel, DMChannel, GuildChannel } from './Channel.js';
 import { Guild } from './Guild.js';
 
 import {
-  buildSendBody,
-  resolveMessageFiles,
+  prepareMessagePostPayload,
+  toAPIAllowedMentions,
   type MessageSendOptions,
-  SendBodyResult,
-  ResolvedMessageFile,
+  type AllowedMentionsOptions,
+  type MessageReplyTarget,
 } from '../util/messageUtils.js';
 import { ReactionCollector } from '../util/ReactionCollector.js';
 import { ReactionCollectorOptions } from '../util/ReactionCollector.js';
@@ -34,23 +35,31 @@ export interface MessageEditOptions {
   content?: string;
   /** New embeds (replaces existing) */
   embeds?: (APIEmbed | EmbedBuilder)[];
+  /** Controls which mentions trigger notifications on edit. */
+  allowedMentions?: AllowedMentionsOptions;
 }
 
-export type MessagePayload = {
-  files?: ResolvedMessageFile[];
-  body: SendBodyResult & { message_reference?: APIMessageReference; flags?: number };
-};
+export type MessagePayload = Awaited<ReturnType<typeof prepareMessagePostPayload>>;
 
 /** Options for message.reply() — ping toggle and reply-to-different-message. */
 export interface ReplyOptions {
-  /** Whether to ping the replied-to user (default true). Use false to suppress the mention notification. */
+  /**
+   * Whether to ping the replied-to user (default `true`).
+   * Set `false` to reply in-thread without notifying the author — one of the few JS SDKs
+   * that exposes this via `allowed_mentions.replied_user` under the hood.
+   */
   ping?: boolean;
   /** Reply to a different message instead of this one. Default: this message. */
-  replyTo?: Message | { channelId: string; messageId: string };
+  replyTo?: Message | MessageReplyTarget;
 }
 
 /** Re-export for convenience. */
-export type { MessageSendOptions } from '../util/messageUtils.js';
+export type {
+  MessageSendOptions,
+  AllowedMentionsOptions,
+  MessageReplyTarget,
+} from '../util/messageUtils.js';
+export { AllowedMentions } from '../util/messageUtils.js';
 
 /** Represents a message in a channel. */
 export class Message extends Base {
@@ -158,7 +167,7 @@ export class Message extends Base {
    * await message.send({ content: 'File', files: [{ name: 'data.txt', data }] });
    */
   async send(options: string | MessageSendOptions): Promise<Message> {
-    const payload = await Message._createMessageBody(options);
+    const payload = await prepareMessagePostPayload(options);
     return this._send(payload);
   }
 
@@ -181,6 +190,7 @@ export class Message extends Base {
    * await message.reply('Pong!');
    * await message.reply({ embeds: [embed] });
    * await message.reply('No ping!', { ping: false });
+   * await message.reply({ content: 'Silent reply', allowedMentions: AllowedMentions.suppressReplyPing });
    * await message.reply({ content: 'Reply to other', replyTo: otherMessage });
    */
   async reply(
@@ -194,45 +204,56 @@ export class Message extends Base {
         : undefined;
 
     const refMessage = mergedReply?.replyTo ?? this;
-    const ref =
+    const replyTo: MessageReplyTarget =
       refMessage instanceof Message
         ? {
-            channel_id: refMessage.channelId,
-            message_id: refMessage.id,
-            guild_id: refMessage.guildId ?? undefined,
+            channelId: refMessage.channelId,
+            messageId: refMessage.id,
+            guildId: refMessage.guildId,
           }
-        : {
-            channel_id: refMessage.channelId,
-            message_id: refMessage.messageId,
-            guild_id: undefined as string | undefined,
-          };
+        : refMessage;
 
-    const payload = await Message._createMessageBody(opts, ref, mergedReply?.ping !== false);
+    const { replyTo: _ignored, ping: _ping, ...sendOpts } = opts;
+    const payload = await prepareMessagePostPayload({
+      ...sendOpts,
+      replyTo,
+      ping: mergedReply?.ping,
+    });
     return this._send(payload);
   }
 
-  /** Exposed for testing purposes, use Message.reply() or send() for normal use */
+  /** Exposed for testing — prefer `message.reply()` / `prepareMessagePostPayload()`. */
   static async _createMessageBody(
     content: string | MessageSendOptions,
     referenced_message?: { channel_id: string; message_id: string; guild_id?: string },
     ping?: boolean,
   ): Promise<MessagePayload> {
+    if (typeof content === 'string' && content.length === 0) {
+      throw new RangeError('Cannot send an empty message');
+    }
     if (typeof content === 'string') {
-      if (content.length === 0) {
-        throw new RangeError('Cannot send an empty message');
+      const opts: MessageSendOptions = { content };
+      if (referenced_message) {
+        opts.replyTo = {
+          channelId: referenced_message.channel_id,
+          messageId: referenced_message.message_id,
+          ...(referenced_message.guild_id != null ? { guildId: referenced_message.guild_id } : {}),
+        };
+        if (ping !== undefined) opts.ping = ping;
       }
-      content = { content };
+      return prepareMessagePostPayload(opts);
     }
-    const base = buildSendBody(content);
-    const files = content.files?.length ? await resolveMessageFiles(content.files) : undefined;
-    const body: MessagePayload['body'] = { ...base };
+
+    const opts: MessageSendOptions = { ...content };
     if (referenced_message) {
-      body.message_reference = referenced_message;
-      if (ping === false) {
-        body.flags = (body.flags ?? 0) | MessageFlags.SuppressNotifications;
-      }
+      opts.replyTo = {
+        channelId: referenced_message.channel_id,
+        messageId: referenced_message.message_id,
+        ...(referenced_message.guild_id != null ? { guildId: referenced_message.guild_id } : {}),
+      };
+      if (ping !== undefined) opts.ping = ping;
     }
-    return { files, body };
+    return prepareMessagePostPayload(opts);
   }
 
   async _send(payload: MessagePayload): Promise<Message> {
@@ -249,10 +270,17 @@ export class Message extends Base {
    * @param options - New content and/or embeds
    */
   async edit(options: MessageEditOptions): Promise<Message> {
-    const body: { content?: string; embeds?: APIEmbed[] } = {};
+    const body: {
+      content?: string;
+      embeds?: APIEmbed[];
+      allowed_mentions?: APIAllowedMentions;
+    } = {};
     if (options.content !== undefined) body.content = options.content;
     if (options.embeds?.length) {
       body.embeds = options.embeds.map((e) => (e instanceof EmbedBuilder ? e.toJSON() : e));
+    }
+    if (options.allowedMentions) {
+      body.allowed_mentions = toAPIAllowedMentions(options.allowedMentions);
     }
     const data = await this.client.rest.patch(Routes.channelMessage(this.channelId, this.id), {
       body,

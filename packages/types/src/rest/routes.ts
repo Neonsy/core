@@ -24,6 +24,8 @@ export const Routes = {
   channelBulkDelete: (id: Snowflake) => `/channels/${id}/messages/bulk-delete` as const,
   channelWebhooks: (id: Snowflake) => `/channels/${id}/webhooks` as const,
   channelTyping: (id: Snowflake) => `/channels/${id}/typing` as const,
+  channelRtcRegions: (id: Snowflake) => `/channels/${id}/rtc-regions` as const,
+  channelSlowmode: (id: Snowflake) => `/channels/${id}/slowmode` as const,
   channelInvites: (id: Snowflake) => `/channels/${id}/invites` as const,
   channelPermission: (channelId: Snowflake, overwriteId: Snowflake) =>
     `/channels/${channelId}/permissions/${overwriteId}` as const,
@@ -49,6 +51,7 @@ export const Routes = {
   guildStickersBulk: (guildId: Snowflake) => `/guilds/${guildId}/stickers/bulk` as const,
   guildChannels: (id: Snowflake) => `/guilds/${id}/channels` as const,
   guildMembers: (id: Snowflake) => `/guilds/${id}/members` as const,
+  guildMembersSearch: (id: Snowflake) => `/guilds/${id}/members-search` as const,
   guildMember: (guildId: Snowflake, userId: Snowflake) =>
     `/guilds/${guildId}/members/${userId}` as const,
   guildMemberRole: (guildId: Snowflake, userId: Snowflake, roleId: Snowflake) =>

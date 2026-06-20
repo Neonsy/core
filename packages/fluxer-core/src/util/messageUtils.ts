@@ -1,4 +1,9 @@
-import { APIEmbed } from '@fluxerjs/types';
+import {
+  APIAllowedMentions,
+  APIEmbed,
+  APIMessageReference,
+  MessageFlags,
+} from '@fluxerjs/types';
 import { EmbedBuilder } from '@fluxerjs/builders';
 import { ErrorCodes } from '../errors/ErrorCodes.js';
 import { FluxerError } from '../errors/FluxerError.js';
@@ -31,7 +36,8 @@ export async function resolveMessageFiles(
 ): Promise<ResolvedMessageFile[]> {
   const result: ResolvedMessageFile[] = [];
   for (let i = 0; i < files.length; i++) {
-    const f = files[i]!;
+    const f = files[i];
+    if (!f) continue;
     const filename = f.filename ?? f.name;
     if ('url' in f && f.url) {
       if (!URL.canParse(f.url)) {
@@ -81,9 +87,60 @@ export interface MessageAttachmentMeta {
   flags?: number;
 }
 
-/** Options for sending a message (content, embeds, files). Used by Message.send, Channel.send, ChannelManager.send.
- * EmbedBuilder instances are auto-converted to API format—no need to call .toJSON().
+/** SDK options for allowed mentions (camelCase). Converted to APIAllowedMentions on send. */
+export type AllowedMentionsOptions = {
+  parse?: APIAllowedMentions['parse'];
+  users?: string[];
+  roles?: string[];
+  /** Whether to @mention and notify the author of the replied-to message. */
+  repliedUser?: boolean;
+};
+
+/**
+ * Common allowed-mentions presets.
+ * Use with `message.send()`, `message.reply()`, or `channel.send()`.
+ *
+ * @example
+ * // Reply without pinging the original author (rare in JS SDKs — Fluxer supports this)
+ * await message.reply('Got it!', { ping: false });
+ * await message.reply({ content: 'Got it!', allowedMentions: AllowedMentions.suppressReplyPing });
  */
+export const AllowedMentions = {
+  /** Suppress the replied-to user's @mention notification. The reply thread still appears. */
+  suppressReplyPing: { repliedUser: false } satisfies AllowedMentionsOptions,
+  /** Parse no mentions from content — @user, @role, and @everyone will not notify. */
+  none: { parse: [] } satisfies AllowedMentionsOptions,
+  /** Parse user, role, and @everyone mentions (typical default when the field is omitted). */
+  all: { parse: ['users', 'roles', 'everyone'] } satisfies AllowedMentionsOptions,
+} as const;
+
+/** Target message for `replyTo` on send options. */
+export type MessageReplyTarget = {
+  channelId: string;
+  messageId: string;
+  guildId?: string | null;
+};
+
+/** Convert SDK allowed-mentions options to the API request shape. */
+export function toAPIAllowedMentions(options: AllowedMentionsOptions): APIAllowedMentions {
+  const result: APIAllowedMentions = {};
+  if (options.parse?.length) result.parse = options.parse;
+  if (options.users?.length) result.users = options.users;
+  if (options.roles?.length) result.roles = options.roles;
+  if (options.repliedUser !== undefined) result.replied_user = options.repliedUser;
+  return result;
+}
+
+/** Apply reply ping suppression to a message body (`ping: false` / `allowedMentions.repliedUser: false`). */
+export function applyReplyPingSuppression(body: SendBodyResult): void {
+  body.flags = (body.flags ?? 0) | MessageFlags.SuppressNotifications;
+  body.allowed_mentions = {
+    ...(body.allowed_mentions ?? {}),
+    replied_user: false,
+  };
+}
+
+/** Options for sending a message. Used by Message.send, Channel.send, ChannelManager.send. */
 export type MessageSendOptions = {
   content?: string;
   /** EmbedBuilder instances are auto-converted; raw APIEmbed also supported. */
@@ -92,11 +149,29 @@ export type MessageSendOptions = {
   files?: MessageFileData[];
   /** Attachment metadata for files (id = index). Use when files are provided. */
   attachments?: MessageAttachmentMeta[];
-  /** Message flags (e.g. MessageFlags.SuppressNotifications for reply without ping). */
+  /** Controls which mentions trigger notifications. */
+  allowedMentions?: AllowedMentionsOptions;
+  /** Reply to a message (shows as a reply thread). Use with `ping: false` to avoid notifying the author. */
+  replyTo?: MessageReplyTarget;
+  /**
+   * Whether to ping the replied-to user when using `replyTo` (default `true`).
+   * Set `false` to reply in-thread without an @mention notification — equivalent to
+   * `allowedMentions: AllowedMentions.suppressReplyPing`.
+   */
+  ping?: boolean;
+  /** Text-to-speech message. */
+  tts?: boolean;
+  /** Sticker IDs to include (max 3). */
+  stickerIds?: string[];
+  /** Client-generated identifier for the message. */
+  nonce?: string;
+  /** ID of a favorite meme to attach. */
+  favoriteMemeId?: string;
+  /** Message flags (e.g. MessageFlags.SuppressNotifications). */
   flags?: number;
 };
 
-/** API-ready body from MessageSendOptions or text content (serializes EmbedBuilder, includes attachments when files present). */
+/** API-ready body from MessageSendOptions (serializes EmbedBuilder, includes attachments when files present). */
 export interface SendBodyResult {
   content?: string;
   embeds?: APIEmbed[];
@@ -107,11 +182,22 @@ export interface SendBodyResult {
     description?: string | null;
     flags?: number;
   }>;
-  /** Message flags (e.g. SuppressNotifications for reply without ping). */
+  allowed_mentions?: APIAllowedMentions;
+  message_reference?: APIMessageReference;
+  sticker_ids?: string[];
+  nonce?: string;
+  favorite_meme_id?: string;
+  tts?: boolean;
   flags?: number;
 }
 
-/** Build API-ready body from MessageSendOptions or text content (serializes EmbedBuilder to APIEmbed). */
+/** REST post payload for POST /channels/{id}/messages. */
+export interface MessagePostPayload {
+  body: SendBodyResult;
+  files?: ResolvedMessageFile[];
+}
+
+/** Build API-ready body from send options (excludes reply routing fields). */
 export function buildSendBody(options: string | MessageSendOptions): SendBodyResult {
   const body = typeof options === 'string' ? { content: options } : options;
   const result: SendBodyResult = {};
@@ -133,6 +219,50 @@ export function buildSendBody(options: string | MessageSendOptions): SendBodyRes
       filename: f.filename ?? f.name,
     }));
   }
+  if (body.allowedMentions) result.allowed_mentions = toAPIAllowedMentions(body.allowedMentions);
+  if (body.stickerIds?.length) result.sticker_ids = body.stickerIds;
+  if (body.nonce !== undefined) result.nonce = body.nonce;
+  if (body.favoriteMemeId !== undefined) result.favorite_meme_id = body.favoriteMemeId;
+  if (body.tts !== undefined) result.tts = body.tts;
   if (body.flags !== undefined) result.flags = body.flags;
   return result;
+}
+
+function toMessageReference(target: MessageReplyTarget): APIMessageReference {
+  const ref: APIMessageReference = {
+    channel_id: target.channelId,
+    message_id: target.messageId,
+  };
+  if (target.guildId != null && target.guildId !== '') ref.guild_id = target.guildId;
+  return ref;
+}
+
+/**
+ * Build a full message POST payload (body + optional files) from send options.
+ * Handles replies, reply ping suppression, embed serialization, and file resolution.
+ */
+export async function prepareMessagePostPayload(
+  options: string | MessageSendOptions,
+): Promise<MessagePostPayload> {
+  if (typeof options === 'string') {
+    if (options.length === 0) throw new RangeError('Cannot send an empty message');
+    options = { content: options };
+  }
+
+  const { replyTo, ping, files, allowedMentions, ...sendFields } = options;
+  const body = buildSendBody({ ...sendFields, files, allowedMentions });
+
+  if (replyTo) {
+    body.message_reference = toMessageReference(replyTo);
+    const suppressPing =
+      ping === false ||
+      allowedMentions?.repliedUser === false ||
+      body.allowed_mentions?.replied_user === false;
+    if (suppressPing) applyReplyPingSuppression(body);
+  } else if (allowedMentions?.repliedUser === false) {
+    applyReplyPingSuppression(body);
+  }
+
+  const resolvedFiles = files?.length ? await resolveMessageFiles(files) : undefined;
+  return { body, files: resolvedFiles };
 }

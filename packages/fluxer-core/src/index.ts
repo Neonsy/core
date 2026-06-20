@@ -2,7 +2,7 @@ export { Client, type ClientEvents, type ClientEventMethods } from './client/Cli
 export { ChannelManager } from './client/ChannelManager.js';
 export { GuildMemberManager } from './client/GuildMemberManager.js';
 export { UsersManager, type FetchedUserWithProfile } from './client/UsersManager.js';
-export { MessageManager } from './client/MessageManager.js';
+export { MessageManager, type FetchMessagesOptions } from './client/MessageManager.js';
 export { ClientUser } from './client/ClientUser.js';
 export { Base } from './structures/Base.js';
 export { User } from './structures/User.js';
@@ -21,7 +21,10 @@ export {
   type MessageEditOptions,
   type MessageSendOptions,
   type ReplyOptions,
+  type AllowedMentionsOptions,
+  type MessageReplyTarget,
 } from './structures/Message.js';
+export { AllowedMentions } from './util/messageUtils.js';
 export type { PartialMessage } from './structures/PartialMessage.js';
 export { MessageReaction } from './structures/MessageReaction.js';
 export {

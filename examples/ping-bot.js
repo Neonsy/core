@@ -848,6 +848,13 @@ commands.set('replytest', {
   },
 });
 
+commands.set('replynoping', {
+  description: 'Reply without pinging you — uses allowed_mentions.replied_user (rare in JS SDKs)',
+  async execute(message) {
+    await message.reply('Replied silently — no @mention ping!', { ping: false });
+  },
+});
+
 commands.set('react', {
   description: 'Reply with a message and add reactions',
   async execute(message) {

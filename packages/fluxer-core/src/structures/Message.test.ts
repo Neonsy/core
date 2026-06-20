@@ -85,11 +85,12 @@ describe('Message._createMessageBody', () => {
       expect(payload.files).toHaveLength(1);
     });
 
-    it('reply with ping: false includes SuppressNotifications flag', async () => {
+    it('reply with ping: false includes SuppressNotifications flag and suppresses replied user mention', async () => {
       const ref = { channel_id: 'ch1', message_id: 'msg1' };
       const payload = await Message._createMessageBody('No ping', ref, false);
       expect(payload.body.message_reference).toEqual(ref);
       expect(payload.body.flags).toBe(4096); // MessageFlags.SuppressNotifications
+      expect(payload.body.allowed_mentions).toEqual({ replied_user: false });
     });
 
     it('reply with ping: true does not add flags', async () => {

@@ -3,12 +3,14 @@ import { MessageManager } from '../client/MessageManager.js';
 import { MessageCollector } from '../util/MessageCollector.js';
 import { MessageCollectorOptions } from '../util/MessageCollector.js';
 import { Base } from './Base.js';
-import { buildSendBody, resolveMessageFiles } from '../util/messageUtils.js';
+import { prepareMessagePostPayload } from '../util/messageUtils.js';
 import { MessageSendOptions } from '../util/messageUtils.js';
 import {
   APIChannel,
   APIChannelPartial,
   APIChannelOverwrite,
+  APIChannelSlowmodeState,
+  APIRtcRegion,
   APIUser,
   APIMessage,
   APIWebhook,
@@ -116,6 +118,22 @@ export abstract class Channel extends Base {
    */
   async sendTyping(): Promise<void> {
     await this.client.rest.post(Routes.channelTyping(this.id), { auth: true });
+  }
+
+  /**
+   * Fetch available RTC regions for voice/video in this channel.
+   * GET /channels/{id}/rtc-regions
+   */
+  async fetchRtcRegions(): Promise<APIRtcRegion[]> {
+    return this.client.rest.get(Routes.channelRtcRegions(this.id), { auth: true });
+  }
+
+  /**
+   * Fetch the current user's slowmode state in this channel.
+   * GET /channels/{id}/slowmode
+   */
+  async fetchSlowmode(): Promise<APIChannelSlowmodeState> {
+    return this.client.rest.get(Routes.channelSlowmode(this.id), { auth: true });
   }
 
   /**
@@ -244,12 +262,9 @@ export class GuildChannel extends Channel {
    * Send a message to this guild channel.
    * Works for text and announcement channels. Voice/category/link channels will fail at the API.
    */
-  async send(options: MessageSendOptions): Promise<Message> {
-    const opts = typeof options === 'string' ? { content: options } : options;
-    const body = buildSendBody(options);
-    const files = opts.files?.length ? await resolveMessageFiles(opts.files) : undefined;
-    const postOptions = files?.length ? { body, files } : { body };
-    const data = await this.client.rest.post(Routes.channelMessages(this.id), postOptions);
+  async send(options: string | MessageSendOptions): Promise<Message> {
+    const payload = await prepareMessagePostPayload(options);
+    const data = await this.client.rest.post(Routes.channelMessages(this.id), payload);
     this.client._addMessageToCache(this.id, data as APIMessage);
     return new Message(this.client, data as APIMessage);
   }
@@ -326,12 +341,9 @@ export class TextChannel extends GuildChannel {
    * Send a message to this channel.
    * @param options - Text content or object with content, embeds, and/or files
    */
-  async send(options: MessageSendOptions): Promise<Message> {
-    const opts = typeof options === 'string' ? { content: options } : options;
-    const body = buildSendBody(options);
-    const files = opts.files?.length ? await resolveMessageFiles(opts.files) : undefined;
-    const postOptions = files?.length ? { body, files } : { body };
-    const data = await this.client.rest.post(Routes.channelMessages(this.id), postOptions);
+  async send(options: string | MessageSendOptions): Promise<Message> {
+    const payload = await prepareMessagePostPayload(options);
+    const data = await this.client.rest.post(Routes.channelMessages(this.id), payload);
     this.client._addMessageToCache(this.id, data as APIMessage);
     return new Message(this.client, data as APIMessage);
   }
@@ -431,12 +443,9 @@ export class DMChannel extends Channel {
    * Send a message to this DM channel.
    * @param options - Text content or object with content, embeds, and/or files
    */
-  async send(options: MessageSendOptions): Promise<Message> {
-    const opts = typeof options === 'string' ? { content: options } : options;
-    const body = buildSendBody(options);
-    const files = opts.files?.length ? await resolveMessageFiles(opts.files) : undefined;
-    const postOptions = files?.length ? { body, files } : { body };
-    const data = await this.client.rest.post(Routes.channelMessages(this.id), postOptions);
+  async send(options: string | MessageSendOptions): Promise<Message> {
+    const payload = await prepareMessagePostPayload(options);
+    const data = await this.client.rest.post(Routes.channelMessages(this.id), payload);
     this.client._addMessageToCache(this.id, data as APIMessage);
     return new Message(this.client, data as APIMessage);
   }

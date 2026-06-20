@@ -1,4 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import {
+  buildSendBody,
+  prepareMessagePostPayload,
+  AllowedMentions,
+} from './messageUtils.js';
 import { Message } from '../';
 import { EmbedBuilder } from '@fluxerjs/builders';
 
@@ -56,6 +61,36 @@ describe('Message._createMessageBody', () => {
       attachments: [{ id: 0, filename: 'a.txt', flags: 8 }],
     });
     expect(result.body.attachments![0].flags).toBe(8);
+  });
+
+  it('includes allowedMentions in body', () => {
+    const result = buildSendBody({
+      content: 'Hi @everyone',
+      allowedMentions: { parse: ['users'], repliedUser: false },
+    });
+    expect(result.allowed_mentions).toEqual({ parse: ['users'], replied_user: false });
+  });
+
+  it('prepareMessagePostPayload applies reply ping suppression', async () => {
+    const payload = await prepareMessagePostPayload({
+      content: 'Silent',
+      replyTo: { channelId: 'ch1', messageId: 'msg1' },
+      ping: false,
+    });
+    expect(payload.body.message_reference).toEqual({
+      channel_id: 'ch1',
+      message_id: 'msg1',
+    });
+    expect(payload.body.allowed_mentions).toEqual({ replied_user: false });
+    expect(payload.body.flags).toBe(4096);
+  });
+
+  it('AllowedMentions.suppressReplyPing maps to replied_user false', () => {
+    const result = buildSendBody({
+      content: 'Hi',
+      allowedMentions: AllowedMentions.suppressReplyPing,
+    });
+    expect(result.allowed_mentions).toEqual({ replied_user: false });
   });
 
   it('returns empty result when no content, embeds, or files', async () => {

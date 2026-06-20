@@ -22,6 +22,18 @@ export enum MessageFlags {
   CompactAttachments = 131072,
 }
 
+/** Mention types parsed from message content when sending. */
+export type AllowedMentionType = 'users' | 'roles' | 'everyone';
+
+/** Controls which mentions trigger notifications. POST/PATCH message body. */
+export interface APIAllowedMentions {
+  parse?: AllowedMentionType[];
+  users?: Snowflake[];
+  roles?: Snowflake[];
+  /** Whether to mention the author of the replied-to message. */
+  replied_user?: boolean;
+}
+
 export interface APIReactionEmoji {
   id: Snowflake | null;
   name: string;

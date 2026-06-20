@@ -128,6 +128,15 @@ describe('Routes', () => {
     it('channelMessages builds path', () => {
       expect(Routes.channelMessages('c1')).toBe('/channels/c1/messages');
     });
+    it('channelRtcRegions builds path', () => {
+      expect(Routes.channelRtcRegions('c1')).toBe('/channels/c1/rtc-regions');
+    });
+    it('channelSlowmode builds path', () => {
+      expect(Routes.channelSlowmode('c1')).toBe('/channels/c1/slowmode');
+    });
+    it('guildMembersSearch builds path', () => {
+      expect(Routes.guildMembersSearch('g1')).toBe('/guilds/g1/members-search');
+    });
     it('channelBulkDelete builds path', () => {
       expect(Routes.channelBulkDelete('c1')).toBe('/channels/c1/messages/bulk-delete');
     });

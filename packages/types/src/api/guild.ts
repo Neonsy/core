@@ -121,3 +121,38 @@ export interface APIGuildAuditLog {
   }>;
   webhooks: Array<{ id: Snowflake; name?: string; avatar?: string | null }>;
 }
+
+/** Request body for POST /guilds/{id}/members-search */
+export interface APIGuildMemberSearchRequest {
+  query?: string;
+  limit?: number;
+  offset?: number;
+  role_ids?: Snowflake[];
+  joined_at_gte?: number;
+  joined_at_lte?: number;
+  is_bot?: boolean;
+  user_created_at_gte?: number;
+  user_created_at_lte?: number;
+  sort_by?: 'joinedAt' | 'relevance';
+  sort_order?: 'asc' | 'desc';
+}
+
+/** Single result from guild member search */
+export interface APIGuildMemberSearchResult {
+  id: string;
+  guild_id: Snowflake;
+  user_id: Snowflake;
+  username: string;
+  discriminator: string;
+  global_name: string | null;
+  nickname: string | null;
+}
+
+/** Response from POST /guilds/{id}/members-search */
+export interface APIGuildMemberSearchResponse {
+  guild_id: Snowflake;
+  members: APIGuildMemberSearchResult[];
+  page_result_count: number;
+  total_result_count: number;
+  indexing?: boolean;
+}
