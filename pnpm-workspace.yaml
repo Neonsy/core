@@ -3,6 +3,14 @@ packages:
   - 'examples'
   - 'apps/*'
 
+# pnpm 11 blocks dependency install scripts unless listed here.
+allowBuilds:
+  esbuild: true
+  sharp: true
+  '@discordjs/opus': false
+  node-webcodecs: false
+  youtube-dl-exec: false
+
 overrides:
   tar: '>=7.5.16'
   minimatch: '>=10.2.3'

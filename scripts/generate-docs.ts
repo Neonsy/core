@@ -13,14 +13,7 @@
  */
 
 import { resolve, dirname, join } from 'path';
-import {
-  mkdirSync,
-  writeFileSync,
-  readFileSync,
-  unlinkSync,
-  existsSync,
-  rmSync,
-} from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, unlinkSync, existsSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
 import { execFileSync } from 'child_process';
