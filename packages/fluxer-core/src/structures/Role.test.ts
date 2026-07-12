@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Client, Role } from '../';
+import { type Client, Role } from '../';
 import { PermissionFlags } from '@fluxerjs/util';
 
 function createMockClient() {
@@ -55,7 +55,7 @@ describe('Role.permissions', () => {
     });
 
     it('throws an error for invalid permission name', () => {
-      const role = createRole(PermissionFlags.Administrator);
+      const role = createRole(PermissionFlags.SendMessages);
       expect(() => role.permissions.has('NonExistent' as never)).toThrow(RangeError);
     });
 

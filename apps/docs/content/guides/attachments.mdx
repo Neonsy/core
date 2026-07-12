@@ -1,0 +1,70 @@
+---
+title: File Attachments
+description: Upload files with messages and set spoiler or animated flags.
+category: media
+order: 8
+---
+
+Attach files on `reply`, `send`, or `channel.send`. Each file needs a `name` and `data` (`Buffer`, `Blob`, or `Uint8Array`). You can also attach by URL (see [Attachments by URL](/guides/attachments-by-url/)).
+
+## Upload a buffer
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.content !== '!file') return;
+
+  await message.reply({
+    content: 'Here is a file:',
+    files: [{ name: 'hello.txt', data: Buffer.from('Hello from Fluxer!', 'utf-8') }],
+  });
+});
+```
+
+## Metadata and flags
+
+When you need titles, descriptions, or flags, pass an `attachments` array. The `id` matches the file index (`0`, `1`, …).
+
+```javascript
+import { MessageAttachmentFlags } from '@fluxerjs/core';
+
+await message.reply({
+  content: 'Spoiler image:',
+  files: [{ name: 'secret.png', data: imageBuffer }],
+  attachments: [
+    {
+      id: 0,
+      filename: 'secret.png',
+      title: 'Hidden image',
+      flags: MessageAttachmentFlags.IS_SPOILER,
+    },
+  ],
+});
+```
+
+Useful flags:
+
+```javascript
+MessageAttachmentFlags.IS_SPOILER            // blur until clicked
+MessageAttachmentFlags.CONTAINS_EXPLICIT_MEDIA
+MessageAttachmentFlags.IS_ANIMATED           // GIF / animated WebP
+
+// Combine with |
+flags: MessageAttachmentFlags.IS_SPOILER | MessageAttachmentFlags.IS_ANIMATED
+```
+
+## From disk
+
+```javascript
+import { readFileSync } from 'node:fs';
+
+const data = readFileSync('./chart.png');
+await message.reply({
+  files: [{ name: 'chart.png', data }],
+});
+```
+
+Try `!attachurl` in [ping-bot](/examples/ping-bot/) for the URL form without reading a local file.

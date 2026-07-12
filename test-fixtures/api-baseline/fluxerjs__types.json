@@ -1,0 +1,14 @@
+{
+  "package": "@fluxerjs/types",
+  "generatedAt": "2026-07-11T02:20:57.222Z",
+  "entries": [
+    {
+      "subpath": ".",
+      "exports": []
+    },
+    {
+      "subpath": "./routes",
+      "exports": []
+    }
+  ]
+}

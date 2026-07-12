@@ -1,0 +1,40 @@
+---
+title: Editing Embeds
+description: Send an embed, then edit it in place with message.edit.
+category: sending-messages
+order: 5
+---
+
+Edit works on messages your bot sent. Build a new `EmbedBuilder` (or reuse and mutate carefully) and pass it to `edit`.
+
+```javascript
+import { EmbedBuilder } from '@fluxerjs/core';
+
+const embed = new EmbedBuilder()
+  .setTitle('Working…')
+  .setDescription('Fetching data')
+  .setColor(0x5865f2);
+
+const reply = await message.reply({ embeds: [embed] });
+
+// …do work…
+
+const done = new EmbedBuilder()
+  .setTitle('Done')
+  .setDescription('All set.')
+  .setColor(0x57f287)
+  .setTimestamp();
+
+await reply.edit({ embeds: [done] });
+```
+
+You can edit content and embeds together:
+
+```javascript
+await reply.edit({
+  content: 'Updated caption',
+  embeds: [done],
+});
+```
+
+Demo: `!editembed` in [ping-bot](/examples/ping-bot/).

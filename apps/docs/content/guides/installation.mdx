@@ -1,0 +1,85 @@
+---
+title: Installation
+description: Install @fluxerjs/core, set your token, and run a first bot.
+category: getting-started
+order: 0
+---
+
+## Requirements
+
+Node.js 18 or newer. ESM works out of the box (`"type": "module"` in package.json, or `.mjs` files).
+
+## Install
+
+Prefer pnpm:
+
+```bash
+pnpm add @fluxerjs/core
+```
+
+Also fine: `npm install @fluxerjs/core` or `yarn add @fluxerjs/core`.
+
+Optional packages when you need them:
+
+```bash
+pnpm add @fluxerjs/voice    # see the Voice guide
+pnpm add @fluxerjs/builders # if you import builders separately (also re-exported from core)
+```
+
+<Warning>
+**Voice package note:** [`@fluxerjs/voice`](/guides/voice/) still installs and runs, but Fluxer is updating how voice works. Expect breaking changes soon. Prefer non-voice features for anything you need to keep stable. Read the [Voice guide](/guides/voice/) before shipping on it.
+</Warning>
+
+## Bot token
+
+Create a bot in the Fluxer developer portal and copy the token. Put it in the environment rather than hardcoding it:
+
+```bash
+# Windows PowerShell
+$env:FLUXER_BOT_TOKEN="your_token"
+node bot.js
+
+# macOS / Linux
+FLUXER_BOT_TOKEN=your_token node bot.js
+```
+
+Or use a `.env` file with a loader of your choice. The examples folder has an `.env.example` you can copy.
+
+## First run
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client.on(Events.Ready, () => {
+  console.log(`Logged in as ${client.user?.username}`);
+});
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+Fluxer does not use Discord-style privileged intents. Pass `intents: 0` and you still receive messages.
+
+## Verify it works
+
+From this repo after `pnpm install && pnpm run build`:
+
+```bash
+FLUXER_BOT_TOKEN=your_token node examples/minimal-bot.js
+```
+
+Then send `!ping` in a channel the bot can see. Next stop: the [Basic bot](/guides/basic-bot/) guide, or browse [examples](/examples/).
+
+## Custom API host
+
+Most bots use the default hosted API. For a custom base URL (legacy):
+
+```javascript
+const client = new Client({
+  intents: 0,
+  rest: { api: process.env.FLUXER_API_URL },
+});
+```
+
+For self-hosted discovery and multi-instance setups, see the [Multi-instance](/guides/multi-instance/) guide.

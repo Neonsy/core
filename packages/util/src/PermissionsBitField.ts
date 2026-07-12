@@ -1,13 +1,8 @@
 import { BitField, type BitFieldResolvable } from './BitField.js';
 
 /**
- * Permission flags aligned with Fluxer API (fluxer_api/src/constants/Channel.ts).
- * Bit positions use BigInt shifts (1n << n).
- * Administrator (bit 3) implies all permissions. Guild owner bypasses role computation.
- *
- * @example
- * if (member.permissions.has(PermissionFlags.BanMembers)) { ... }
- * if (perms.has(PermissionFlags.Administrator)) { ... }
+ * Permission flags aligned with the Fluxer API (`1n << n`).
+ * Administrator (bit 3) implies all permissions in {@link PermissionsBitField.has}.
  */
 export const PermissionFlags = {
   CreateInstantInvite: 1n << 0n,
@@ -39,7 +34,7 @@ export const PermissionFlags = {
   ManageNicknames: 1n << 27n,
   ManageRoles: 1n << 28n,
   ManageWebhooks: 1n << 29n,
-  ManageEmojisAndStickers: 1n << 30n,
+  /** Manage emojis & stickers (expressions). */
   ManageExpressions: 1n << 30n,
   UseExternalStickers: 1n << 37n,
   ModerateMembers: 1n << 40n,
@@ -47,51 +42,40 @@ export const PermissionFlags = {
   PinMessages: 1n << 51n,
   BypassSlowmode: 1n << 52n,
   UpdateRtcRegion: 1n << 53n,
+  ViewChannelMembers: 1n << 54n,
 } as const;
 
-/** BigInt OR of all permission flags. Used for guild owner override (owner has all perms). */
-export const ALL_PERMISSIONS_BIGINT = Object.values(PermissionFlags).reduce((a, b) => a | b, 0n);
+/** OR of all permission flags (guild owner / Administrator override). */
+export const ALL_PERMISSIONS_BIGINT: bigint = Object.values(PermissionFlags).reduce(
+  (a, b) => a | b,
+  0n,
+);
 
 export type PermissionString = keyof typeof PermissionFlags;
+export type PermissionResolvable = BitFieldResolvable<PermissionString>;
 
 export class PermissionsBitField extends BitField<PermissionString> {
   static override Flags = PermissionFlags;
+
+  private get isAdmin(): boolean {
+    return (this.bitfield & PermissionFlags.Administrator) !== 0n;
+  }
+
+  /** Administrator implies every permission. */
+  override has(bit: PermissionResolvable): boolean {
+    return this.isAdmin || super.has(bit);
+  }
+
+  override any(bit: PermissionResolvable): boolean {
+    return this.isAdmin || super.any(bit);
+  }
+
+  override missing(bit: PermissionResolvable): PermissionString[] {
+    return this.isAdmin ? [] : super.missing(bit);
+  }
 }
 
-export type PermissionResolvable = BitFieldResolvable<PermissionString>;
-
-/**
- * Resolve permission(s) to an API bitfield string. Uses BigInt to avoid overflow for flags > 2^31.
- * @param perms - Permission string (e.g. "2048"), number, PermissionString, array of permissions, or PermissionsBitField
- * @returns String bitfield for API (e.g. "8933636165185")
- * @example
- * resolvePermissionsToBitfield('2048'); // "2048"
- * resolvePermissionsToBitfield(PermissionFlags.SendMessages); // "2048"
- * resolvePermissionsToBitfield(['SendMessages', 'ViewChannel']); // combined bitfield
- */
+/** Resolve permission(s) to an API bitfield string (decimal bigint). */
 export function resolvePermissionsToBitfield(perms: PermissionResolvable): string {
-  if (typeof perms === 'string') {
-    const num = Number(perms);
-    if (!Number.isNaN(num) && perms.trim() !== '') return perms;
-    const mapped = PermissionFlags[perms];
-    if (mapped !== undefined) return String(mapped);
-    throw new RangeError(`Invalid permission string: ${perms}`);
-  }
-  if (typeof perms === 'number') return String(perms);
-  if (typeof perms === 'bigint') return String(perms);
-  if (perms instanceof PermissionsBitField) return String(BigInt(perms.bitfield));
-  if (Array.isArray(perms)) {
-    let acc = 0n;
-    for (const p of perms) {
-      let v: bigint;
-      if (typeof p === 'number') v = BigInt(p);
-      else if (typeof p === 'string') {
-        const mapped = PermissionFlags[p];
-        v = mapped !== undefined ? BigInt(mapped) : BigInt(Number(p) || 0);
-      } else v = BigInt((p as PermissionsBitField).bitfield);
-      acc |= v;
-    }
-    return String(acc);
-  }
-  throw new RangeError(`Invalid permission resolvable: ${perms}`);
+  return PermissionsBitField.resolve(perms).toString();
 }

@@ -5,20 +5,56 @@ import * as ts from 'typescript';
  * TS checker emits these for types from other modules - we want just the type name.
  */
 function sanitizeTypeString(s: string): string {
-  return s.replace(/\bimport\s*\(["']([^"']*)["']\)\s*\./g, '');
+  return s
+    .replace(/\bimport\s*\(["']([^"']*)["']\)\s*\./g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
- * Convert a TypeScript type to a readable string for documentation.
+ * Prefer the author's type-node text for unions/literals so aliases like
+ * `EmbedType = 'rich' | 'image'` don't collapse to just `EmbedType`.
  */
 export function formatTypeNode(checker: ts.TypeChecker, typeNode: ts.TypeNode | undefined): string {
   if (!typeNode) return 'void';
+
+  if (
+    ts.isUnionTypeNode(typeNode) ||
+    ts.isIntersectionTypeNode(typeNode) ||
+    ts.isLiteralTypeNode(typeNode) ||
+    ts.isParenthesizedTypeNode(typeNode) ||
+    ts.isArrayTypeNode(typeNode) ||
+    ts.isTupleTypeNode(typeNode) ||
+    ts.isTypeOperatorNode(typeNode) ||
+    ts.isTypeReferenceNode(typeNode) ||
+    ts.isConditionalTypeNode(typeNode) ||
+    ts.isMappedTypeNode(typeNode) ||
+    ts.isTemplateLiteralTypeNode(typeNode)
+  ) {
+    const fromSource = sanitizeTypeString(typeNode.getText());
+    if (fromSource && fromSource !== 'any') return fromSource;
+  }
+
   const type = checker.getTypeFromTypeNode(typeNode);
-  const raw = checker.typeToString(type, typeNode, ts.TypeFormatFlags.None);
+  const raw = checker.typeToString(
+    type,
+    typeNode,
+    ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.InTypeAlias,
+  );
   return sanitizeTypeString(raw);
 }
 
 export function formatTypeFromType(checker: ts.TypeChecker, type: ts.Type): string {
-  const raw = checker.typeToString(type, undefined, ts.TypeFormatFlags.None);
+  const raw = checker.typeToString(type, undefined, ts.TypeFormatFlags.NoTruncation);
   return sanitizeTypeString(raw);
+}
+
+/** Expand a type alias RHS to a readable signature (never just the alias name). */
+export function formatTypeAliasSignature(
+  checker: ts.TypeChecker,
+  node: ts.TypeAliasDeclaration,
+): string {
+  const fromSource = sanitizeTypeString(node.type.getText());
+  if (fromSource) return fromSource;
+  return formatTypeNode(checker, node.type);
 }

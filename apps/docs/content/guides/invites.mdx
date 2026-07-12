@@ -1,0 +1,38 @@
+---
+title: Invites
+description: Create and list channel invites with camelCase options.
+category: channels
+order: 24
+---
+
+Invites are created on a channel and can be listed for that channel or the whole guild.
+
+## Create an invite
+
+```javascript
+const invite = await channel.createInvite({
+  maxUses: 1,
+  maxAge: 3600, // seconds; 0 = never expires
+});
+
+await message.reply(`Invite: ${invite.url ?? invite.code}`);
+```
+
+Options are camelCase (`maxUses`, `maxAge`). Wire JSON stays snake_case under the hood.
+
+## List invites
+
+```javascript
+const channelInvites = await channel.fetchInvites();
+const guildInvites = await guild.fetchInvites();
+
+for (const invite of guildInvites) {
+  console.log(invite.code, invite.uses, invite.maxUses);
+}
+```
+
+## Tips
+
+- Creating invites needs Create Instant Invite (or Manage Channels, depending on server settings).
+- Prefer `channel.createInvite` when you already have the channel structure.
+- Deleted invites show up via `Events.InviteDelete` with a camelCase payload (`code`, `guildId`, `channelId`).

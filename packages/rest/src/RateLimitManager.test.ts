@@ -35,6 +35,23 @@ describe('RateLimitManager', () => {
     expect(manager.getWaitTime('route')).toBe(0);
   });
 
+  it('prune drops expired buckets including remaining=0', () => {
+    manager.setBucket('expired', 5, 0, Date.now() - 1);
+    manager.setBucket('live', 5, 0, Date.now() + 60_000);
+    manager.prune();
+    expect(manager.getBucket('expired')).toBeUndefined();
+    expect(manager.getBucket('live')).toBeDefined();
+  });
+
+  it('caps buckets at MAX via LRU eviction', () => {
+    const max = 2_000;
+    for (let i = 0; i < max + 50; i++) {
+      manager.setBucket(`r${i}`, 1, 0, Date.now() + 60_000);
+    }
+    expect(manager.size).toBeLessThanOrEqual(max);
+    expect(manager.getBucket(`r${max + 49}`)).toBeDefined();
+  });
+
   it('setGlobalReset and getGlobalReset', () => {
     const resetAt = Date.now() + 10000;
     manager.setGlobalReset(resetAt);
@@ -61,11 +78,9 @@ describe('RateLimitManager', () => {
     expect(bucket?.remaining).toBe(2);
   });
 
-  it('updateFromHeaders handles Retry-After', () => {
+  it('updateFromHeaders ignores Retry-After (handled on 429 path)', () => {
     const headers = new Headers({ 'Retry-After': '10' });
     manager.updateFromHeaders('/global', headers);
-    const bucket = manager.getBucket('/global');
-    expect(bucket?.limit).toBe(1);
-    expect(bucket?.remaining).toBe(0);
+    expect(manager.getBucket('/global')).toBeUndefined();
   });
 });

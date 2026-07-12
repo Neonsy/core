@@ -1,135 +1,93 @@
 import { describe, it, expect } from 'vitest';
 import { EmbedBuilder } from './EmbedBuilder.js';
 
+const WIRE_KEYS = new Set([
+  'title',
+  'description',
+  'url',
+  'color',
+  'timestamp',
+  'author',
+  'footer',
+  'image',
+  'thumbnail',
+  'fields',
+]);
+
+function assertWire(json: object): void {
+  for (const key of Object.keys(json)) {
+    expect(WIRE_KEYS.has(key)).toBe(true);
+  }
+  expect(json).not.toHaveProperty('video');
+  expect(json).not.toHaveProperty('audio');
+  expect(json).not.toHaveProperty('type');
+  expect(json).not.toHaveProperty('provider');
+  expect(json).not.toHaveProperty('children');
+}
+
 describe('EmbedBuilder', () => {
-  describe('setVideo', () => {
-    it('sets video URL in toJSON output (type stays rich)', () => {
-      const url = 'https://example.com/video.mp4';
-      const embed = new EmbedBuilder().setTitle('Video embed').setVideo(url);
-      const json = embed.toJSON();
+  describe('toJSON wire shape', () => {
+    it('emits request keys only (no video/audio/type)', () => {
+      const json = new EmbedBuilder()
+        .setTitle('Title')
+        .setDescription('Description')
+        .setImage('https://example.com/img.png')
+        .setThumbnail('https://example.com/thumb.png')
+        .toJSON();
 
-      expect(json.video).toEqual({ url });
-      expect(json.type).toBe('rich');
+      assertWire(json);
+      expect('video' in json).toBe(false);
+      expect('audio' in json).toBe(false);
     });
 
-    it('clears video when passed null', () => {
-      const embed = new EmbedBuilder().setVideo('https://example.com/video.mp4').setVideo(null);
-      const json = embed.toJSON();
-
-      expect(json.video).toBeUndefined();
-    });
-
-    it('accepts full EmbedMediaOptions with duration, width, height', () => {
-      const options = {
-        url: 'https://example.com/video.mp4',
-        duration: 120,
-        width: 1920,
-        height: 1080,
-      };
-      const embed = new EmbedBuilder().setTitle('Video').setVideo(options);
-      const json = embed.toJSON();
-
-      expect(json.video).toEqual({
-        url: options.url,
-        duration: 120,
-        width: 1920,
-        height: 1080,
+    it('strips polluted non-request keys from data', () => {
+      const embed = new EmbedBuilder().setTitle('T');
+      Object.assign(embed.data, {
+        video: { url: 'https://example.com/v.mp4' },
+        audio: { url: 'https://example.com/a.mp3' },
+        type: 'rich',
       });
-      expect(json.type).toBe('rich');
-    });
-  });
-
-  describe('setAudio', () => {
-    it('sets audio URL in toJSON output', () => {
-      const url = 'https://example.com/audio.mp3';
-      const embed = new EmbedBuilder().setTitle('Audio embed').setAudio(url);
-      const json = embed.toJSON();
-
-      expect(json.audio).toEqual({ url });
-      expect(json.type).toBe('rich');
-    });
-
-    it('clears audio when passed null', () => {
-      const embed = new EmbedBuilder().setAudio('https://example.com/audio.mp3').setAudio(null);
-      const json = embed.toJSON();
-
-      expect(json.audio).toBeUndefined();
-    });
-
-    it('accepts full EmbedMediaOptions with duration', () => {
-      const options = {
-        url: 'https://example.com/podcast.mp3',
-        duration: 3600,
-        content_type: 'audio/mpeg',
-      };
-      const embed = new EmbedBuilder().setTitle('Podcast').setAudio(options);
-      const json = embed.toJSON();
-
-      expect(json.audio).toEqual({
-        url: options.url,
-        duration: 3600,
-        content_type: 'audio/mpeg',
-      });
+      assertWire(embed.toJSON());
     });
   });
 
   describe('setImage and setThumbnail', () => {
-    it('accept string URL (backward compatibility)', () => {
-      const embed = new EmbedBuilder()
+    it('accept string URL', () => {
+      const json = new EmbedBuilder()
         .setImage('https://example.com/img.png')
-        .setThumbnail('https://example.com/thumb.png');
-      const json = embed.toJSON();
+        .setThumbnail('https://example.com/thumb.png')
+        .toJSON();
 
       expect(json.image).toEqual({ url: 'https://example.com/img.png' });
       expect(json.thumbnail).toEqual({ url: 'https://example.com/thumb.png' });
     });
 
-    it('accept full EmbedMediaOptions with width and height', () => {
-      const embed = new EmbedBuilder()
-        .setImage({
-          url: 'https://example.com/img.png',
-          width: 800,
-          height: 600,
-        })
-        .setThumbnail({
-          url: 'https://example.com/thumb.png',
-          width: 128,
-          height: 128,
-        });
-      const json = embed.toJSON();
+    it('accept EmbedMediaOptions with description', () => {
+      const json = new EmbedBuilder()
+        .setImage({ url: 'https://example.com/img.png', description: 'alt' })
+        .setThumbnail({ url: 'https://example.com/thumb.png' })
+        .toJSON();
 
-      expect(json.image).toEqual({
-        url: 'https://example.com/img.png',
-        width: 800,
-        height: 600,
-      });
-      expect(json.thumbnail).toEqual({
-        url: 'https://example.com/thumb.png',
-        width: 128,
-        height: 128,
-      });
+      expect(json.image).toEqual({ url: 'https://example.com/img.png', description: 'alt' });
+      expect(json.thumbnail).toEqual({ url: 'https://example.com/thumb.png' });
     });
   });
 
   describe('validation', () => {
     it('setTitle throws for over 256 chars', () => {
-      const embed = new EmbedBuilder();
-      expect(() => embed.setTitle('x'.repeat(257))).toThrow(RangeError);
+      expect(() => new EmbedBuilder().setTitle('x'.repeat(257))).toThrow(RangeError);
     });
 
     it('setDescription throws for over 4096 chars', () => {
-      const embed = new EmbedBuilder();
-      expect(() => embed.setDescription('x'.repeat(4097))).toThrow(RangeError);
+      expect(() => new EmbedBuilder().setDescription('x'.repeat(4097))).toThrow(RangeError);
     });
 
     it('setURL throws for invalid URL', () => {
-      const embed = new EmbedBuilder();
-      expect(() => embed.setURL('not-a-valid-url')).toThrow('Invalid embed URL');
+      expect(() => new EmbedBuilder().setURL('not-a-valid-url')).toThrow('Invalid embed URL');
     });
 
     it('setImage throws for invalid media URL', () => {
-      const embed = new EmbedBuilder();
-      expect(() => embed.setImage({ url: 'invalid', width: 100 })).toThrow(
+      expect(() => new EmbedBuilder().setImage({ url: 'invalid' })).toThrow(
         'Invalid embed media URL',
       );
     });
@@ -149,31 +107,34 @@ describe('EmbedBuilder', () => {
     });
   });
 
-  describe('setAuthor and setFooter', () => {
-    it('setAuthor with name, url, iconURL', () => {
-      const embed = new EmbedBuilder().setAuthor({
-        name: 'Author',
-        url: 'https://example.com',
-        iconURL: 'https://example.com/icon.png',
-      });
-      const json = embed.toJSON();
+  describe('camelCase in / snake_case out', () => {
+    it('setAuthor maps iconURL → icon_url', () => {
+      const json = new EmbedBuilder()
+        .setAuthor({
+          name: 'Author',
+          url: 'https://example.com',
+          iconURL: 'https://example.com/icon.png',
+        })
+        .toJSON();
+
       expect(json.author).toEqual({
         name: 'Author',
         url: 'https://example.com',
         icon_url: 'https://example.com/icon.png',
       });
+      expect(json.author).not.toHaveProperty('iconURL');
     });
 
-    it('setFooter with text and iconURL', () => {
-      const embed = new EmbedBuilder().setFooter({
-        text: 'Footer text',
-        iconURL: 'https://example.com/footer.png',
-      });
-      const json = embed.toJSON();
+    it('setFooter maps iconURL → icon_url', () => {
+      const json = new EmbedBuilder()
+        .setFooter({ text: 'Footer text', iconURL: 'https://example.com/footer.png' })
+        .toJSON();
+
       expect(json.footer).toEqual({
         text: 'Footer text',
         icon_url: 'https://example.com/footer.png',
       });
+      expect(json.footer).not.toHaveProperty('iconURL');
     });
 
     it('setAuthor null clears author', () => {
@@ -193,8 +154,7 @@ describe('EmbedBuilder', () => {
     });
 
     it('setColor null clears', () => {
-      const embed = new EmbedBuilder().setColor(0xff0000).setColor(null);
-      expect(embed.toJSON().color).toBeUndefined();
+      expect(new EmbedBuilder().setColor(0xff0000).setColor(null).toJSON().color).toBeUndefined();
     });
 
     it('setTimestamp accepts Date and number', () => {
@@ -204,44 +164,82 @@ describe('EmbedBuilder', () => {
       embed.setTimestamp(1609459200000);
       expect(embed.toJSON().timestamp).toBe('2021-01-01T00:00:00.000Z');
     });
+
+    it('setTimestamp with no argument uses current time', () => {
+      const before = Date.now();
+      const ts = new EmbedBuilder().setTitle('T').setTimestamp().toJSON().timestamp;
+      const after = Date.now();
+      expect(ts).toBeDefined();
+      const ms = Date.parse(ts!);
+      expect(ms).toBeGreaterThanOrEqual(before);
+      expect(ms).toBeLessThanOrEqual(after);
+    });
+
+    it('setTimestamp null clears', () => {
+      expect(
+        new EmbedBuilder().setTitle('T').setTimestamp(new Date()).setTimestamp(null).toJSON()
+          .timestamp,
+      ).toBeUndefined();
+    });
   });
 
-  describe('addFields and spliceFields', () => {
-    it('addFields adds multiple', () => {
-      const embed = new EmbedBuilder()
+  describe('fields', () => {
+    it('setFields replaces all fields', () => {
+      const json = new EmbedBuilder()
         .setTitle('T')
-        .addFields({ name: 'A', value: '1' }, { name: 'B', value: '2', inline: true });
-      const json = embed.toJSON();
+        .addFields({ name: 'Old', value: '1' })
+        .setFields({ name: 'New', value: '2' })
+        .toJSON();
+      expect(json.fields).toEqual([{ name: 'New', value: '2', inline: undefined }]);
+    });
+
+    it('setFields() with no args clears fields', () => {
+      const json = new EmbedBuilder()
+        .setTitle('T')
+        .addFields({ name: 'A', value: '1' })
+        .setFields()
+        .toJSON();
+      expect(json.fields).toBeUndefined();
+    });
+
+    it('addFields adds multiple', () => {
+      const json = new EmbedBuilder()
+        .setTitle('T')
+        .addFields({ name: 'A', value: '1' }, { name: 'B', value: '2', inline: true })
+        .toJSON();
       expect(json.fields).toHaveLength(2);
       expect(json.fields![0]).toEqual({ name: 'A', value: '1', inline: undefined });
       expect(json.fields![1]).toEqual({ name: 'B', value: '2', inline: true });
     });
 
     it('spliceFields replaces at index', () => {
-      const embed = new EmbedBuilder()
+      const json = new EmbedBuilder()
         .setTitle('T')
         .addFields({ name: 'A', value: '1' }, { name: 'B', value: '2' })
-        .spliceFields(1, 1, { name: 'X', value: 'replacement' });
-      const json = embed.toJSON();
+        .spliceFields(1, 1, { name: 'X', value: 'replacement' })
+        .toJSON();
       expect(json.fields).toHaveLength(2);
       expect(json.fields![1].name).toBe('X');
     });
   });
 
   describe('EmbedBuilder.from', () => {
-    it('restores video from existing embed (type always rich)', () => {
+    it('copies request fields only', () => {
       const source = {
-        video: { url: 'https://media.tenor.com/videos/xyz.mp4' },
+        title: 'Hello',
+        description: 'World',
+        image: { url: 'https://example.com/img.png' },
       };
-      const rebuilt = EmbedBuilder.from(source);
-      const json = rebuilt.toJSON();
-
-      expect(json.video).toEqual(source.video);
-      expect(json.type).toBe('rich');
+      const json = EmbedBuilder.from(source).toJSON();
+      expect(json.title).toBe('Hello');
+      expect(json.description).toBe('World');
+      expect(json.image).toEqual(source.image);
+      assertWire(json);
     });
 
-    it('preserves video and audio with full metadata', () => {
-      const source = {
+    it('does not copy video or audio from response embeds', () => {
+      const json = EmbedBuilder.from({
+        title: 'Media',
         video: {
           url: 'https://example.com/video.mp4',
           duration: 90,
@@ -255,12 +253,10 @@ describe('EmbedBuilder', () => {
           content_type: 'audio/mpeg',
           flags: 0,
         },
-      };
-      const rebuilt = EmbedBuilder.from(source);
-      const json = rebuilt.toJSON();
+      }).toJSON();
 
-      expect(json.video).toEqual(source.video);
-      expect(json.audio).toEqual(source.audio);
+      expect(json.title).toBe('Media');
+      assertWire(json);
     });
   });
 });

@@ -1,0 +1,55 @@
+---
+title: Direct Messages
+description: Send and receive DMs with user.send and MessageCreate.
+category: sending-messages
+order: 2
+---
+
+Bots can DM users who allow it. Failures usually mean the user blocked DMs or you never shared a mutual server.
+
+## DM the message author
+
+```javascript
+try {
+  await message.author.send('Here is a private note.');
+  await message.reply('Check your DMs.');
+} catch {
+  await message.reply('Could not DM you. Check your privacy settings.');
+}
+```
+
+## DM another user by ID
+
+```javascript
+import { parseUserMention } from '@fluxerjs/core';
+
+const userId = parseUserMention(args[0]);
+if (!userId) {
+  await message.reply('Mention a user or pass an ID.');
+  return;
+}
+
+const user = await client.users.fetch(userId);
+await user.send(args.slice(1).join(' ') || 'Hello!');
+```
+
+`parseUserMention` accepts `<@id>`, `<@!id>`, or a raw snowflake.
+
+## Receiving DMs
+
+`Events.MessageCreate` fires for guild messages and DMs. Guild messages have `message.guildId`. DMs do not.
+
+```javascript
+client.on(Events.MessageCreate, async (message) => {
+  if (message.author.bot) return;
+  if (message.guildId) return; // guild only skipped here
+
+  await message.reply('Got your DM.');
+});
+```
+
+## Practical notes
+
+- Prefer telling the user in-channel when a DM fails. Silent failure is confusing.
+- Do not spam DMs. One confirmation is fine; marketing is not.
+- Full command demos: `!dm` and `!dmuser` in [ping-bot](/examples/ping-bot/).

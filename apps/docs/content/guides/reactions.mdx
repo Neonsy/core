@@ -1,0 +1,59 @@
+---
+title: Reactions
+description: Add and remove reactions, and listen with MessageReactionPayload.
+category: sending-messages
+order: 11
+---
+
+## Add a reaction
+
+```javascript
+const reply = await message.reply('React to this!');
+await reply.react('👍');
+await reply.react({ name: 'customemoji', id: '123456789012345678' });
+```
+
+## Remove reactions
+
+```javascript
+await message.removeReaction('👍');              // bot's own
+await message.removeReaction('👍', userId);      // a user's (needs perms)
+await message.removeReactionEmoji('👍');         // all of one emoji
+await message.removeAllReactions();              // everything
+```
+
+## Listen
+
+`MessageReactionAdd` and `MessageReactionRemove` emit **one** payload object (not six positional args):
+
+```javascript
+client.on(Events.MessageReactionAdd, async ({ reaction, emoji, userId, messageId }) => {
+  if (emoji.name !== '👍') return;
+  console.log(`User ${userId} voted yes on ${messageId}`);
+  const msg = await reaction.fetchMessage();
+  await msg.react('✅');
+});
+
+client.on(Events.MessageReactionRemove, ({ userId, emoji, messageId }) => {
+  console.log(`User ${userId} removed ${emoji.name} from ${messageId}`);
+});
+```
+
+Same shape works with `client.events.MessageReactionAdd(handler)`.
+
+## Reaction roles
+
+Map emoji → role ID, then on add/remove call `member.roles.add` / `remove`. Prefer `member.roles.has(roleId)` over digging through cache unless you need Role objects.
+
+```javascript
+client.on(Events.MessageReactionAdd, async ({ reaction, user }) => {
+  if (user.bot || !reaction.guildId || reaction.messageId !== rolesMessageId) return;
+  const roleId = ROLE_EMOJI_MAP[reaction.emoji.name];
+  if (!roleId) return;
+  const guild = client.guilds.get(reaction.guildId);
+  const member = await guild?.fetchMember(user.id);
+  if (member && !member.roles.has(roleId)) await member.roles.add(roleId);
+});
+```
+
+Runnable bots: [reaction-bot](/examples/reaction-bot/) (logging) and [reaction-roles-bot](/examples/reaction-roles-bot/) (`!roles` posts the picker). Short-lived prompts: [Collectors](/guides/collectors/).

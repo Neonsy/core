@@ -53,8 +53,8 @@ describe('Client gateway helpers and dispatch', () => {
     const invite = inviteCall?.[1] as Invite;
     expect(invite).toBeInstanceOf(Invite);
     expect(invite.code).toBe('abc123');
-    expect(invite.guild.id).toBe('g1');
-    expect(invite.channel.id).toBe('c1');
+    expect(invite.guild?.id).toBe('g1');
+    expect(invite.channel?.id).toBe('c1');
   });
 
   it('ignores malformed INVITE_CREATE payloads without code and logs debug message', async () => {
@@ -127,7 +127,14 @@ describe('Client gateway helpers and dispatch', () => {
 
     const chunkCall = emit.mock.calls.find((call) => call[0] === Events.GuildMembersChunk);
     expect(chunkCall).toBeTruthy();
-    expect(chunkCall?.[1]).toEqual(payload);
+    expect(chunkCall?.[1]).toMatchObject({
+      guildId: 'g1',
+      chunkIndex: 0,
+      chunkCount: 1,
+      nonce: 'test-nonce',
+      notFound: [],
+    });
+    expect((chunkCall![1] as { members: unknown[] }).members).toHaveLength(1);
   });
 
   it('emits GuildMembersChunk even when guild is not cached', async () => {
@@ -150,7 +157,14 @@ describe('Client gateway helpers and dispatch', () => {
 
     const chunkCall = emit.mock.calls.find((call) => call[0] === Events.GuildMembersChunk);
     expect(chunkCall).toBeTruthy();
-    expect(chunkCall?.[1]).toEqual(payload);
+    expect(chunkCall?.[1]).toEqual({
+      guildId: 'missing-guild',
+      members: [],
+      chunkIndex: 0,
+      chunkCount: 1,
+      notFound: [],
+      nonce: 'missing-guild',
+    });
   });
 
   it('ignores invalid members in GUILD_MEMBERS_CHUNK and caches valid ones', async () => {

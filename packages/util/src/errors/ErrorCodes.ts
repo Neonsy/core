@@ -1,3 +1,7 @@
+/**
+ * Stable machine-readable error codes for {@link FluxerError}.
+ * Keys are PascalCase; values are SCREAMING_SNAKE.
+ */
 export const ErrorCodes = {
   ClientNotReady: 'CLIENT_NOT_READY',
   NotLoggedIn: 'NOT_LOGGED_IN',
@@ -26,7 +30,31 @@ export const ErrorCodes = {
   VoiceWebSocketRequired: 'VOICE_WEBSOCKET_REQUIRED',
   VoiceHttpError: 'VOICE_HTTP_ERROR',
   VoiceNoResponseBody: 'VOICE_NO_RESPONSE_BODY',
-  InteractionOptionNotFound: 'INTERACTION_OPTION_NOT_FOUND',
-  InteractionOptionTypeMismatch: 'INTERACTION_OPTION_TYPE_MISMATCH',
-  InteractionInvalidPayload: 'INTERACTION_INVALID_PAYLOAD',
+  InvalidInstanceDiscovery: 'INVALID_INSTANCE_DISCOVERY',
+  ConflictingInstanceConfig: 'CONFLICTING_INSTANCE_CONFIG',
+  /** @beta ClientCluster: duplicate runtime id */
+  DuplicateRuntimeId: 'DUPLICATE_RUNTIME_ID',
+  /** @beta ClientCluster: unknown runtime id */
+  RuntimeNotFound: 'RUNTIME_NOT_FOUND',
+  /** @beta ClientCluster: concurrent conflicting op on same id */
+  RuntimeConflict: 'RUNTIME_CONFLICT',
+  /** @beta ClientCluster: cluster already destroyed */
+  ClusterDestroyed: 'CLUSTER_DESTROYED',
+  /** @beta ClientCluster: prebuilt client already logged in */
+  RuntimeAlreadyLoggedIn: 'RUNTIME_ALREADY_LOGGED_IN',
+  /** @beta ClientCluster: missing/empty runtime id or token */
+  InvalidRuntimeConfig: 'INVALID_RUNTIME_CONFIG',
+  EmptyMessage: 'EMPTY_MESSAGE',
+  InvalidMessageOptions: 'INVALID_MESSAGE_OPTIONS',
+  InvalidBulkDelete: 'INVALID_BULK_DELETE',
+  /** Fetch / bulk-fetch limit or batch size out of range. */
+  InvalidFetchLimit: 'INVALID_FETCH_LIMIT',
+  /** Attachment plan/file mismatch or invalid attachment input. */
+  InvalidAttachmentInput: 'INVALID_ATTACHMENT_INPUT',
+  /** Presigned CDN PUT failed. */
+  AttachmentUploadFailed: 'ATTACHMENT_UPLOAD_FAILED',
+  /** Operation requires a personal-notes channel (or wrong channel type). */
+  InvalidChannelType: 'INVALID_CHANNEL_TYPE',
 } as const;
+
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

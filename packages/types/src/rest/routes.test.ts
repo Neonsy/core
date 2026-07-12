@@ -1,7 +1,352 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import { Routes } from './routes.js';
 
-describe('Routes', () => {
+const OPENAPI_FILE = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../../vendor/openapi/fluxer-api.json',
+);
+
+type OpenAPIDoc = {
+  paths: Record<string, unknown>;
+};
+
+function loadOpenAPIPaths(): ReadonlySet<string> {
+  const doc = JSON.parse(readFileSync(OPENAPI_FILE, 'utf8')) as OpenAPIDoc;
+  return new Set(Object.keys(doc.paths));
+}
+
+/** True when a concrete Routes path (query stripped) matches an OpenAPI `{param}` template. */
+function pathMatchesTemplate(concrete: string, template: string): boolean {
+  const pathname = concrete.split('?')[0] ?? concrete;
+  const pattern = template
+    .split(/(\{[^}]+\})/)
+    .map((part) => (part.startsWith('{') ? '[^/]+' : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    .join('');
+  return new RegExp(`^${pattern}$`).test(pathname);
+}
+
+const G = 'g1';
+const C = 'c1';
+const M = 'm1';
+const U = 'u1';
+const R = 'r1';
+const E = 'e1';
+const S = 's1';
+const W = 'w1';
+const T = 'tok';
+const P = 'p1';
+const A = 'a1';
+const O = 'o1';
+const EMOJI = '❤';
+const PACK_TYPE = 'emoji';
+
+/**
+ * Every `Routes.*` builder → OpenAPI path template.
+ * Sample args produce concrete paths that must match the template and exist in OpenAPI.
+ */
+const ROUTE_OPENAPI: {
+  readonly [K in keyof typeof Routes]: {
+    readonly openapi: string;
+    readonly call: () => string;
+  };
+} = {
+  channel: { openapi: '/channels/{channel_id}', call: () => Routes.channel(C) },
+  channelMessages: {
+    openapi: '/channels/{channel_id}/messages',
+    call: () => Routes.channelMessages(C),
+  },
+  channelMessage: {
+    openapi: '/channels/{channel_id}/messages/{message_id}',
+    call: () => Routes.channelMessage(C, M),
+  },
+  channelMessageReactions: {
+    openapi: '/channels/{channel_id}/messages/{message_id}/reactions',
+    call: () => Routes.channelMessageReactions(C, M),
+  },
+  channelMessageReaction: {
+    openapi: '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}',
+    call: () => Routes.channelMessageReaction(C, M, EMOJI),
+  },
+  channelMessageReactionMe: {
+    openapi: '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/@me',
+    call: () => Routes.channelMessageReactionMe(C, M, EMOJI),
+  },
+  channelMessageReactionUsers: {
+    openapi: '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/users',
+    call: () => Routes.channelMessageReactionUsers(C, M, EMOJI),
+  },
+  channelMessageReactionUser: {
+    openapi: '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/{target_id}',
+    call: () => Routes.channelMessageReactionUser(C, M, EMOJI, U),
+  },
+  channelPins: {
+    openapi: '/channels/{channel_id}/messages/pins',
+    call: () => Routes.channelPins(C),
+  },
+  channelPinMessage: {
+    openapi: '/channels/{channel_id}/pins/{message_id}',
+    call: () => Routes.channelPinMessage(C, M),
+  },
+  channelBulkDelete: {
+    openapi: '/channels/{channel_id}/messages/bulk-delete',
+    call: () => Routes.channelBulkDelete(C),
+  },
+  channelBulkDeleteMine: {
+    openapi: '/channels/{channel_id}/messages/bulk-delete-mine',
+    call: () => Routes.channelBulkDeleteMine(C),
+  },
+  channelMessagesAck: {
+    openapi: '/channels/{channel_id}/messages/ack',
+    call: () => Routes.channelMessagesAck(C),
+  },
+  channelMessagesPurge: {
+    openapi: '/channels/{channel_id}/messages/purge',
+    call: () => Routes.channelMessagesPurge(C),
+  },
+  channelPinsAck: {
+    openapi: '/channels/{channel_id}/pins/ack',
+    call: () => Routes.channelPinsAck(C),
+  },
+  channelAttachments: {
+    openapi: '/channels/{channel_id}/attachments',
+    call: () => Routes.channelAttachments(C),
+  },
+  channelAttachmentsComplete: {
+    openapi: '/channels/{channel_id}/attachments/complete',
+    call: () => Routes.channelAttachmentsComplete(C),
+  },
+  channelsMessagesBulk: {
+    openapi: '/channels/messages/bulk',
+    call: () => Routes.channelsMessagesBulk(),
+  },
+  channelWebhooks: {
+    openapi: '/channels/{channel_id}/webhooks',
+    call: () => Routes.channelWebhooks(C),
+  },
+  channelTyping: { openapi: '/channels/{channel_id}/typing', call: () => Routes.channelTyping(C) },
+  channelRtcRegions: {
+    openapi: '/channels/{channel_id}/rtc-regions',
+    call: () => Routes.channelRtcRegions(C),
+  },
+  channelSlowmode: {
+    openapi: '/channels/{channel_id}/slowmode',
+    call: () => Routes.channelSlowmode(C),
+  },
+  channelInvites: {
+    openapi: '/channels/{channel_id}/invites',
+    call: () => Routes.channelInvites(C),
+  },
+  channelPermission: {
+    openapi: '/channels/{channel_id}/permissions/{overwrite_id}',
+    call: () => Routes.channelPermission(C, O),
+  },
+  channelRecipient: {
+    openapi: '/channels/{channel_id}/recipients/{user_id}',
+    call: () => Routes.channelRecipient(C, U),
+  },
+  channelMessageAttachment: {
+    openapi: '/channels/{channel_id}/messages/{message_id}/attachments/{attachment_id}',
+    call: () => Routes.channelMessageAttachment(C, M, A),
+  },
+
+  guilds: { openapi: '/guilds', call: () => Routes.guilds() },
+  guild: { openapi: '/guilds/{guild_id}', call: () => Routes.guild(G) },
+  guildDelete: { openapi: '/guilds/{guild_id}/delete', call: () => Routes.guildDelete(G) },
+  guildVanityUrl: {
+    openapi: '/guilds/{guild_id}/vanity-url',
+    call: () => Routes.guildVanityUrl(G),
+  },
+  guildTransferOwnership: {
+    openapi: '/guilds/{guild_id}/transfer-ownership',
+    call: () => Routes.guildTransferOwnership(G),
+  },
+  guildRolesHoistPositions: {
+    openapi: '/guilds/{guild_id}/roles/hoist-positions',
+    call: () => Routes.guildRolesHoistPositions(G),
+  },
+  guildEmojisBulk: {
+    openapi: '/guilds/{guild_id}/emojis/bulk',
+    call: () => Routes.guildEmojisBulk(G),
+  },
+  guildEmojisClone: {
+    openapi: '/guilds/{guild_id}/emojis/clone',
+    call: () => Routes.guildEmojisClone(G),
+  },
+  guildStickersBulk: {
+    openapi: '/guilds/{guild_id}/stickers/bulk',
+    call: () => Routes.guildStickersBulk(G),
+  },
+  guildStickersClone: {
+    openapi: '/guilds/{guild_id}/stickers/clone',
+    call: () => Routes.guildStickersClone(G),
+  },
+  guildDiscovery: {
+    openapi: '/guilds/{guild_id}/discovery',
+    call: () => Routes.guildDiscovery(G),
+  },
+  guildChannels: { openapi: '/guilds/{guild_id}/channels', call: () => Routes.guildChannels(G) },
+  guildMembers: { openapi: '/guilds/{guild_id}/members', call: () => Routes.guildMembers(G) },
+  guildMembersSearch: {
+    openapi: '/guilds/{guild_id}/members-search',
+    call: () => Routes.guildMembersSearch(G),
+  },
+  guildMember: {
+    openapi: '/guilds/{guild_id}/members/{user_id}',
+    call: () => Routes.guildMember(G, U),
+  },
+  guildMemberMe: {
+    openapi: '/guilds/{guild_id}/members/@me',
+    call: () => Routes.guildMemberMe(G),
+  },
+  guildMemberRole: {
+    openapi: '/guilds/{guild_id}/members/{user_id}/roles/{role_id}',
+    call: () => Routes.guildMemberRole(G, U, R),
+  },
+  guildRoles: { openapi: '/guilds/{guild_id}/roles', call: () => Routes.guildRoles(G) },
+  guildRole: {
+    openapi: '/guilds/{guild_id}/roles/{role_id}',
+    call: () => Routes.guildRole(G, R),
+  },
+  guildBans: { openapi: '/guilds/{guild_id}/bans', call: () => Routes.guildBans(G) },
+  guildBan: { openapi: '/guilds/{guild_id}/bans/{user_id}', call: () => Routes.guildBan(G, U) },
+  guildInvites: { openapi: '/guilds/{guild_id}/invites', call: () => Routes.guildInvites(G) },
+  invite: { openapi: '/invites/{invite_code}', call: () => Routes.invite('abc123') },
+  guildAuditLogs: {
+    openapi: '/guilds/{guild_id}/audit-logs',
+    call: () => Routes.guildAuditLogs(G),
+  },
+  guildEmojis: { openapi: '/guilds/{guild_id}/emojis', call: () => Routes.guildEmojis(G) },
+  guildEmoji: {
+    openapi: '/guilds/{guild_id}/emojis/{emoji_id}',
+    call: () => Routes.guildEmoji(G, E),
+  },
+  guildStickers: { openapi: '/guilds/{guild_id}/stickers', call: () => Routes.guildStickers(G) },
+  guildSticker: {
+    openapi: '/guilds/{guild_id}/stickers/{sticker_id}',
+    call: () => Routes.guildSticker(G, S),
+  },
+  guildWebhooks: { openapi: '/guilds/{guild_id}/webhooks', call: () => Routes.guildWebhooks(G) },
+  webhook: { openapi: '/webhooks/{webhook_id}', call: () => Routes.webhook(W) },
+  webhookExecute: {
+    openapi: '/webhooks/{webhook_id}/{token}',
+    call: () => Routes.webhookExecute(W, T),
+  },
+  webhookMessage: {
+    openapi: '/webhooks/{webhook_id}/{token}/messages/{message_id}',
+    call: () => Routes.webhookMessage(W, T, M),
+  },
+
+  user: { openapi: '/users/{user_id}', call: () => Routes.user(U) },
+  currentUser: { openapi: '/users/@me', call: () => Routes.currentUser() },
+  currentUserGuilds: { openapi: '/users/@me/guilds', call: () => Routes.currentUserGuilds() },
+  leaveGuild: { openapi: '/users/@me/guilds/{guild_id}', call: () => Routes.leaveGuild(G) },
+  guildBulkDeleteMine: {
+    openapi: '/users/@me/guilds/{guild_id}/messages/bulk-delete-mine',
+    call: () => Routes.guildBulkDeleteMine(G),
+  },
+  userMeChannels: { openapi: '/users/@me/channels', call: () => Routes.userMeChannels() },
+  userMeChannelPin: {
+    openapi: '/users/@me/channels/{channel_id}/pin',
+    call: () => Routes.userMeChannelPin(C),
+  },
+  userProfile: {
+    openapi: '/users/{target_id}/profile',
+    call: () => Routes.userProfile(U),
+  },
+
+  instanceDiscovery: { openapi: '/.well-known/fluxer', call: () => Routes.instanceDiscovery() },
+  gatewayBot: { openapi: '/gateway/bot', call: () => Routes.gatewayBot() },
+  applicationsMe: { openapi: '/applications/@me', call: () => Routes.applicationsMe() },
+  oauth2ApplicationsMe: {
+    openapi: '/oauth2/applications/@me',
+    call: () => Routes.oauth2ApplicationsMe(),
+  },
+  emojiMetadata: {
+    openapi: '/emojis/{emoji_id}/metadata',
+    call: () => Routes.emojiMetadata(E),
+  },
+  stickerMetadata: {
+    openapi: '/stickers/{sticker_id}/metadata',
+    call: () => Routes.stickerMetadata(S),
+  },
+  checkUsernameTag: { openapi: '/users/check-tag', call: () => Routes.checkUsernameTag() },
+  preloadMessages: {
+    openapi: '/users/@me/preload-messages',
+    call: () => Routes.preloadMessages(),
+  },
+  preloadMessagesAlt: {
+    openapi: '/users/@me/channels/messages/preload',
+    call: () => Routes.preloadMessagesAlt(),
+  },
+  streamPreview: {
+    openapi: '/streams/{stream_key}/preview',
+    call: () => Routes.streamPreview('key'),
+  },
+
+  packs: { openapi: '/packs', call: () => Routes.packs() },
+  packsByType: { openapi: '/packs/{pack_type}', call: () => Routes.packsByType(PACK_TYPE) },
+  pack: { openapi: '/packs/{pack_id}', call: () => Routes.pack(P) },
+  packInstall: { openapi: '/packs/{pack_id}/install', call: () => Routes.packInstall(P) },
+  packInvites: { openapi: '/packs/{pack_id}/invites', call: () => Routes.packInvites(P) },
+  packEmojis: { openapi: '/packs/emojis/{pack_id}', call: () => Routes.packEmojis(P) },
+  packEmojisBulk: {
+    openapi: '/packs/emojis/{pack_id}/bulk',
+    call: () => Routes.packEmojisBulk(P),
+  },
+  packEmoji: {
+    openapi: '/packs/emojis/{pack_id}/{emoji_id}',
+    call: () => Routes.packEmoji(P, E),
+  },
+  packStickers: { openapi: '/packs/stickers/{pack_id}', call: () => Routes.packStickers(P) },
+  packStickersBulk: {
+    openapi: '/packs/stickers/{pack_id}/bulk',
+    call: () => Routes.packStickersBulk(P),
+  },
+  packSticker: {
+    openapi: '/packs/stickers/{pack_id}/{sticker_id}',
+    call: () => Routes.packSticker(P, S),
+  },
+
+  oauth2ApplicationBot: {
+    openapi: '/oauth2/applications/{id}/bot',
+    call: () => Routes.oauth2ApplicationBot(A),
+  },
+  oauth2ApplicationBotResetToken: {
+    openapi: '/oauth2/applications/{id}/bot/reset-token',
+    call: () => Routes.oauth2ApplicationBotResetToken(A),
+  },
+};
+
+describe('Routes ⊆ OpenAPI', () => {
+  const openapiPaths = loadOpenAPIPaths();
+
+  it('enumerates every Routes builder exactly once', () => {
+    expect(Object.keys(ROUTE_OPENAPI).sort()).toEqual(Object.keys(Routes).sort());
+  });
+
+  it.each(
+    (
+      Object.entries(ROUTE_OPENAPI) as [
+        keyof typeof Routes,
+        (typeof ROUTE_OPENAPI)[keyof typeof Routes],
+      ][]
+    ).map(([name, spec]) => [name, spec.openapi, spec] as const),
+  )('%s → %s', (name, openapi, { call }) => {
+    expect(openapiPaths.has(openapi), `${String(name)} → missing OpenAPI path ${openapi}`).toBe(
+      true,
+    );
+    const built = call();
+    expect(
+      pathMatchesTemplate(built, openapi),
+      `${String(name)}()=${built} does not match ${openapi}`,
+    ).toBe(true);
+  });
+});
+
+describe('Routes encoding & query behavior', () => {
   describe('channelMessageReaction', () => {
     it('encodes unicode emoji in URL', () => {
       const path = Routes.channelMessageReaction('123', '456', '❤');
@@ -21,159 +366,19 @@ describe('Routes', () => {
     });
   });
 
-  describe('channel', () => {
-    it('builds channel path', () => {
-      expect(Routes.channel('123456789012345678')).toBe('/channels/123456789012345678');
-    });
+  it('invite encodes special characters', () => {
+    expect(Routes.invite('abc123')).toBe('/invites/abc123');
+    expect(Routes.invite('code+with/special')).toContain(encodeURIComponent('code+with/special'));
   });
 
-  describe('channelMessage', () => {
-    it('builds message path', () => {
-      expect(Routes.channelMessage('111', '222')).toBe('/channels/111/messages/222');
-    });
+  it('streamPreview encodes stream key', () => {
+    const path = Routes.streamPreview('key+with/special');
+    expect(path).toContain('/streams/');
+    expect(path).toContain(encodeURIComponent('key+with/special'));
   });
 
-  describe('invite', () => {
-    it('encodes invite code', () => {
-      const path = Routes.invite('abc123');
-      expect(path).toBe('/invites/abc123');
-      expect(Routes.invite('code+with/special')).toContain(encodeURIComponent('code+with/special'));
-    });
-  });
-
-  describe('guild routes', () => {
-    it('guild builds path', () => {
-      expect(Routes.guild('123456789012345678')).toBe('/guilds/123456789012345678');
-    });
-    it('guildChannels builds path', () => {
-      expect(Routes.guildChannels('123')).toBe('/guilds/123/channels');
-    });
-    it('guildMember builds path', () => {
-      expect(Routes.guildMember('g1', 'u1')).toBe('/guilds/g1/members/u1');
-    });
-    it('guildMemberRole builds path', () => {
-      expect(Routes.guildMemberRole('g1', 'u1', 'r1')).toBe('/guilds/g1/members/u1/roles/r1');
-    });
-    it('guildBan builds path', () => {
-      expect(Routes.guildBan('g1', 'u1')).toBe('/guilds/g1/bans/u1');
-    });
-  });
-
-  describe('webhook routes', () => {
-    it('webhook builds path', () => {
-      expect(Routes.webhook('123')).toBe('/webhooks/123');
-    });
-    it('webhookExecute builds path with token', () => {
-      expect(Routes.webhookExecute('wid', 'token123')).toBe('/webhooks/wid/token123');
-    });
-  });
-
-  describe('application commands', () => {
-    it('applicationCommands builds path', () => {
-      expect(Routes.applicationCommands('app123')).toBe('/applications/app123/commands');
-    });
-    it('applicationCommand builds path', () => {
-      expect(Routes.applicationCommand('app123', 'cmd456')).toBe(
-        '/applications/app123/commands/cmd456',
-      );
-    });
-    it('interactionCallback builds path', () => {
-      const path = Routes.interactionCallback('iid', 'itoken');
-      expect(path).toBe('/interactions/iid/itoken/callback');
-    });
-  });
-
-  describe('user routes', () => {
-    it('user builds path', () => {
-      expect(Routes.user('123')).toBe('/users/123');
-    });
-    it('currentUser builds path', () => {
-      expect(Routes.currentUser()).toBe('/users/@me');
-    });
-    it('userProfile without guild', () => {
-      expect(Routes.userProfile('uid')).toBe('/users/uid/profile');
-    });
-    it('userProfile with guild', () => {
-      expect(Routes.userProfile('uid', 'gid')).toBe('/users/uid/profile?guild_id=gid');
-    });
-  });
-
-  describe('gateway and instance', () => {
-    it('gatewayBot builds path', () => {
-      expect(Routes.gatewayBot()).toBe('/gateway/bot');
-    });
-    it('instance builds path', () => {
-      expect(Routes.instance()).toBe('/instance');
-    });
-    it('instanceDiscovery builds path', () => {
-      expect(Routes.instanceDiscovery()).toBe('/.well-known/fluxer');
-    });
-  });
-
-  describe('webhook messages', () => {
-    it('webhookMessage builds path', () => {
-      expect(Routes.webhookMessage('wh1', 'tok', 'msg1')).toBe('/webhooks/wh1/tok/messages/msg1');
-    });
-  });
-
-  describe('stream preview', () => {
-    it('encodes stream key', () => {
-      const path = Routes.streamPreview('key+with/special');
-      expect(path).toContain('/streams/');
-      expect(path).toContain(encodeURIComponent('key+with/special'));
-    });
-  });
-
-  describe('channel routes', () => {
-    it('channelMessages builds path', () => {
-      expect(Routes.channelMessages('c1')).toBe('/channels/c1/messages');
-    });
-    it('channelRtcRegions builds path', () => {
-      expect(Routes.channelRtcRegions('c1')).toBe('/channels/c1/rtc-regions');
-    });
-    it('channelSlowmode builds path', () => {
-      expect(Routes.channelSlowmode('c1')).toBe('/channels/c1/slowmode');
-    });
-    it('guildMembersSearch builds path', () => {
-      expect(Routes.guildMembersSearch('g1')).toBe('/guilds/g1/members-search');
-    });
-    it('channelBulkDelete builds path', () => {
-      expect(Routes.channelBulkDelete('c1')).toBe('/channels/c1/messages/bulk-delete');
-    });
-    it('channelTyping builds path', () => {
-      expect(Routes.channelTyping('c1')).toBe('/channels/c1/typing');
-    });
-    it('channelPins builds path', () => {
-      expect(Routes.channelPins('c1')).toBe('/channels/c1/messages/pins');
-    });
-    it('channelPinMessage builds path', () => {
-      expect(Routes.channelPinMessage('c1', 'm1')).toBe('/channels/c1/pins/m1');
-    });
-    it('channelPermission builds path', () => {
-      expect(Routes.channelPermission('c1', 'o1')).toBe('/channels/c1/permissions/o1');
-    });
-  });
-
-  describe('oauth2 routes', () => {
-    it('oauth2ApplicationBot builds path', () => {
-      expect(Routes.oauth2ApplicationBot('app1')).toBe('/oauth2/applications/app1/bot');
-    });
-    it('oauth2ApplicationBotResetToken builds path', () => {
-      expect(Routes.oauth2ApplicationBotResetToken('app1')).toBe(
-        '/oauth2/applications/app1/bot/reset-token',
-      );
-    });
-  });
-
-  describe('user routes extended', () => {
-    it('leaveGuild builds path', () => {
-      expect(Routes.leaveGuild('g1')).toBe('/users/@me/guilds/g1');
-    });
-    it('userMeChannels builds path', () => {
-      expect(Routes.userMeChannels()).toBe('/users/@me/channels');
-    });
-    it('currentUserGuilds builds path', () => {
-      expect(Routes.currentUserGuilds()).toBe('/users/@me/guilds');
-    });
+  it('userProfile omits or appends guild_id query', () => {
+    expect(Routes.userProfile('uid')).toBe('/users/uid/profile');
+    expect(Routes.userProfile('uid', 'gid')).toBe('/users/uid/profile?guild_id=gid');
   });
 });

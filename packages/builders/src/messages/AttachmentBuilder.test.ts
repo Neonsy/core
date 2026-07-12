@@ -74,6 +74,7 @@ describe('AttachmentBuilder', () => {
   it('toJSON omits description when undefined', () => {
     const att = new AttachmentBuilder(0, 'image.png');
     const json = att.toJSON();
-    expect(json).toEqual({ id: 0, filename: 'image.png', description: undefined });
+    expect(json).toEqual({ id: 0, filename: 'image.png' });
+    expect(json).not.toHaveProperty('description');
   });
 });

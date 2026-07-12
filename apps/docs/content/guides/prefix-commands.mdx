@@ -1,0 +1,57 @@
+---
+title: Prefix Commands
+description: Parse !commands with parsePrefixCommand and dispatch handlers.
+category: events
+order: 21
+---
+
+Most Fluxer bots still use prefix commands. Keep parsing in one place so every command gets the same `command` + `args` shape.
+
+## With parsePrefixCommand
+
+```javascript
+import { Client, Events, parsePrefixCommand } from '@fluxerjs/core';
+
+const PREFIX = '!';
+const client = new Client({ intents: 0 });
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.author.bot || !message.content) return;
+
+  const parsed = parsePrefixCommand(message.content, PREFIX);
+  if (!parsed) return;
+
+  const { command, args } = parsed;
+
+  if (command === 'ping') {
+    await message.reply('Pong!');
+  }
+  if (command === 'hello') {
+    const name = args[0] ?? 'there';
+    await message.reply(`Hello, ${name}!`);
+  }
+});
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+`parsePrefixCommand` returns `null` when the message does not start with the prefix. Command names come back lowercased; args keep their original casing.
+
+## Guild-only commands
+
+```javascript
+if (!message.guildId) {
+  await message.reply('This command only works in a server.');
+  return;
+}
+```
+
+## Growing past if-chains
+
+Put handlers in a `Map` once you have more than a few commands. [ping-bot](/examples/ping-bot/) does that. Mentions and snowflakes: use `parseUserMention` from the same package.
+
+## Related
+
+- [Basic Bot](/guides/basic-bot/)
+- [Direct Messages](/guides/direct-messages/)
+- [Permissions](/guides/permissions/)

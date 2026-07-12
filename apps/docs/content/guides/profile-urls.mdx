@@ -1,0 +1,61 @@
+---
+title: Profile URLs
+description: "Get avatar, banner, and other CDN URLs easily with User/Webhook/GuildMember methods or standalone CDN helpers for raw API data."
+category: media
+order: 10
+---
+
+## User avatar and banner
+
+When you have a User object (e.g. message.author), use avatarURL(), displayAvatarURL(), and bannerURL(). These handle animated avatars (a_ prefix) and default fallbacks.
+
+```javascript
+import { Client, Events, EmbedBuilder } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.content === '!avatar') {
+    const user = message.author;
+    // avatarURL() returns null if no custom avatar; displayAvatarURL() uses default
+    const avatarUrl = user.displayAvatarURL({ size: 256 });
+    const bannerUrl = user.bannerURL({ size: 512 });
+
+    const embed = new EmbedBuilder()
+      .setTitle(`${user.username}'s profile`)
+      .setThumbnail(avatarUrl)
+      .setColor(user.avatarColor ?? 0x5865f2);
+    if (bannerUrl) embed.setImage(bannerUrl);
+    await message.reply({ embeds: [embed] });
+  }
+});
+```
+
+## Raw API data: CDN helpers
+
+When you have raw API data (e.g. from client.rest.get(Routes.user(id))), use the standalone CDN helpers. They work with id + hash and support size and extension options.
+
+```javascript
+import { cdnAvatarURL, cdnBannerURL } from '@fluxerjs/core';
+
+// From REST response
+const userData = await client.rest.get(Routes.user(userId));
+const avatarUrl = cdnAvatarURL(userData.id, userData.avatar, { size: 256 });
+const bannerUrl = cdnBannerURL(userData.id, profile?.banner ?? null, { size: 512 });
+
+// Or use User: client.getOrCreateUser(userData) then user.displayAvatarURL()
+const user = client.getOrCreateUser(userData);
+const avatarUrl2 = user.displayAvatarURL({ size: 256 });
+```
+
+## Guild member and webhook avatars
+
+GuildMember has displayAvatarURL() (guild avatar or fallback to user) and bannerURL(). Webhook has avatarURL().
+
+```javascript
+// Member avatar (guild-specific or user fallback)
+const memberAvatar = member.displayAvatarURL({ size: 128 });
+
+// Webhook avatar
+const webhookAvatar = webhook.avatarURL({ size: 64 });
+```

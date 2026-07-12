@@ -3,10 +3,11 @@ import {
   resolvePermissionsToBitfield,
   PermissionFlags,
   PermissionsBitField,
+  ALL_PERMISSIONS_BIGINT,
 } from './PermissionsBitField.js';
 
 describe('resolvePermissionsToBitfield', () => {
-  it('returns string as-is when it looks like a number', () => {
+  it('returns string bitfields as decimal strings', () => {
     expect(resolvePermissionsToBitfield('2048')).toBe('2048');
     expect(resolvePermissionsToBitfield('8933636165185')).toBe('8933636165185');
   });
@@ -16,18 +17,14 @@ describe('resolvePermissionsToBitfield', () => {
     expect(resolvePermissionsToBitfield('Administrator')).toBe('8');
   });
 
-  it('resolves number to string', () => {
+  it('resolves number and bigint', () => {
     expect(resolvePermissionsToBitfield(2048)).toBe('2048');
     expect(resolvePermissionsToBitfield(PermissionFlags.SendMessages)).toBe('2048');
-  });
-
-  it('resolves bigint to string', () => {
     expect(resolvePermissionsToBitfield(2048n)).toBe('2048');
   });
 
   it('resolves array of permissions with OR', () => {
-    const result = resolvePermissionsToBitfield(['SendMessages', 'ViewChannel']);
-    expect(result).toBe(String(2048 | 1024)); // 3072
+    expect(resolvePermissionsToBitfield(['SendMessages', 'ViewChannel'])).toBe('3072');
   });
 
   it('resolves PermissionsBitField instance', () => {
@@ -41,7 +38,7 @@ describe('resolvePermissionsToBitfield', () => {
 });
 
 describe('PermissionsBitField', () => {
-  it('uses the intended bit positions for high-bit permissions', () => {
+  it('uses bigint for high-bit permissions', () => {
     expect(PermissionFlags.UseExternalStickers).toBe(1n << 37n);
     expect(PermissionFlags.ModerateMembers).toBe(1n << 40n);
     expect(PermissionFlags.CreateExpressions).toBe(1n << 43n);
@@ -50,16 +47,31 @@ describe('PermissionsBitField', () => {
     expect(PermissionFlags.UpdateRtcRegion).toBe(1n << 53n);
   });
 
+  it('has a single canonical name for bit 30', () => {
+    expect(PermissionFlags.ManageExpressions).toBe(1n << 30n);
+    expect('ManageEmojisAndStickers' in PermissionFlags).toBe(false);
+    const arr = new PermissionsBitField([PermissionFlags.ManageExpressions]).toArray();
+    expect(arr).toEqual(['ManageExpressions']);
+  });
+
   it('has checks single permission', () => {
     const bf = new PermissionsBitField([PermissionFlags.SendMessages]);
     expect(bf.has(PermissionFlags.SendMessages)).toBe(true);
     expect(bf.has(PermissionFlags.BanMembers)).toBe(false);
   });
 
-  it('has checks Administrator flag', () => {
+  it('Administrator implies all permissions', () => {
     const bf = new PermissionsBitField([PermissionFlags.Administrator]);
     expect(bf.has(PermissionFlags.Administrator)).toBe(true);
-    expect(bf.has(PermissionFlags.BanMembers)).toBe(false);
+    expect(bf.has(PermissionFlags.BanMembers)).toBe(true);
+    expect(bf.has(PermissionFlags.PinMessages)).toBe(true);
+    expect(bf.any(PermissionFlags.BanMembers)).toBe(true);
+    expect(bf.missing([PermissionFlags.BanMembers, PermissionFlags.PinMessages])).toEqual([]);
+  });
+
+  it('ALL_PERMISSIONS_BIGINT includes high bits', () => {
+    expect((ALL_PERMISSIONS_BIGINT & PermissionFlags.PinMessages) !== 0n).toBe(true);
+    expect((ALL_PERMISSIONS_BIGINT & PermissionFlags.UpdateRtcRegion) !== 0n).toBe(true);
   });
 
   it('toArray returns permission names', () => {
@@ -67,7 +79,7 @@ describe('PermissionsBitField', () => {
     const arr = bf.toArray();
     expect(arr).toContain('SendMessages');
     expect(arr).toContain('ViewChannel');
-    expect(arr.length).toBe(2);
+    expect(arr).toHaveLength(2);
   });
 
   it('serialize returns permission object', () => {

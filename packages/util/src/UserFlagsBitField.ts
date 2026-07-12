@@ -1,9 +1,8 @@
 import { BitField, type BitFieldResolvable } from './BitField.js';
 
 /**
- * User flag bit values matching the API UserFlags schema (openapi.json).
- * Values are int64; bit shifts used where within 32-bit range, literals otherwise.
- * Note: BitField's has/add/remove use JS bitwise ops (32-bit); full values are for API serialization.
+ * User flag bits matching the API UserFlags schema (int64).
+ * Stored as bigint so bits ≥ 32 work with {@link BitField} operations.
  */
 export const UserFlagsBits = {
   Staff: 1n << 0n,
@@ -41,8 +40,8 @@ export const UserFlagsBits = {
 
 export type UserFlagsString = keyof typeof UserFlagsBits;
 
+export type UserFlagsResolvable = BitFieldResolvable<UserFlagsString>;
+
 export class UserFlagsBitField extends BitField<UserFlagsString> {
   static override Flags = UserFlagsBits;
 }
-
-export type UserFlagsResolvable = BitFieldResolvable<UserFlagsString>;

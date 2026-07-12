@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { HTTPError } from './HTTPError.js';
+import { HTTPError } from './index.js';
 
 describe('HTTPError', () => {
   it('creates error with status and body', () => {

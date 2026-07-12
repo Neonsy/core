@@ -2,11 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { SnowflakeUtil } from './SnowflakeUtil.js';
 
 describe('SnowflakeUtil', () => {
-  it('timestampFromSnowflake converts correctly', () => {
-    const ts = 1609459200000; // 2021-01-01
+  it('timestampFromSnowflake round-trips', () => {
+    const ts = 1_609_459_200_000;
     const snowflake = SnowflakeUtil.snowflakeFromTimestamp(ts);
-    const back = SnowflakeUtil.timestampFromSnowflake(snowflake);
-    expect(back).toBe(ts);
+    expect(SnowflakeUtil.timestampFromSnowflake(snowflake)).toBe(ts);
   });
 
   it('isValid accepts valid snowflakes', () => {
@@ -18,6 +17,11 @@ describe('SnowflakeUtil', () => {
     expect(SnowflakeUtil.isValid('')).toBe(false);
     expect(SnowflakeUtil.isValid('abc')).toBe(false);
     expect(SnowflakeUtil.isValid('-1')).toBe(false);
+    expect(SnowflakeUtil.isValid('0123')).toBe(false);
+  });
+
+  it('parse returns bigint', () => {
+    expect(SnowflakeUtil.parse('123')).toBe(123n);
   });
 
   it('deconstruct returns components', () => {
@@ -29,7 +33,7 @@ describe('SnowflakeUtil', () => {
     expect(result).toHaveProperty('increment');
   });
 
-  it('snowflakeFromTimestamp round-trips', () => {
+  it('snowflakeFromTimestamp round-trips within second', () => {
     const ts = Date.now();
     const snowflake = SnowflakeUtil.snowflakeFromTimestamp(ts);
     const back = SnowflakeUtil.timestampFromSnowflake(snowflake);
@@ -37,7 +41,7 @@ describe('SnowflakeUtil', () => {
   });
 
   it('dateFromSnowflake returns Date', () => {
-    const ts = 1609459200000;
+    const ts = 1_609_459_200_000;
     const snowflake = SnowflakeUtil.snowflakeFromTimestamp(ts);
     const date = SnowflakeUtil.dateFromSnowflake(snowflake);
     expect(date).toBeInstanceOf(Date);
@@ -45,9 +49,9 @@ describe('SnowflakeUtil', () => {
   });
 
   it('deconstruct returns correct component values', () => {
-    const sf = SnowflakeUtil.snowflakeFromTimestamp(1609459200000);
+    const sf = SnowflakeUtil.snowflakeFromTimestamp(1_609_459_200_000);
     const d = SnowflakeUtil.deconstruct(sf);
-    expect(d.timestamp).toBe(1609459200000);
+    expect(d.timestamp).toBe(1_609_459_200_000);
     expect(d.date).toBeInstanceOf(Date);
     expect(typeof d.workerId).toBe('number');
     expect(typeof d.processId).toBe('number');
@@ -59,11 +63,8 @@ describe('SnowflakeUtil', () => {
     expect(() => SnowflakeUtil.deconstruct('12.34')).toThrow(TypeError);
   });
 
-  it('isValid rejects negative', () => {
+  it('isValid rejects negative and too long', () => {
     expect(SnowflakeUtil.isValid('-123')).toBe(false);
-  });
-
-  it('isValid rejects too long', () => {
-    expect(SnowflakeUtil.isValid('1' + '0'.repeat(20))).toBe(false);
+    expect(SnowflakeUtil.isValid(`1${'0'.repeat(20)}`)).toBe(false);
   });
 });

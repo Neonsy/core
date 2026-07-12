@@ -1,15 +1,15 @@
-import { APIMessage, Routes } from '@fluxerjs/types';
+import { type APIMessage, Routes } from '@fluxerjs/types';
 import { FluxerAPIError, RateLimitError } from '@fluxerjs/rest';
 import { FluxerError } from '../errors/FluxerError.js';
 import { ErrorCodes } from '../errors/ErrorCodes.js';
-import { Client } from '../client/Client.js';
+import type { Client } from '../client/Client.js';
+import type { ReactionEmojiPayload } from '../client/eventPayloads.js';
 import { Base } from './Base.js';
 import { Message } from './Message.js';
-import { Guild } from './Guild.js';
-import {
+import type { Guild } from './Guild.js';
+import type {
   GatewayMessageReactionAddDispatchData,
   GatewayMessageReactionRemoveDispatchData,
-  GatewayReactionEmoji,
 } from '@fluxerjs/types';
 
 /** Represents a reaction added to or removed from a message. */
@@ -18,7 +18,7 @@ export class MessageReaction extends Base {
   readonly messageId: string;
   readonly channelId: string;
   readonly guildId: string | null;
-  readonly emoji: GatewayReactionEmoji;
+  readonly emoji: ReactionEmojiPayload;
   /** Raw gateway payload for low-level access. */
   readonly _data: GatewayMessageReactionAddDispatchData | GatewayMessageReactionRemoveDispatchData;
 
@@ -32,7 +32,11 @@ export class MessageReaction extends Base {
     this.messageId = data.message_id;
     this.channelId = data.channel_id;
     this.guildId = data.guild_id ?? null;
-    this.emoji = data.emoji;
+    this.emoji = {
+      name: data.emoji.name,
+      ...(data.emoji.id !== undefined ? { id: data.emoji.id } : {}),
+      ...(data.emoji.animated !== undefined ? { animated: data.emoji.animated } : {}),
+    };
   }
 
   /** Emoji as a string: unicode or "name:id" for custom. */

@@ -1,32 +1,41 @@
-import { Client } from '../client/Client.js';
-import { Base } from './Base.js';
-import { MessageSendOptions } from '../util/messageUtils.js';
-import { APIChannelPartial, APIUserPartial } from '@fluxerjs/types';
+import type { APIChannelPartial, APIUserPartial } from '@fluxerjs/types';
 import { Routes } from '@fluxerjs/types';
-import { CDN_URL } from '../util/Constants.js';
-import { cdnDefaultAvatarURL } from '../util/cdn.js';
-import { DMChannel } from './Channel.js';
-import { Message } from './Message';
 
-/** Represents a user (or bot) on Fluxer. */
+import type { Client } from '../client/Client.js';
+import type { MessageSendOptions } from '../util/messageUtils.js';
+import { cdnAvatarURL, cdnBannerURL, cdnDefaultAvatarURL } from '../util/cdn.js';
+import { Base } from './Base.js';
+import { DMChannel } from './Channel.js';
+import type { Message } from './Message.js';
+
+/**
+ * User (or bot) on Fluxer.
+ * Cached in {@link Client.users} and hydrated via {@link Client.getOrCreateUser}.
+ */
 export class User extends Base {
+  /** Parent client instance. */
   readonly client: Client;
+  /** User snowflake ID. */
   readonly id: string;
+  /** Username (not unique across the platform). */
   username: string;
+  /** Legacy discriminator (e.g., `"0001"`). */
   discriminator: string;
+  /** Display name (preferred over username). */
   globalName: string | null;
+  /** Avatar hash (null = default avatar). */
   avatar: string | null;
+  /** Whether this user is a bot. */
   readonly bot: boolean;
-  /** RGB avatar color (e.g. 7577782). Null if not set. */
+  /** Accent color for the profile (24-bit RGB). */
   avatarColor: number | null;
-  /** Public flags bitfield. Null if not set. */
+  /** User flags bitfield (badges, staff, etc.). */
   flags: number | null;
-  /** Whether this is an official system user. */
+  /** Whether this is a system user (e.g., Fluxer System). */
   readonly system: boolean;
-  /** Banner hash (from profile, member, or invite context). Null when not available. */
+  /** Banner hash for profile. */
   banner: string | null;
 
-  /** @param data - API user from message author, GET /users/{id}, or GET /users/@me */
   constructor(client: Client, data: APIUserPartial) {
     super();
     this.client = client;
@@ -37,12 +46,12 @@ export class User extends Base {
     this.avatar = data.avatar ?? null;
     this.bot = !!data.bot;
     this.avatarColor = data.avatar_color ?? null;
-    this.flags = data.flags ?? data.public_flags ?? null;
+    this.flags = data.flags ?? null;
     this.system = !!data.system;
     this.banner = data.banner ?? null;
   }
 
-  /** Update mutable fields from fresh API data. Used by getOrCreateUser cache. */
+  /** @internal */
   _patch(data: APIUserPartial): void {
     this.username = data.username;
     this.discriminator = data.discriminator;
@@ -53,57 +62,68 @@ export class User extends Base {
     if (data.banner !== undefined) this.banner = data.banner;
   }
 
+  private cdnOpts(): { mediaBase: string; staticCdnBase: string } {
+    return {
+      mediaBase: this.client.instance.endpoints.media,
+      staticCdnBase: this.client.instance.endpoints.static_cdn,
+    };
+  }
+
   /**
-   * Get the URL for this user's avatar.
-   * Auto-detects animated avatars (hash starting with `a_`) and uses gif extension.
-   * @param options - Optional `size` and `extension` (default: png, or gif for animated)
+   * User avatar CDN URL (null if no custom avatar set).
+   * @param options - Size and extension options
+   * @returns CDN URL or null
    */
   avatarURL(options?: { size?: number; extension?: string }): string | null {
-    if (!this.avatar) return null;
-    const ext = this.avatar.startsWith('a_') ? 'gif' : (options?.extension ?? 'png');
-    const size = options?.size ? `?size=${options.size}` : '';
-    return `${CDN_URL}/avatars/${this.id}/${this.avatar}.${ext}${size}`;
-  }
-
-  /** Get the avatar URL, or the default avatar if none set (Fluxer: fluxerstatic.com). */
-  displayAvatarURL(options?: { size?: number; extension?: string }): string {
-    return this.avatarURL(options) ?? cdnDefaultAvatarURL(this.id);
+    return cdnAvatarURL(this.id, this.avatar, { ...options, ...this.cdnOpts() });
   }
 
   /**
-   * Get the URL for this user's banner.
-   * Returns null if the user has no banner (only available when fetched from profile/member context).
+   * User avatar URL or default avatar fallback.
+   * @param options - Size and extension options
+   * @returns CDN URL (never null)
    */
-  bannerURL(options?: { size?: number; extension?: string }): string | null {
-    if (!this.banner) return null;
-    const ext = this.banner.startsWith('a_') ? 'gif' : (options?.extension ?? 'png');
-    const size = options?.size ? `?size=${options.size}` : '';
-    return `${CDN_URL}/banners/${this.id}/${this.banner}.${ext}${size}`;
+  displayAvatarURL(options?: { size?: number; extension?: string }): string {
+    return this.avatarURL(options) ?? cdnDefaultAvatarURL(this.id, this.cdnOpts());
   }
 
-  /** Returns a mention string (e.g. `<@123456>`). */
+  /**
+   * User banner CDN URL (null if no banner set).
+   * @param options - Size and extension options
+   * @returns CDN URL or null
+   */
+  bannerURL(options?: { size?: number; extension?: string }): string | null {
+    return cdnBannerURL(this.id, this.banner, { ...options, ...this.cdnOpts() });
+  }
+
+  /**
+   * Format as a mention string (`<@id>`).
+   * @returns Mention syntax
+   */
   toString(): string {
     return `<@${this.id}>`;
   }
 
   /**
-   * Create or get a DM channel with this user.
-   * Returns the DM channel; use {@link DMChannel.send} to send messages.
+   * Create or fetch the DM channel with this user.
+   * @returns DM channel instance (cached if already open)
    */
   async createDM(): Promise<DMChannel> {
     const data = await this.client.rest.post(Routes.userMeChannels(), {
       body: { recipient_id: this.id },
       auth: true,
     });
-    return new DMChannel(this.client, data as APIChannelPartial);
+    const channel = new DMChannel(this.client, data as APIChannelPartial);
+    this.client.channels.set(channel.id, channel);
+    return channel;
   }
 
   /**
    * Send a DM to this user.
-   * Convenience method that creates the DM channel and sends the message.
+   * @param options - Message content or {@link MessageSendOptions}
+   * @returns Sent message
    */
   async send(options: MessageSendOptions): Promise<Message> {
-    const dm = await this.createDM();
-    return dm.send(options);
+    return (await this.createDM()).send(options);
   }
 }

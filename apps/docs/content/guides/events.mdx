@@ -1,0 +1,237 @@
+﻿---
+title: Events
+description: "Listen to gateway events with client.on. Handlers receive hydrated structures, camelCase DTOs, or wire payloads depending on the event."
+category: events
+order: 16
+---
+
+## Basic Usage
+
+Use `client.on(Events.X, handler)` to subscribe. Handlers receive event-specific payloads typed by `ClientEvents`.
+
+<CodeTabs>
+
+```javascript title="Default"
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client.on(Events.Ready, () => {
+  console.log('Bot is ready!');
+});
+
+client.on(Events.MessageCreate, async (message) => {
+  console.log(message.content);
+});
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+```javascript title="client.events"
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client
+  .events.Ready(() => console.log('Bot is ready!'))
+  .events.MessageCreate(async (message) => console.log(message.content));
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+</CodeTabs>
+
+<Tip>
+client.events.X(handler) offers the same API with chaining and better autocomplete.
+</Tip>
+
+## Payload shapes
+
+After the major rewrite, `ClientEvents` payloads fall into three groups:
+
+1. **Hydrated structures**  -  `Message`, `PartialMessage`, `Guild`, `Channel`, `GuildMember`, `Role`, `Invite`, `User`, `GuildBan`, `MessageReaction`, `GuildEmoji` (via DTOs). Prefer these for bot logic.
+2. **CamelCase DTOs**  -  normalized objects from `eventPayloads.ts` (and a few inline camelCase shapes). Use `channelId` / `guildId`, not snake_case wire fields.
+3. **Wire gateway shapes**  -  still `Gateway*DispatchData` from `@fluxerjs/types` (snake_case). Voice events stay wire on purpose so [`@fluxerjs/voice`](/guides/voice/) can consume them unchanged.
+
+`*Update` handlers that receive old/new structures may see the **same instance** for both args when the cache patches in place (member, channel, guild).
+
+## Common Events
+
+```javascript
+client.on(Events.Ready, () => {});
+
+client.on(Events.MessageCreate, async (message) => {});
+client.on(Events.MessageUpdate, (oldMessage, newMessage) => {});
+client.on(Events.MessageDelete, (message) => {}); // PartialMessage
+
+client.on(Events.MessageReactionAdd, (payload) => {});
+client.on(Events.MessageReactionRemove, (payload) => {});
+
+client.on(Events.GuildCreate, (guild) => {});
+client.on(Events.GuildUpdate, (oldGuild, newGuild) => {});
+client.on(Events.GuildDelete, (guild) => {});
+
+client.on(Events.ChannelCreate, (channel) => {});
+client.on(Events.ChannelUpdate, (oldChannel, newChannel) => {});
+client.on(Events.ChannelDelete, (channel) => {});
+
+client.on(Events.GuildMemberAdd, (member) => {});
+client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {}); // oldMember may be null
+client.on(Events.GuildMemberRemove, (member) => {});
+
+client.on(Events.GuildRoleCreate, (role) => {});
+client.on(Events.GuildRoleUpdate, ({ role, oldRole }) => {});
+client.on(Events.GuildRoleDelete, ({ roleId, guildId, role }) => {});
+
+client.on(Events.GuildBanAdd, (ban) => {});
+client.on(Events.GuildBanRemove, (ban) => {});
+
+client.on(Events.InviteCreate, (invite) => {});
+client.on(Events.InviteDelete, (payload) => {
+  console.log(payload.code, payload.channelId, payload.guildId);
+});
+
+client.on(Events.UserUpdate, (user) => {});
+
+// Voice  -  wire Gateway* shapes (intentional)
+client.on(Events.VoiceStateUpdate, (data) => {});
+client.on(Events.VoiceServerUpdate, (data) => {});
+```
+
+## Reaction Events
+
+`MessageReactionAdd` / `MessageReactionRemove` emit a single **camelCase** DTO (`MessageReactionPayload`: `reaction`, `user`, `messageId`, `channelId`, `emoji`, `userId`). `MessageReactionRemoveAll` and `MessageReactionRemoveEmoji` also emit camelCase DTOs.
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client.on(Events.MessageReactionAdd, ({ reaction, user, messageId, channelId, emoji, userId }) => {
+  const emojiStr = emoji.id ? `<:${emoji.name}:${emoji.id}>` : emoji.name;
+  console.log(`User ${userId} reacted with ${emojiStr} on message ${messageId}`);
+
+  if (emoji.name === '👍') {
+    console.log('Someone voted yes!');
+  }
+});
+
+client.on(Events.MessageReactionRemove, ({ userId, emoji, messageId }) => {
+  console.log(`User ${userId} removed ${emoji.name} from message ${messageId}`);
+});
+
+client.on(Events.MessageReactionRemoveAll, (data) => {
+  console.log(`All reactions cleared from message ${data.messageId}`);
+});
+
+client.on(Events.MessageReactionRemoveEmoji, (data) => {
+  console.log(`All ${data.emoji.name} reactions removed from message ${data.messageId}`);
+});
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+## Error Handling
+
+```javascript
+client.on(Events.Error, (err) => {
+  console.error('Client error:', err);
+});
+
+client.on(Events.Debug, (message) => {
+  console.debug(message);
+});
+```
+
+## Client Events Reference
+
+Events exposed on `Client` via `Events` / `ClientEvents`. Only these names are supported  -  raw gateway dispatches that are not listed here are not emitted as public client events.
+
+| Category | `Events` |
+| --- | --- |
+| Connection | `Ready`, `Resumed`, `Error`, `Debug` |
+| Messages | `MessageCreate`, `MessageUpdate`, `MessageDelete`, `MessageDeleteBulk` |
+| Reactions | `MessageReactionAdd`, `MessageReactionAddMany`, `MessageReactionRemove`, `MessageReactionRemoveAll`, `MessageReactionRemoveEmoji` |
+| Guild | `GuildCreate`, `GuildUpdate`, `GuildDelete`, `GuildCountsUpdate`, `GuildEmojisUpdate`, `GuildStickersUpdate`, `GuildAuditLogEntryCreate` |
+| Members | `GuildMemberAdd`, `GuildMemberUpdate`, `GuildMemberRemove`, `GuildMembersChunk` |
+| Roles | `GuildRoleCreate`, `GuildRoleUpdate`, `GuildRoleDelete` |
+| Moderation | `GuildBanAdd`, `GuildBanRemove` |
+| Channels | `ChannelCreate`, `ChannelUpdate`, `ChannelDelete`, `ChannelPinsUpdate`, `ChannelMemberCountsUpdate` |
+| Invites | `InviteCreate`, `InviteDelete` |
+| Users / presence | `UserUpdate`, `UserConnectionsUpdate`, `WebAuthnCredentialsUpdate`, `PresenceUpdate`, `PresenceUpdateBulk`, `TypingStart` |
+| Webhooks | `WebhooksUpdate` |
+| Voice | `VoiceStateUpdate`, `VoiceStateAck`, `VoiceServerUpdate`, `EntranceSoundPlay`, `VoiceStatesSync` |
+
+## Event Payload Reference
+
+Handler argument types from `ClientEvents`. Structure names are classes from `@fluxerjs/core`. DTOs are camelCase. Wire rows use `Gateway*` types from `@fluxerjs/types` (snake_case fields).
+
+| `Events` | Handler args |
+| --- | --- |
+| `Ready` | _(none)_ |
+| `Resumed` | _(none)_ |
+| `Error` | `Error` |
+| `Debug` | `string` |
+| `MessageCreate` | `Message` |
+| `MessageUpdate` | `Message \| null`, `Message` |
+| `MessageDelete` | `PartialMessage` |
+| `MessageDeleteBulk` | `MessageDeleteBulkPayload`  -  `&#123; ids, channelId, guildId &#125;` |
+| `MessageReactionAdd` | `MessageReactionPayload`  -  `{ reaction, user, messageId, channelId, emoji, userId }` |
+| `MessageReactionAddMany` | `MessageReactionAddManyPayload` |
+| `MessageReactionRemove` | `MessageReactionPayload` |
+| `MessageReactionRemoveAll` | `MessageReactionRemoveAllPayload` |
+| `MessageReactionRemoveEmoji` | `MessageReactionRemoveEmojiPayload` |
+| `GuildCreate` | `Guild` |
+| `GuildUpdate` | `Guild`, `Guild` |
+| `GuildDelete` | `Guild` |
+| `GuildMemberAdd` | `GuildMember` |
+| `GuildMemberUpdate` | `GuildMember \| null`, `GuildMember` (old is a clone, or `null` if uncached) |
+| `GuildMemberRemove` | `GuildMember` |
+| `GuildMembersChunk` | `GuildMembersChunkPayload` |
+| `GuildCountsUpdate` | `GuildCountsUpdatePayload` |
+| `ChannelMemberCountsUpdate` | `ChannelMemberCountsUpdatePayload` |
+| `GuildAuditLogEntryCreate` | `AuditLogEntryPayload` |
+| `GuildBanAdd` | `GuildBan` |
+| `GuildBanRemove` | `GuildBan` |
+| `GuildEmojisUpdate` | `GuildEmojisUpdatePayload`  -  `{ guildId, emojis }` |
+| `GuildStickersUpdate` | `GuildStickersUpdatePayload`  -  `{ guildId, stickers }` |
+| `GuildRoleCreate` | `Role` |
+| `GuildRoleUpdate` | `GuildRoleUpdatePayload`  -  `{ role, oldRole }` |
+| `GuildRoleDelete` | `GuildRoleDeletePayload`  -  `{ roleId, guildId, role }` |
+| `ChannelCreate` | `Channel` |
+| `ChannelUpdate` | `Channel`, `Channel` |
+| `ChannelDelete` | `Channel` |
+| `ChannelPinsUpdate` | `ChannelPinsUpdatePayload` |
+| `InviteCreate` | `Invite` |
+| `InviteDelete` | `InviteDeletePayload` |
+| `TypingStart` | `TypingStartPayload` |
+| `UserUpdate` | `User` |
+| `UserConnectionsUpdate` | `GatewayUserConnectionsUpdateDispatchData` _(wire)_ |
+| `WebAuthnCredentialsUpdate` | `GatewayWebAuthnCredentialsUpdateDispatchData` _(wire)_ |
+| `PresenceUpdate` | `PresenceUpdatePayload` |
+| `PresenceUpdateBulk` | `PresenceUpdateBulkPayload` |
+| `WebhooksUpdate` | `WebhooksUpdatePayload` |
+| `VoiceStateUpdate` | `GatewayVoiceStateUpdateDispatchData` _(wire)_ |
+| `VoiceStateAck` | `GatewayVoiceStateAckDispatchData` _(wire)_ |
+| `VoiceServerUpdate` | `GatewayVoiceServerUpdateDispatchData` _(wire)_ |
+| `EntranceSoundPlay` | `GatewayEntranceSoundPlayDispatchData` _(wire)_ |
+| `VoiceStatesSync` | `GatewayVoiceStatesSyncData` _(wire)_ |
+
+### CamelCase DTOs
+
+Exported from `@fluxerjs/core` (defined in `eventPayloads.ts`). Voice events remain wire-shaped on purpose.
+
+| Payload | Notes |
+| --- | --- |
+| `MessageDeleteBulkPayload` | `ids`, `channelId`, `guildId` |
+| `InviteDeletePayload` | `code`, `guildId`, `channelId` |
+| `TypingStartPayload` | `channelId`, `guildId`, `userId`, `timestamp` |
+| `GuildEmojisUpdatePayload` / `GuildStickersUpdatePayload` | cached structures |
+| `MessageReactionRemoveAllPayload` / `RemoveEmoji` / `AddMany` | camelCase |
+| `ChannelPinsUpdatePayload` | `channelId`, `guildId`, `lastPinTimestamp` |
+| `PresenceUpdatePayload` / `PresenceUpdateBulkPayload` | camelCase |
+| `WebhooksUpdatePayload` | `channelId`, `guildId` |
+| `GuildMembersChunkPayload` | includes `GuildMember[]` |
+| `GuildCountsUpdatePayload` / `ChannelMemberCountsUpdatePayload` | camelCase counts |
+| `AuditLogEntryPayload` | camelCase audit entry |
+| `GuildRoleUpdatePayload` | `{ role, oldRole }` |

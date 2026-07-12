@@ -7,64 +7,60 @@ export interface TenorMediaResult {
 }
 
 /**
- * Resolve a Tenor view URL to a direct GIF URL for use in embeds.
- * Embeds require GIF format (not MP4). Fetches the Tenor page for JSON-LD
- * or oEmbed, then derives the GIF URL from the media.tenor.com path.
- *
- * @param tenorViewUrl - Tenor view URL (e.g. https://tenor.com/view/stressed-gif-7048057395502071840)
- * @returns { url, flags? } for setImage/setThumbnail, or null if resolution fails
- * @example
- * const media = await resolveTenorToImageUrl('https://tenor.com/view/stressed-gif-7048057395502071840');
- * if (media) embed.setImage(media);
+ * Resolve a Tenor view URL to a direct GIF URL for embeds.
+ * Prefers JSON-LD from the page; falls back to oEmbed thumbnail → `.gif`.
  */
 export async function resolveTenorToImageUrl(
   tenorViewUrl: string,
 ): Promise<TenorMediaResult | null> {
-  if (!tenorViewUrl || !tenorViewUrl.includes('tenor.com')) return null;
+  if (typeof tenorViewUrl !== 'string' || !tenorViewUrl.includes('tenor.com')) return null;
 
-  // Try page HTML + JSON-LD first
   try {
     const pageRes = await fetch(tenorViewUrl, {
       signal: AbortSignal.timeout(5000),
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FluxerSDK/1.0)' },
     });
-    if (!pageRes.ok) throw new Error('Page fetch failed');
-    const html = await pageRes.text();
-    const jsonLd = extractTenorJsonLd(html);
-    const gifUrl = extractGifUrlFromJsonLd(jsonLd);
-    if (gifUrl) {
-      return { url: gifUrl, flags: EmbedMediaFlags.IS_ANIMATED };
+    if (pageRes.ok) {
+      const html = await pageRes.text();
+      const gifUrl = extractGifUrlFromJsonLd(extractTenorJsonLd(html));
+      if (gifUrl) {
+        return { url: gifUrl, flags: EmbedMediaFlags.IS_ANIMATED };
+      }
     }
   } catch {
     // Fall through to oEmbed
   }
 
-  // Fallback: oEmbed thumbnail, derive GIF URL (media.tenor.com/ID/name.png -> name.gif)
   try {
     const oembedUrl = `https://tenor.com/oembed?url=${encodeURIComponent(tenorViewUrl)}`;
     const res = await fetch(oembedUrl, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
-    const data = (await res.json()) as { thumbnail_url?: string };
-    const gifUrl = deriveGifFromThumbnail(data.thumbnail_url);
+    const data: unknown = await res.json();
+    const thumb =
+      typeof data === 'object' &&
+      data !== null &&
+      'thumbnail_url' in data &&
+      typeof (data as { thumbnail_url: unknown }).thumbnail_url === 'string'
+        ? (data as { thumbnail_url: string }).thumbnail_url
+        : undefined;
+    const gifUrl = deriveGifFromThumbnail(thumb);
     return gifUrl ? { url: gifUrl, flags: EmbedMediaFlags.IS_ANIMATED } : null;
   } catch {
     return null;
   }
 }
 
-/** Extract GIF URL from JSON-LD. Prefers .gif URLs; derives from thumbnail path if needed. */
 function extractGifUrlFromJsonLd(jsonLd: Record<string, unknown> | null): string | null {
   if (!jsonLd) return null;
-  const image = jsonLd.image as Record<string, string> | undefined;
-  const video = jsonLd.video as Record<string, string> | undefined;
-  const thumbnailUrl = image?.thumbnailUrl ?? image?.url;
-  const contentUrl = image?.contentUrl ?? video?.contentUrl;
+  const image = asRecord(jsonLd.image);
+  const video = asRecord(jsonLd.video);
+  const thumbnailUrl = asString(image?.thumbnailUrl) ?? asString(image?.url);
+  const contentUrl = asString(image?.contentUrl) ?? asString(video?.contentUrl);
   if (contentUrl && /\.gif($|\?)/i.test(contentUrl)) return contentUrl;
   if (thumbnailUrl) return deriveGifFromThumbnail(thumbnailUrl);
   return null;
 }
 
-/** Derive GIF URL from media.tenor.com thumbnail (.png -> .gif). */
 function deriveGifFromThumbnail(thumbUrl: string | undefined): string | null {
   if (!thumbUrl || !thumbUrl.includes('media.tenor.com')) return null;
   const gifUrl = thumbUrl.replace(/\.(png|jpg|jpeg|webp)(\?|$)/i, '.gif$2');
@@ -76,11 +72,20 @@ function extractTenorJsonLd(html: string): Record<string, unknown> | null {
     /<script[^>]*class="dynamic"[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i;
   const alt =
     /<script[^>]*type="application\/ld\+json"[^>]*class="dynamic"[^>]*>([\s\S]*?)<\/script>/i;
-  const match = html.match(re) ?? html.match(alt);
+  const match = re.exec(html) ?? alt.exec(html);
   if (!match?.[1]) return null;
   try {
-    return JSON.parse(match[1].trim()) as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(match[1].trim());
+    return asRecord(parsed);
   } catch {
     return null;
   }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
 }

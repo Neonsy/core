@@ -1,4 +1,8 @@
 {
-  "*.{ts,tsx,js,vue}": ["eslint --fix", "prettier --write"],
-  "*.{json,md,yml,yaml}": ["prettier --write"]
+  "*.{ts,tsx,js,jsx,json,jsonc}": [
+    "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
+  ],
+  "*.{md,yml,yaml,vue,css,html}": [
+    "biome format --write --no-errors-on-unmatched --files-ignore-unknown=true"
+  ]
 }

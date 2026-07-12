@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RateLimitError } from './RateLimitError.js';
+import { RateLimitError } from './index.js';
 
 describe('RateLimitError', () => {
   it('extends FluxerAPIError with retryAfter and global', () => {

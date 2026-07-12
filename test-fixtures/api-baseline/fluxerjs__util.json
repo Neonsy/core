@@ -1,0 +1,51 @@
+{
+  "package": "@fluxerjs/util",
+  "generatedAt": "2026-07-11T02:20:57.225Z",
+  "entries": [
+    {
+      "subpath": ".",
+      "exports": [
+        "ALL_PERMISSIONS_BIGINT",
+        "BitField",
+        "BitFieldResolvable",
+        "DeconstructedSnowflake",
+        "ErrorCode",
+        "ErrorCodes",
+        "FLUXER_EPOCH",
+        "FluxerError",
+        "FluxerErrorOptions",
+        "MessageFlagsBitField",
+        "MessageFlagsBits",
+        "MessageFlagsResolvable",
+        "MessageFlagsString",
+        "ParsedEmoji",
+        "ParsedPrefixCommand",
+        "PermissionFlags",
+        "PermissionResolvable",
+        "PermissionString",
+        "PermissionsBitField",
+        "SnowflakeUtil",
+        "TenorMediaResult",
+        "TimestampStyle",
+        "UserFlagsBitField",
+        "UserFlagsBits",
+        "UserFlagsResolvable",
+        "UserFlagsString",
+        "emitDeprecationWarning",
+        "escapeMarkdown",
+        "formatColor",
+        "formatEmoji",
+        "formatTimestamp",
+        "getUnicodeFromShortcode",
+        "parseEmoji",
+        "parsePrefixCommand",
+        "parseRoleMention",
+        "parseUserMention",
+        "resolveColor",
+        "resolvePermissionsToBitfield",
+        "resolveTenorToImageUrl",
+        "truncate"
+      ]
+    }
+  ]
+}

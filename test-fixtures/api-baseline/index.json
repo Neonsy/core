@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-07-11T02:20:57.234Z",
+  "packages": [
+    "@fluxerjs/types",
+    "@fluxerjs/util",
+    "@fluxerjs/collection",
+    "@fluxerjs/rest",
+    "@fluxerjs/ws",
+    "@fluxerjs/builders",
+    "@fluxerjs/core"
+  ]
+}

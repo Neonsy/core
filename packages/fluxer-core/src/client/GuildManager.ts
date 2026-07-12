@@ -1,11 +1,14 @@
 import { Collection } from '@fluxerjs/collection';
-import { APIGuild, Routes } from '@fluxerjs/types';
-import { Client } from './Client.js';
+import { type APIGuild, Routes } from '@fluxerjs/types';
+import { FluxerAPIError, RateLimitError } from '@fluxerjs/rest';
+import type { Client } from './Client.js';
 import { Guild } from '../structures/Guild.js';
+import { FluxerError } from '../errors/FluxerError.js';
+import { ErrorCodes } from '../errors/ErrorCodes.js';
 
 /**
- * Manages guilds with fetch.
- * Extends Collection so you can use .get(), .set(), .filter(), etc.
+ * Guild cache and manager with fetch.
+ * Extends {@link Collection} so you can use `.get()`, `.set()`, `.filter()`, etc.
  */
 export class GuildManager extends Collection<string, Guild> {
   private readonly maxSize: number;
@@ -15,6 +18,7 @@ export class GuildManager extends Collection<string, Guild> {
     this.maxSize = client.options?.cache?.guilds ?? 0;
   }
 
+  /** Set a guild in the cache (evicts oldest if at capacity). */
   override set(key: string, value: Guild): this {
     if (this.maxSize > 0 && this.size >= this.maxSize && !this.has(key)) {
       const firstKey = this.keys().next().value;
@@ -25,45 +29,19 @@ export class GuildManager extends Collection<string, Guild> {
 
   /**
    * Get a guild from cache or fetch from the API if not present.
-   * Convenience helper to avoid repeating `client.guilds.get(id) ?? (await client.guilds.fetch(id))`.
    * @param guildId - Snowflake of the guild
-   * @returns The guild, or null if not found
-   * @example
-   * const guild = await client.guilds.resolve(message.guildId);
-   * if (guild) console.log(guild.name);
+   * @returns The guild
+   * @throws FluxerError with GUILD_NOT_FOUND if missing
    */
-  async resolve(guildId: string): Promise<Guild | null> {
+  async resolve(guildId: string): Promise<Guild> {
     return this.get(guildId) ?? this.fetch(guildId);
   }
 
   /**
-   * Create a guild. POST /guilds.
-   * @param options - name (required), icon (base64), empty_features
-   * @returns The created guild
+   * Fetch a guild by ID (returns cache if present).
+   * @throws FluxerError with GUILD_NOT_FOUND if missing
    */
-  async create(options: {
-    name: string;
-    icon?: string | null;
-    empty_features?: boolean;
-  }): Promise<Guild> {
-    const data = await this.client.rest.post<APIGuild>(Routes.guilds(), {
-      body: options,
-      auth: true,
-    });
-    const guild = new Guild(this.client, data);
-    this.set(guild.id, guild);
-    return guild;
-  }
-
-  /**
-   * Fetch a guild by ID from the API (or return from cache if present).
-   * @param guildId - Snowflake of the guild
-   * @returns The guild, or null if not found
-   * @example
-   * const guild = await client.guilds.fetch(guildId);
-   * if (guild) console.log(guild.name);
-   */
-  async fetch(guildId: string): Promise<Guild | null> {
+  async fetch(guildId: string): Promise<Guild> {
     const cached = this.get(guildId);
     if (cached) return cached;
 
@@ -72,8 +50,17 @@ export class GuildManager extends Collection<string, Guild> {
       const guild = new Guild(this.client, data);
       this.set(guild.id, guild);
       return guild;
-    } catch {
-      return null;
+    } catch (err) {
+      if (err instanceof RateLimitError) throw err;
+      if (err instanceof FluxerAPIError && err.statusCode === 404) {
+        throw new FluxerError(`Guild ${guildId} not found`, {
+          code: ErrorCodes.GuildNotFound,
+          cause: err,
+        });
+      }
+      throw err instanceof FluxerError
+        ? err
+        : new FluxerError(String(err), { cause: err as Error });
     }
   }
 }

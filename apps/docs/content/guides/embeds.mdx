@@ -1,0 +1,59 @@
+---
+title: Embeds
+description: Build rich embeds with EmbedBuilder and send them without toJSON().
+category: sending-messages
+order: 4
+---
+
+Use `EmbedBuilder` for titles, fields, colors, and footers. Pass the builder into `reply` / `send` / `edit` directly. The SDK serializes it. An embed needs at least one of: title, description, fields, image, or thumbnail.
+
+## Minimal example
+
+```javascript
+import { Client, Events, EmbedBuilder } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.content !== '!embed') return;
+
+  const embed = new EmbedBuilder()
+    .setTitle('Hello!')
+    .setDescription('This is a Fluxer embed.')
+    .setColor(0x5865f2)
+    .addFields(
+      { name: 'Field 1', value: 'Value 1', inline: true },
+      { name: 'Field 2', value: 'Value 2', inline: true },
+    )
+    .setFooter({ text: 'Powered by Fluxer.js' })
+    .setTimestamp();
+
+  await message.reply({ embeds: [embed] });
+});
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+## Description only
+
+No title required:
+
+```javascript
+const embed = new EmbedBuilder()
+  .setDescription('Still a valid embed.')
+  .setColor(0x57f287);
+
+await message.reply({ embeds: [embed] });
+```
+
+## Clearing fields
+
+`clearFields()` is gone. Reset with `setFields()` and no args (or an empty array).
+
+## Editing later
+
+Send first, then `message.edit({ embeds: [updated] })`. See [Editing embeds](/guides/editing-embeds/) and `!editembed` in [ping-bot](/examples/ping-bot/).
+
+## Media in embeds
+
+Images, thumbnails, and animated flags: [Embed media](/guides/embed-media/). Tenor: [GIFs](/guides/gifs/).

@@ -1,0 +1,80 @@
+---
+title: "Emojis & Stickers"
+description: "Fetch, create, edit, and delete guild emojis and stickers. Use guild.fetchEmojis(), guild.createEmojisBulk(), and guild.createStickersBulk()."
+category: emojis
+order: 23
+---
+
+## Fetch Emojis
+
+Use guild.fetchEmojis() to get all emojis in a guild. Cached in guild.emojis. Use guild.fetchEmoji(emojiId) for a single emoji. Use emoji.delete() to remove an emoji (e.g. autocreated ones).
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client.on(Events.MessageCreate, async (message) => {
+  if (!message.guildId || message.content !== '!emojis') return;
+  const guild = client.guilds.get(message.guildId) ?? await client.guilds.resolve(message.guildId);
+  if (!guild) return;
+
+  const emojis = await guild.fetchEmojis();
+  const list = emojis.map((e) => `:${e.name}: (${e.id})`).join(', ');
+  await message.reply(emojis.length ? list : 'No emojis.');
+
+  // Or get from cache after fetching: guild.emojis.get(emojiId)
+});
+
+// Fetch single emoji by ID
+const emoji = await guild.fetchEmoji(emojiId);
+await emoji.delete();
+```
+
+## Create Emojis & Stickers
+
+Use guild.createEmojisBulk() and guild.createStickersBulk() with base64 image data. Use emoji.edit() / emoji.delete() and sticker.edit() / sticker.delete() for individual updates.
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+// Create emoji from URL (fetch and convert to base64)
+async function createEmojiFromUrl(guild, name, imageUrl) {
+  const res = await fetch(imageUrl);
+  const buf = await res.arrayBuffer();
+  const base64 = Buffer.from(buf).toString('base64');
+  const [emoji] = await guild.createEmojisBulk([{ name, image: base64 }]);
+  return emoji;
+}
+
+client.on(Events.MessageCreate, async (message) => {
+  if (!message.guildId || !message.content.startsWith('!addemoji ')) return;
+  const guild = client.guilds.get(message.guildId) ?? await client.guilds.resolve(message.guildId);
+  if (!guild) return;
+
+  const [_, name, url] = message.content.split(/\s+/);
+  if (!name || !url) return;
+  const emoji = await createEmojiFromUrl(guild, name, url);
+  await message.reply(`Created emoji :${emoji.name}:`);
+});
+
+// Bulk create stickers
+const stickers = await guild.createStickersBulk([
+  { name: 'cool', image: base64Image, description: 'A cool sticker' },
+]);
+
+// Edit and delete
+await emoji.edit({ name: 'newname' });
+await emoji.delete();
+```
+
+## Quick Reference
+
+| `API` | `Method` | Purpose |
+| --- | --- | --- |
+| `Emojis` | `guild.fetchEmojis()` | Fetch all guild emojis (cached in guild.emojis) |
+| `Emojis` | `guild.fetchEmoji(emojiId)` | Fetch single emoji by ID |
+| `Emojis` | `guild.createEmojisBulk()` | Bulk create emojis (base64 image) |
+| `Stickers` | `guild.createStickersBulk()` | Bulk create stickers |

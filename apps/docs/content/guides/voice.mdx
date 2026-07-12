@@ -1,0 +1,90 @@
+---
+title: Voice
+description: Join a voice channel and play WebM/Opus audio with @fluxerjs/voice.
+category: voice
+order: 14
+---
+
+<Warning>
+**Voice is being reworked.** Fluxer is updating how voice works, so `@fluxerjs/voice` and the demos below will change soon. Treat this guide as temporary. Do not build production bots on the current voice APIs.
+</Warning>
+
+## Install
+
+```bash
+pnpm add @fluxerjs/voice @fluxerjs/core
+```
+
+## Setup
+
+Create the voice manager **before** `login` so it sees `VoiceStatesSync` from READY / GUILD_CREATE. That way users already in VC when the bot starts are visible.
+
+```javascript
+import { Client, Events, VoiceChannel } from '@fluxerjs/core';
+import { getVoiceManager } from '@fluxerjs/voice';
+
+const client = new Client({ intents: 0 });
+getVoiceManager(client);
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+## Join and play
+
+```javascript
+const voiceManager = getVoiceManager(client);
+const voiceChannelId = voiceManager.getVoiceChannelId(guildId, userId);
+if (!voiceChannelId) return; // user not in voice
+
+const channel = client.channels.get(voiceChannelId);
+if (!(channel instanceof VoiceChannel)) return;
+
+const connection = await voiceManager.join(channel);
+await connection.play('https://example.com/audio.webm');
+```
+
+Input should be WebM with Opus for the current audio path. Pull direct URLs from YouTube with `youtube-dl-exec` / yt-dlp.
+
+```javascript
+import youtubedl from 'youtube-dl-exec';
+
+const streamUrl = String(
+  await youtubedl(url, {
+    getUrl: true,
+    f: 'bestaudio[ext=webm][acodec=opus]/bestaudio[ext=webm]/bestaudio',
+    noWarnings: true,
+    noPlaylist: true,
+  }),
+).trim();
+
+await connection.play(streamUrl);
+```
+
+## Stop and leave
+
+```javascript
+const connection = voiceManager.getConnection(channelId) ?? voiceManager.getConnection(guildId);
+connection?.stop();
+voiceManager.leave(guildId);
+```
+
+## LiveKit leave / reconnect
+
+Some servers drop you with `serverLeave`. Rejoin if you still intend to play:
+
+```javascript
+connection.on?.('serverLeave', async () => {
+  try {
+    const conn = await voiceManager.join(channel);
+    await conn.play(streamUrl);
+  } catch (e) {
+    console.error('Auto-reconnect failed:', e);
+  }
+});
+```
+
+## Full example
+
+The [voice-bot](/examples/voice-bot/) example implements `!play`, `!playvideo`, and `!stop`. Same rework warning applies there. Set `VOICE_DEBUG=1` for voice event logs.
+
+Also useful: [Installation](/guides/installation/), [Basic bot](/guides/basic-bot/), [Events](/guides/events/).

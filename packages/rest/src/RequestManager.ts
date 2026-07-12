@@ -1,16 +1,20 @@
+import type { APIErrorBody, RateLimitErrorBody } from '@fluxerjs/types';
 import { RateLimitManager } from './RateLimitManager.js';
 import { FluxerAPIError, RateLimitError, HTTPError } from './errors/index.js';
-import { APIErrorBody, RateLimitErrorBody } from '@fluxerjs/types';
-import { buildFormData } from './utils/files.js';
+import { buildFormData, type AttachmentPayload } from './utils/files.js';
+import { sharedFetch } from './fetch/sharedFetch.js';
+import {
+  DEFAULT_API,
+  DEFAULT_USER_AGENT,
+  DEFAULT_VERSION,
+  MAX_RETRIES,
+  REQUEST_TIMEOUT,
+} from './utils/constants.js';
 
 export interface RequestOptions {
   body?: unknown | FormData;
   headers?: Record<string, string>;
-  files?: Array<{
-    name: string;
-    data: Blob | ArrayBuffer | Uint8Array | Buffer;
-    filename?: string;
-  }>;
+  files?: AttachmentPayload[];
   auth?: boolean;
   /** Aborts the request when triggered (e.g. shutdown). Combined with the client timeout. */
   signal?: AbortSignal;
@@ -26,17 +30,79 @@ export interface RestOptions {
 }
 
 const ROUTE_HASH_CACHE_MAX = 1000;
+const SNOWFLAKE_RE = /\d{17,19}/g;
+
+function abortError(): Error {
+  const err = new Error('The operation was aborted');
+  err.name = 'AbortError';
+  return err;
+}
 
 function isAbortError(err: unknown): boolean {
   if (err instanceof Error && err.name === 'AbortError') return true;
-  if (
-    typeof DOMException !== 'undefined' &&
-    err instanceof DOMException &&
-    err.name === 'AbortError'
-  ) {
-    return true;
+  return (
+    typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError'
+  );
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError());
+      return;
+    }
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        reject(abortError());
+      },
+      { once: true },
+    );
+  });
+}
+
+function isAPIErrorBody(value: unknown): value is APIErrorBody {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.message === 'string' && (typeof v.code === 'string' || typeof v.code === 'number')
+  );
+}
+
+function headerInt(headers: Headers, name: string): number {
+  const raw = headers.get(name);
+  if (raw === null) return 0;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parseRateLimitBody(text: string, headers: Headers): RateLimitErrorBody {
+  const headerRetry = headerInt(headers, 'Retry-After');
+  const fallback: RateLimitErrorBody = {
+    code: 'RATE_LIMITED',
+    message: 'Rate limited',
+    retry_after: headerRetry,
+  };
+  if (!text) return fallback;
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (!isAPIErrorBody(parsed)) return fallback;
+    const retry = (parsed as { retry_after?: unknown }).retry_after;
+    return {
+      ...parsed,
+      code: 'RATE_LIMITED',
+      retry_after: typeof retry === 'number' && Number.isFinite(retry) ? retry : headerRetry,
+    };
+  } catch {
+    return fallback;
   }
-  return false;
+}
+
+function backoffMs(attempt: number): number {
+  return 500 * (attempt + 1);
 }
 
 export class RequestManager {
@@ -47,12 +113,12 @@ export class RequestManager {
 
   constructor(options: Partial<RestOptions>) {
     this.options = {
-      api: options.api ?? 'https://api.fluxer.app',
-      version: options.version ?? '1',
+      api: options.api ?? DEFAULT_API,
+      version: options.version ?? DEFAULT_VERSION,
       authPrefix: options.authPrefix ?? 'Bot',
-      timeout: options.timeout ?? 15000,
-      retries: options.retries ?? 3,
-      userAgent: options.userAgent ?? 'fluxerjs',
+      timeout: options.timeout ?? REQUEST_TIMEOUT,
+      retries: options.retries ?? MAX_RETRIES,
+      userAgent: options.userAgent ?? DEFAULT_USER_AGENT,
     };
   }
 
@@ -60,11 +126,15 @@ export class RequestManager {
     this.token = token;
   }
 
+  getToken(): string | null {
+    return this.token;
+  }
+
   get baseUrl(): string {
     return `${this.options.api}/v${this.options.version}`;
   }
 
-  /** Hash route for rate limit bucket (use path without ids for grouping). LRU via Map insertion order refresh on hit. */
+  /** Hash route for rate limit bucket (path without snowflake ids). LRU via Map insertion order. */
   private getRouteHash(route: string): string {
     const cached = this.routeHashCache.get(route);
     if (cached !== undefined) {
@@ -72,7 +142,7 @@ export class RequestManager {
       this.routeHashCache.set(route, cached);
       return cached;
     }
-    const hash = route.replace(/\d{17,19}/g, ':id');
+    const hash = route.replace(SNOWFLAKE_RE, ':id');
     if (this.routeHashCache.size >= ROUTE_HASH_CACHE_MAX) {
       const first = this.routeHashCache.keys().next().value;
       if (first !== undefined) this.routeHashCache.delete(first);
@@ -81,13 +151,23 @@ export class RequestManager {
     return hash;
   }
 
-  private async waitForRateLimit(routeHash: string): Promise<void> {
-    const wait = this.rateLimiter.getWaitTime(routeHash);
-    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  private buildBody(options: RequestOptions): string | FormData | undefined {
+    if (options.files?.length) {
+      const payload =
+        options.body !== undefined &&
+        typeof options.body === 'object' &&
+        options.body !== null &&
+        !(options.body instanceof FormData)
+          ? (options.body as Record<string, unknown>)
+          : {};
+      return buildFormData(payload, options.files);
+    }
+    if (options.body === undefined) return undefined;
+    if (options.body instanceof FormData) return options.body;
+    return JSON.stringify(options.body);
   }
 
   private buildHeaders(
-    _route: string,
     options: RequestOptions,
     body: string | FormData | undefined,
   ): Record<string, string> {
@@ -96,7 +176,7 @@ export class RequestManager {
       ...options.headers,
     };
     if (options.auth !== false && this.token) {
-      headers['Authorization'] = `${this.options.authPrefix} ${this.token}`;
+      headers.Authorization = `${this.options.authPrefix} ${this.token}`;
     }
     if (body !== undefined && !(body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
@@ -104,53 +184,71 @@ export class RequestManager {
     return headers;
   }
 
+  private async parseError(
+    response: Response,
+    method: string,
+    route: string,
+  ): Promise<FluxerAPIError | HTTPError> {
+    const text = await response.text();
+    const ctx = { method, path: route };
+    try {
+      const parsed: unknown = text ? JSON.parse(text) : null;
+      if (isAPIErrorBody(parsed)) return new FluxerAPIError(parsed, response.status, ctx);
+    } catch {
+      // non-JSON body
+    }
+    return new HTTPError(response.status, text, ctx);
+  }
+
+  private async parseSuccess(response: Response): Promise<unknown> {
+    if (response.status === 204) return undefined;
+    const text = await response.text();
+    if (!text) return undefined;
+    const isJson = (response.headers.get('Content-Type') ?? '')
+      .toLowerCase()
+      .includes('application/json');
+    try {
+      return JSON.parse(text) as unknown;
+    } catch (err) {
+      if (isJson) throw err;
+      return text;
+    }
+  }
+
   async request<T>(method: string, route: string, options: RequestOptions = {}): Promise<T> {
     const routeHash = this.getRouteHash(route);
     const url = route.startsWith('http') ? route : `${this.baseUrl}${route}`;
-
-    await this.waitForRateLimit(routeHash);
-
-    let body: string | FormData | undefined;
-    if (options.body !== undefined) {
-      if (options.body instanceof FormData) {
-        body = options.body;
-      } else if (
-        options.files?.length &&
-        typeof options.body === 'object' &&
-        options.body !== null
-      ) {
-        body = buildFormData(options.body as Record<string, unknown>, options.files);
-      } else {
-        body = JSON.stringify(options.body);
-      }
-    }
-
-    const headers = this.buildHeaders(route, options, body);
-
+    const body = this.buildBody(options);
+    const headers = this.buildHeaders(options, body);
+    const userSignal = options.signal;
     let lastError: Error | null = null;
+
     for (let attempt = 0; attempt <= this.options.retries; attempt++) {
+      if (userSignal?.aborted) throw abortError();
+
+      const wait = this.rateLimiter.getWaitTime(routeHash);
+      if (wait > 0) await sleep(wait, userSignal);
+
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.options.timeout);
-      const userSignal = options.signal;
+      let timedOut = false;
+      const timeoutId = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, this.options.timeout);
+
       const onUserAbort = (): void => {
         controller.abort();
       };
       if (userSignal) {
         if (userSignal.aborted) {
           clearTimeout(timeoutId);
-          controller.abort();
-        } else {
-          userSignal.addEventListener('abort', onUserAbort);
+          throw abortError();
         }
+        userSignal.addEventListener('abort', onUserAbort);
       }
-      try {
-        if (controller.signal.aborted) {
-          const aborted = new Error('The operation was aborted');
-          aborted.name = 'AbortError';
-          throw aborted;
-        }
 
-        const response = await fetch(url, {
+      try {
+        const response = await sharedFetch(url, {
           method,
           headers,
           body,
@@ -160,67 +258,63 @@ export class RequestManager {
         this.rateLimiter.updateFromHeaders(routeHash, response.headers);
 
         if (response.status === 429) {
-          const data = (await response.json().catch(() => ({}))) as RateLimitErrorBody;
-          const retryAfter =
-            (data.retry_after ?? parseInt(response.headers.get('Retry-After') ?? '0', 10)) * 1000;
-          this.rateLimiter.setBucket(routeHash, 1, 0, Date.now() + retryAfter);
-          if (data.global) this.rateLimiter.setGlobalReset(Date.now() + retryAfter);
-          throw new RateLimitError(
-            {
-              ...data,
-              code: 'RATE_LIMITED',
-              message: data.message ?? 'Rate limited',
-              retry_after: data.retry_after ?? 0,
-            },
-            response.status,
-          );
-        }
+          const data = parseRateLimitBody(await response.text(), response.headers);
+          const retryAfterSec = data.retry_after || headerInt(response.headers, 'Retry-After');
+          const retryMs = Math.max(0, retryAfterSec * 1000);
+          this.rateLimiter.setBucket(routeHash, 1, 0, Date.now() + retryMs);
+          if (data.global) this.rateLimiter.setGlobalReset(Date.now() + retryMs);
 
-        const contentType = (response.headers.get('Content-Type') ?? '').toLowerCase();
+          const err = new RateLimitError(
+            { ...data, code: 'RATE_LIMITED', retry_after: retryAfterSec },
+            response.status,
+            { method, path: route },
+          );
+          if (attempt < this.options.retries) {
+            lastError = err;
+            await sleep(retryMs, userSignal);
+            continue;
+          }
+          throw err;
+        }
 
         if (!response.ok) {
-          const text = await response.text();
-          let parsed: APIErrorBody;
-          try {
-            parsed = JSON.parse(text) as APIErrorBody;
-          } catch {
-            throw new HTTPError(response.status, text);
+          const err = await this.parseError(response, method, route);
+          if (err.isRetryable && attempt < this.options.retries) {
+            lastError = err;
+            await sleep(backoffMs(attempt), userSignal);
+            continue;
           }
-          throw new FluxerAPIError(parsed, response.status);
+          throw err;
         }
 
-        if (response.status === 204) return undefined as T;
-
-        if (contentType.includes('application/json')) {
-          try {
-            return (await response.json()) as T;
-          } catch {
-            return undefined as T;
-          }
-        }
-
-        const text = await response.text();
-        if (text.length === 0) return undefined as T;
-        return JSON.parse(text) as T;
+        return (await this.parseSuccess(response)) as T;
       } catch (err) {
-        if (isAbortError(err)) throw err;
+        if (isAbortError(err)) {
+          if (userSignal?.aborted) throw err;
+          if (timedOut && attempt < this.options.retries) {
+            lastError = err instanceof Error ? err : new Error(String(err));
+            await sleep(backoffMs(attempt), userSignal);
+            continue;
+          }
+          throw err;
+        }
+
+        if (
+          err instanceof RateLimitError ||
+          err instanceof FluxerAPIError ||
+          err instanceof HTTPError
+        ) {
+          throw err;
+        }
+
         const wrapped = err instanceof Error ? err : new Error(String(err));
         lastError =
           attempt > 0
-            ? new Error(`Retry ${attempt} failed: ${wrapped.message}`, {
-                cause: wrapped,
-              })
+            ? new Error(`Retry ${attempt} failed: ${wrapped.message}`, { cause: wrapped })
             : wrapped;
-        if (err instanceof RateLimitError && attempt < this.options.retries) {
-          const retryMs = err.retryAfter * 1000;
-          if (Number.isFinite(retryMs)) {
-            await new Promise((r) => setTimeout(r, retryMs));
-            continue;
-          }
-        }
-        if (err instanceof FluxerAPIError || err instanceof HTTPError) throw err;
+
         if (attempt < this.options.retries) {
-          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+          await sleep(backoffMs(attempt), userSignal);
           continue;
         }
         throw lastError;
@@ -229,6 +323,7 @@ export class RequestManager {
         userSignal?.removeEventListener('abort', onUserAbort);
       }
     }
+
     throw lastError ?? new Error('Request failed');
   }
 }

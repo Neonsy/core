@@ -14,7 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # Full history + all tags so generate-docs can worktree each v2.* tag
+          fetch-depth: 0
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Fetch all tags
+        run: git fetch --force --tags
 
       - uses: pnpm/action-setup@v4
 

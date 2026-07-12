@@ -1,5 +1,5 @@
 export { BitField, type BitFieldResolvable } from './BitField.js';
-export { SnowflakeUtil, FLUXER_EPOCH } from './SnowflakeUtil.js';
+export { SnowflakeUtil, FLUXER_EPOCH, type DeconstructedSnowflake } from './SnowflakeUtil.js';
 export {
   PermissionsBitField,
   PermissionFlags,
@@ -20,7 +20,13 @@ export {
   type UserFlagsString,
   type UserFlagsResolvable,
 } from './UserFlagsBitField.js';
-export { formatColor, escapeMarkdown, formatTimestamp, truncate } from './formatters.js';
+export {
+  formatColor,
+  escapeMarkdown,
+  formatTimestamp,
+  truncate,
+  type TimestampStyle,
+} from './formatters.js';
 export {
   resolveColor,
   parseEmoji,
@@ -28,9 +34,10 @@ export {
   parseUserMention,
   parseRoleMention,
   parsePrefixCommand,
+  type ParsedEmoji,
+  type ParsedPrefixCommand,
 } from './resolvers.js';
 export { getUnicodeFromShortcode } from './emojiShortcodes.js';
 export { resolveTenorToImageUrl, type TenorMediaResult } from './tenorUtils.js';
-export { emitDeprecationWarning } from './deprecation.js';
 export { FluxerError, type FluxerErrorOptions } from './errors/FluxerError.js';
-export { ErrorCodes } from './errors/ErrorCodes.js';
+export { ErrorCodes, type ErrorCode } from './errors/ErrorCodes.js';

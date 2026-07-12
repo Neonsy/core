@@ -1,0 +1,21 @@
+{
+  "package": "@fluxerjs/ws",
+  "generatedAt": "2026-07-11T02:20:57.228Z",
+  "entries": [
+    {
+      "subpath": ".",
+      "exports": [
+        "GatewayCloseCodes",
+        "WebSocketConstructor",
+        "WebSocketLike",
+        "WebSocketManager",
+        "WebSocketManagerOptions",
+        "WebSocketShard",
+        "WebSocketShardOptions",
+        "getDefaultWebSocket",
+        "getDefaultWebSocketSync",
+        "narrowGatewayPayload"
+      ]
+    }
+  ]
+}

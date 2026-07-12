@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { Guild, Client, User, GuildMember } from '../';
+import { Guild, type Client, User, GuildMember } from '../';
+import { DEFAULT_INSTANCE_ENDPOINTS } from '../util/instance.js';
 
 function createMockClient() {
   const client = {
+    instance: { endpoints: DEFAULT_INSTANCE_ENDPOINTS, discovery: null },
     getOrCreateUser: (data: {
       id: string;
       username: string;
@@ -131,15 +133,12 @@ describe('GuildMember', () => {
   });
 
   describe('move()', () => {
-    it('calls edit with channel_id to move member', async () => {
+    it('calls edit with channelId to move member', async () => {
       const member = createMember();
       let editCalled: boolean = false;
-      let editParams: { channel_id: string | null; connection_id?: string | null } | undefined;
+      let editParams: { channelId: string | null; connectionId?: string | null } | undefined;
 
-      member.edit = async (params: {
-        channel_id: string | null;
-        connection_id?: string | null;
-      }) => {
+      member.edit = async (params: { channelId: string | null; connectionId?: string | null }) => {
         editCalled = true;
         editParams = params;
         return member;
@@ -149,20 +148,17 @@ describe('GuildMember', () => {
 
       expect(editCalled).toBe(true);
       expect(editParams).toEqual({
-        channel_id: 'voicechannel123',
-        connection_id: undefined,
+        channelId: 'voicechannel123',
+        connectionId: undefined,
       });
     });
 
     it('calls edit with null to disconnect member', async () => {
       const member = createMember();
       let editCalled: boolean = false;
-      let editParams: { channel_id: string | null; connection_id?: string | null } | undefined;
+      let editParams: { channelId: string | null; connectionId?: string | null } | undefined;
 
-      member.edit = async (params: {
-        channel_id: string | null;
-        connection_id?: string | null;
-      }) => {
+      member.edit = async (params: { channelId: string | null; connectionId?: string | null }) => {
         editCalled = true;
         editParams = params;
         return member;
@@ -172,20 +168,17 @@ describe('GuildMember', () => {
 
       expect(editCalled).toBe(true);
       expect(editParams).toEqual({
-        channel_id: null,
-        connection_id: undefined,
+        channelId: null,
+        connectionId: undefined,
       });
     });
 
-    it('calls edit with connection_id when provided', async () => {
+    it('calls edit with connectionId when provided', async () => {
       const member = createMember();
       let editCalled: boolean = false;
-      let editParams: { channel_id: string | null; connection_id?: string | null } | undefined;
+      let editParams: { channelId: string | null; connectionId?: string | null } | undefined;
 
-      member.edit = async (params: {
-        channel_id: string | null;
-        connection_id?: string | null;
-      }) => {
+      member.edit = async (params: { channelId: string | null; connectionId?: string | null }) => {
         editCalled = true;
         editParams = params;
         return member;
@@ -195,8 +188,8 @@ describe('GuildMember', () => {
 
       expect(editCalled).toBe(true);
       expect(editParams).toEqual({
-        channel_id: 'voicechannel123',
-        connection_id: 'connection456',
+        channelId: 'voicechannel123',
+        connectionId: 'connection456',
       });
     });
   });

@@ -1,0 +1,41 @@
+---
+title: Bans
+description: List guild bans and remove them with fetchBans and GuildBan.unban.
+category: other
+order: 20
+---
+
+Banning users is covered in [Moderation](/guides/moderation/). This page is about reading and clearing the ban list.
+
+## List bans
+
+```javascript
+const bans = await guild.fetchBans();
+for (const ban of bans) {
+  console.log(ban.user.id, ban.reason);
+}
+```
+
+Requires Ban Members (or Administrator).
+
+## Unban from a GuildBan
+
+```javascript
+const bans = await guild.fetchBans();
+const hit = bans.find((b) => b.user.id === userId);
+if (hit) {
+  await hit.unban();
+  // or: await guild.unban(userId);
+}
+```
+
+## Ban options reminder
+
+```javascript
+await guild.ban(userId, {
+  reason: 'Spam',
+  deleteMessageDays: 1,
+});
+```
+
+CamelCase only in public options. See [moderation-bot](/examples/moderation-bot/).

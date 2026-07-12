@@ -1,18 +1,18 @@
 /**
- * Fluxer Reaction Roles Example
+ * Reaction roles — react to get a role; remove the reaction to drop it.
  *
- * Users react to a message to get or remove roles. Run !roles to post the message
- * (or set REACTION_ROLES_MESSAGE_ID and REACTION_ROLES_CHANNEL_ID to use an existing message).
+ * Run `!roles` to post the picker (or set REACTION_ROLES_MESSAGE_ID).
  *
  * Usage:
  *   FLUXER_BOT_TOKEN=your_token node examples/reaction-roles-bot.js
  *
- * Configure ROLE_EMOJI_MAP with your guild's role IDs.
+ * Configure ROLE_* env vars (or edit ROLE_EMOJI_MAP) with your guild's role IDs.
+ *
+ * @see https://fluxerjs.blstmo.com/guides/reactions/
  */
 
-import { Client, Events, EmbedBuilder } from '@fluxerjs/core';
+import { Client, Events, EmbedBuilder, parsePrefixCommand } from '@fluxerjs/core';
 
-// Map emoji (unicode or "name:id") to role ID. Update these for your server.
 const ROLE_EMOJI_MAP = {
   '🎮': process.env.ROLE_GAMING ?? 'ROLE_ID_FOR_GAMING',
   '🎵': process.env.ROLE_MUSIC ?? 'ROLE_ID_FOR_MUSIC',
@@ -20,10 +20,8 @@ const ROLE_EMOJI_MAP = {
 };
 
 const PREFIX = '!';
-
 const client = new Client({ intents: 0 });
 let rolesMessageId = process.env.REACTION_ROLES_MESSAGE_ID ?? null;
-const _rolesChannelId = process.env.REACTION_ROLES_CHANNEL_ID ?? null;
 
 function getRoleIdForEmoji(reaction) {
   const key = reaction.emoji.id
@@ -32,52 +30,42 @@ function getRoleIdForEmoji(reaction) {
   return ROLE_EMOJI_MAP[key] ?? ROLE_EMOJI_MAP[reaction.emoji.name];
 }
 
-async function handleReactionAdd(reaction, user) {
+async function handleReactionAdd({ reaction, user }) {
   if (!reaction.guildId || reaction.messageId !== rolesMessageId) return;
+  if (user.bot) return;
 
   const roleId = getRoleIdForEmoji(reaction);
   if (!roleId || roleId.startsWith('ROLE_ID_')) return;
 
   const guild = client.guilds.get(reaction.guildId);
   if (!guild) return;
-  let member;
-  try {
-    member = guild.members.get(user.id) ?? (await guild.fetchMember(user.id));
-  } catch {
-    return;
-  }
-  if (!member) return;
 
-  if (member.roles.cache.has(roleId)) return;
+  const member = guild.members.get(user.id) ?? (await guild.fetchMember(user.id).catch(() => null));
+  if (!member || member.roles.has(roleId)) return;
 
   try {
-    await member.addRole(roleId);
+    await member.roles.add(roleId);
     console.log(`[reaction-roles] Added role ${roleId} to user ${user.id}`);
   } catch (err) {
     console.error('[reaction-roles] Failed to add role:', err.message);
   }
 }
 
-async function handleReactionRemove(reaction, user) {
+async function handleReactionRemove({ reaction, user }) {
   if (!reaction.guildId || reaction.messageId !== rolesMessageId) return;
+  if (user.bot) return;
 
   const roleId = getRoleIdForEmoji(reaction);
   if (!roleId || roleId.startsWith('ROLE_ID_')) return;
 
   const guild = client.guilds.get(reaction.guildId);
   if (!guild) return;
-  let member;
-  try {
-    member = guild.members.get(user.id) ?? (await guild.fetchMember(user.id));
-  } catch {
-    return;
-  }
-  if (!member) return;
 
-  if (!member.roles.cache.has(roleId)) return;
+  const member = guild.members.get(user.id) ?? (await guild.fetchMember(user.id).catch(() => null));
+  if (!member || !member.roles.has(roleId)) return;
 
   try {
-    await member.removeRole(roleId);
+    await member.roles.remove(roleId);
     console.log(`[reaction-roles] Removed role ${roleId} from user ${user.id}`);
   } catch (err) {
     console.error('[reaction-roles] Failed to remove role:', err.message);
@@ -89,39 +77,35 @@ client.on(Events.Ready, () => {
 });
 
 client.on(Events.MessageCreate, async (message) => {
-  if (message.author.bot || !message.content?.startsWith(PREFIX)) return;
-  const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
-  const cmd = args[0]?.toLowerCase();
+  if (message.author.bot || !message.content) return;
+  const parsed = parsePrefixCommand(message.content, PREFIX);
+  if (!parsed || parsed.command !== 'roles') return;
 
-  if (cmd === 'roles') {
-    if (!message.guildId) {
-      await message.reply('Use this in a server channel.');
-      return;
-    }
-    const emojiList = Object.entries(ROLE_EMOJI_MAP)
-      .map(
-        ([emoji, id]) =>
-          `${emoji} ${id.startsWith('ROLE_ID_') ? '(configure ROLE_EMOJI_MAP)' : ''}`,
-      )
-      .join('\n');
-    const embed = new EmbedBuilder()
-      .setTitle('Reaction Roles')
-      .setDescription(
-        'React to get a role. Remove your reaction to remove the role.\n\n' + emojiList,
-      )
-      .setColor(0x5865f2)
-      .setTimestamp();
-    const reply = await message.reply({ embeds: [embed.toJSON()] });
-    for (const emoji of Object.keys(ROLE_EMOJI_MAP)) {
-      await reply
-        .react(emoji)
-        .catch((e) => console.warn('Could not add reaction', emoji, e.message));
-    }
-    rolesMessageId = reply.id;
-    console.log(
-      `[reaction-roles] Set roles message to ${reply.id}. Set REACTION_ROLES_MESSAGE_ID=${reply.id} and REACTION_ROLES_CHANNEL_ID=${message.channelId} to reuse.`,
-    );
+  if (!message.guildId) {
+    await message.reply('Use this in a server channel.');
+    return;
   }
+
+  const emojiList = Object.entries(ROLE_EMOJI_MAP)
+    .map(
+      ([emoji, id]) => `${emoji} ${id.startsWith('ROLE_ID_') ? '(configure ROLE_EMOJI_MAP)' : ''}`,
+    )
+    .join('\n');
+
+  const embed = new EmbedBuilder()
+    .setTitle('Reaction Roles')
+    .setDescription(`React to get a role. Remove your reaction to remove the role.\n\n${emojiList}`)
+    .setColor(0x5865f2)
+    .setTimestamp();
+
+  const reply = await message.reply({ embeds: [embed] });
+  for (const emoji of Object.keys(ROLE_EMOJI_MAP)) {
+    await reply.react(emoji).catch((e) => console.warn('Could not add reaction', emoji, e.message));
+  }
+  rolesMessageId = reply.id;
+  console.log(
+    `[reaction-roles] Set roles message to ${reply.id}. Persist with REACTION_ROLES_MESSAGE_ID=${reply.id} REACTION_ROLES_CHANNEL_ID=${message.channelId}`,
+  );
 });
 
 client.on(Events.MessageReactionAdd, handleReactionAdd);
@@ -134,7 +118,9 @@ if (!token) {
   process.exit(1);
 }
 
-client.login(token).catch((err) => {
+try {
+  await client.login(token);
+} catch (err) {
   console.error('Login failed:', err);
   process.exit(1);
-});
+}

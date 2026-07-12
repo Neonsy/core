@@ -1,0 +1,13 @@
+{
+  "package": "@fluxerjs/collection",
+  "generatedAt": "2026-07-11T02:20:57.226Z",
+  "entries": [
+    {
+      "subpath": ".",
+      "exports": [
+        "Collection",
+        "ReadonlyCollection"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FluxerAPIError } from './FluxerAPIError.js';
+import { FluxerAPIError } from './index.js';
 
 describe('FluxerAPIError', () => {
   it('creates error with message from body', () => {
@@ -18,7 +18,7 @@ describe('FluxerAPIError', () => {
   });
 
   it('stores optional errors field', () => {
-    const errors = { field: ['invalid value'] };
+    const errors = [{ path: 'field', message: 'invalid value' }];
     const err = new FluxerAPIError(
       { message: 'Validation failed', code: 'VALIDATION_ERROR', errors },
       400,

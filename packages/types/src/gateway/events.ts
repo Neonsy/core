@@ -1,6 +1,6 @@
 /**
  * Gateway dispatch event names sent by the Fluxer gateway.
- * Sourced from fluxer_gateway constants.erl. Use for type-safe event handling.
+ * Sourced from fluxer_gateway event_atoms.erl. Use for type-safe event handling.
  *
  * @example
  * ```ts
@@ -25,6 +25,10 @@ export const GatewayDispatchEvents = {
   UserSettingsUpdate: 'USER_SETTINGS_UPDATE',
   /** Per-guild user settings changed (notifications, etc.). */
   UserGuildSettingsUpdate: 'USER_GUILD_SETTINGS_UPDATE',
+  /** User's linked external connections changed. */
+  UserConnectionsUpdate: 'USER_CONNECTIONS_UPDATE',
+  /** User's WebAuthn credentials changed. */
+  WebAuthnCredentialsUpdate: 'WEBAUTHN_CREDENTIALS_UPDATE',
   /** Pinned DM order changed. */
   UserPinnedDmsUpdate: 'USER_PINNED_DMS_UPDATE',
   /** Note on another user changed. */
@@ -43,6 +47,8 @@ export const GatewayDispatchEvents = {
   // ─── Presence ───────────────────────────────────────────────────────────────
   /** User's presence (status, activity) updated. */
   PresenceUpdate: 'PRESENCE_UPDATE',
+  /** Multiple presence updates in one dispatch. */
+  PresenceUpdateBulk: 'PRESENCE_UPDATE_BULK',
 
   // ─── Guild ─────────────────────────────────────────────────────────────────
   /** Bot joined a guild or guild data became available. */
@@ -63,6 +69,10 @@ export const GatewayDispatchEvents = {
   GuildMemberListUpdate: 'GUILD_MEMBER_LIST_UPDATE',
   /** Guild sync state (passive/lazy loading). */
   GuildSync: 'GUILD_SYNC',
+  /** Member and online counts for one or more guilds. */
+  GuildCountsUpdate: 'GUILD_COUNTS_UPDATE',
+  /** Member and online counts for guild channels. */
+  ChannelMemberCountsUpdate: 'CHANNEL_MEMBER_COUNTS_UPDATE',
 
   // ─── Roles ──────────────────────────────────────────────────────────────────
   /** Role was created. */
@@ -85,6 +95,8 @@ export const GatewayDispatchEvents = {
   GuildBanAdd: 'GUILD_BAN_ADD',
   /** User was unbanned from a guild. */
   GuildBanRemove: 'GUILD_BAN_REMOVE',
+  /** New guild audit log entry. */
+  GuildAuditLogEntryCreate: 'GUILD_AUDIT_LOG_ENTRY_CREATE',
 
   // ─── Channels ──────────────────────────────────────────────────────────────
   /** Channel was created. */
@@ -125,6 +137,8 @@ export const GatewayDispatchEvents = {
   MessageDeleteBulk: 'MESSAGE_DELETE_BULK',
   /** Reaction was added to a message. */
   MessageReactionAdd: 'MESSAGE_REACTION_ADD',
+  /** Multiple reactions added to a message in one dispatch. */
+  MessageReactionAddMany: 'MESSAGE_REACTION_ADD_MANY',
   /** Reaction was removed from a message. */
   MessageReactionRemove: 'MESSAGE_REACTION_REMOVE',
   /** All reactions were removed from a message. */
@@ -153,8 +167,12 @@ export const GatewayDispatchEvents = {
   // ─── Voice ───────────────────────────────────────────────────────────────────
   /** Voice state changed (join, leave, mute, etc.). */
   VoiceStateUpdate: 'VOICE_STATE_UPDATE',
+  /** Acknowledgement for a voice state mutation. */
+  VoiceStateAck: 'VOICE_STATE_ACK',
   /** Voice server allocation info (for connecting to voice). */
   VoiceServerUpdate: 'VOICE_SERVER_UPDATE',
+  /** Entrance sound played when a user joins voice. */
+  EntranceSoundPlay: 'ENTRANCE_SOUND_PLAY',
 
   // ─── Calls ──────────────────────────────────────────────────────────────────
   /** Call was created. */
@@ -171,19 +189,8 @@ export const GatewayDispatchEvents = {
   FavoriteMemeUpdate: 'FAVORITE_MEME_UPDATE',
   /** Favorite meme/media was removed. */
   FavoriteMemeDelete: 'FAVORITE_MEME_DELETE',
-
-  // ─── SDK / Compatibility (may come from API layer) ──────────────────────────
-  /** Slash command or component interaction. */
-  InteractionCreate: 'INTERACTION_CREATE',
-  /** Guild integrations changed. */
-  GuildIntegrationsUpdate: 'GUILD_INTEGRATIONS_UPDATE',
-  /** Guild scheduled event was created. */
-  GuildScheduledEventCreate: 'GUILD_SCHEDULED_EVENT_CREATE',
-  /** Guild scheduled event was updated. */
-  GuildScheduledEventUpdate: 'GUILD_SCHEDULED_EVENT_UPDATE',
-  /** Guild scheduled event was cancelled. */
-  GuildScheduledEventDelete: 'GUILD_SCHEDULED_EVENT_DELETE',
 } as const;
 
+/** Union of all gateway dispatch event names. */
 export type GatewayDispatchEventName =
   (typeof GatewayDispatchEvents)[keyof typeof GatewayDispatchEvents];

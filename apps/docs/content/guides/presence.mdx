@@ -1,0 +1,39 @@
+---
+title: Presence
+description: Set online status and custom status text with setPresence.
+category: getting-started
+order: 4
+---
+
+After login, `client.user` is a `ClientUser`. Use `setPresence` for runtime updates. Options are camelCase.
+
+## Set status
+
+```javascript
+client.on(Events.Ready, () => {
+  client.user.setPresence({
+    status: 'online', // online | idle | dnd | invisible
+    customStatus: { text: 'Try !help' },
+  });
+});
+```
+
+`setPresence` is synchronous from your side (it sends gateway opcode 3). No `await` required.
+
+## Activities
+
+```javascript
+client.user.setPresence({
+  status: 'online',
+  activities: [{ name: 'Fluxer', type: 0 }],
+  customStatus: { text: 'v2', emojiName: '✨' },
+});
+```
+
+## Initial Client presence
+
+`new Client({ presence: … })` still accepts the **wire-shaped** gateway presence object for bootstrap. Prefer `setPresence` after Ready when you want the camelCase SDK surface (`customStatus`, not `custom_status`).
+
+## Related
+
+Examples that call `setPresence` after Ready: [ping-bot](/examples/ping-bot/), [info-bot](/examples/info-bot/), [webhook-bot](/examples/webhook-bot/), [voice-bot](/examples/voice-bot/).

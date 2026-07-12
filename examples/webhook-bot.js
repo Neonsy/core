@@ -1,23 +1,22 @@
 /**
- * Fluxer Webhook Example Bot
+ * Webhook example — create, list, send, and delete webhooks.
  *
- * Demonstrates the Webhook handler:
- * - Creating webhooks via channel.createWebhook()
- * - Fetching webhooks via channel.fetchWebhooks() / guild.fetchWebhooks()
- * - Sending via webhook.send() and deleting via webhook.delete()
+ * Commands:
+ *   !webhook create [name]
+ *   !webhook list [channel|guild]
+ *   !webhook send <id> <token> [message]
+ *   !webhook delete <id>
  *
- * Usage (from repo root after npm install && npm run build):
+ * Usage:
  *   FLUXER_BOT_TOKEN=your_token node examples/webhook-bot.js
+ *
+ * @see https://fluxerjs.blstmo.com/guides/webhooks/
  */
 
-import { Client, Events, EmbedBuilder, Webhook } from '@fluxerjs/core';
+import { Client, Events, EmbedBuilder, Webhook, parsePrefixCommand } from '@fluxerjs/core';
 
 const PREFIX = '!';
 const BRAND_COLOR = 0x4641d9;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Webhook Commands
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function handleWebhookCreate(message, client, args) {
   const name = args[0] ?? 'My Webhook';
@@ -35,7 +34,6 @@ async function handleWebhookCreate(message, client, args) {
 
   try {
     const webhook = await channel.createWebhook({ name });
-
     const embed = new EmbedBuilder()
       .setTitle('Webhook Created')
       .setColor(BRAND_COLOR)
@@ -46,13 +44,11 @@ async function handleWebhookCreate(message, client, args) {
         {
           name: 'Send',
           value:
-            "Use `!webhook send` with the ID and token to send a message. **Store the token** – it won't be returned when listing webhooks.",
+            'Use `!webhook send <id> <token> [message]`. **Store the token** — listing webhooks does not return it.',
         },
       )
-      .setFooter({ text: 'Use !webhook send <id> <token> [message]' })
       .setTimestamp();
-
-    await message.reply({ embeds: [embed.toJSON()] });
+    await message.reply({ embeds: [embed] });
   } catch (err) {
     console.error('Webhook create error:', err);
     await message.reply(`Failed to create webhook: ${err.message ?? err}`).catch(() => {});
@@ -60,7 +56,7 @@ async function handleWebhookCreate(message, client, args) {
 }
 
 async function handleWebhookList(message, client, args) {
-  const scope = args[0]?.toLowerCase(); // 'channel' or 'guild'
+  const scope = args[0]?.toLowerCase();
 
   if (!message.guildId) {
     await message.reply('Use this command in a server.');
@@ -75,7 +71,7 @@ async function handleWebhookList(message, client, args) {
 
     if (!webhooks?.length) {
       await message.reply(
-        `No webhooks in this ${scope === 'guild' ? 'guild' : 'channel'}. Use \`!webhook create\` to create one.`,
+        `No webhooks in this ${scope === 'guild' ? 'guild' : 'channel'}. Use \`!webhook create\` first.`,
       );
       return;
     }
@@ -95,7 +91,7 @@ async function handleWebhookList(message, client, args) {
       })
       .setTimestamp();
 
-    await message.reply({ embeds: [embed.toJSON()] });
+    await message.reply({ embeds: [embed] });
   } catch (err) {
     console.error('Webhook list error:', err);
     await message.reply(`Failed to fetch webhooks: ${err.message ?? err}`).catch(() => {});
@@ -109,7 +105,7 @@ async function handleWebhookSend(message, client, args) {
 
   if (!webhookId || !webhookToken) {
     await message.reply(
-      'Usage: `!webhook send <webhook_id> <webhook_token> [message]`\nYou get the token when creating a webhook; it is not returned when listing.',
+      'Usage: `!webhook send <webhook_id> <webhook_token> [message]`\nThe token is only returned when creating a webhook.',
     );
     return;
   }
@@ -124,14 +120,12 @@ async function handleWebhookSend(message, client, args) {
             embeds: [
               new EmbedBuilder()
                 .setTitle('Webhook Message')
-                .setDescription('This was sent via webhook.send().')
+                .setDescription('Sent via webhook.send() — EmbedBuilder, no .toJSON().')
                 .setColor(BRAND_COLOR)
-                .setTimestamp()
-                .toJSON(),
+                .setTimestamp(),
             ],
           },
     );
-
     await message.reply('Message sent via webhook.');
   } catch (err) {
     console.error('Webhook send error:', err);
@@ -162,37 +156,29 @@ async function handleWebhookDelete(message, client, args) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Client Setup
-// ─────────────────────────────────────────────────────────────────────────────
-
 const token = process.env.FLUXER_BOT_TOKEN;
 if (!token) {
   console.error('Error: Set FLUXER_BOT_TOKEN environment variable');
   process.exit(1);
 }
 
-const client = new Client({
-  intents: 0,
-  presence: { status: 'online', custom_status: { text: 'Managing webhooks' } },
-});
+const client = new Client({ intents: 0 });
 
 client.on(Events.Ready, () => {
   console.log(`Logged in as ${client.user?.username}`);
   console.log('Webhook commands: !webhook create | list | send | delete');
+  client.user?.setPresence({
+    status: 'online',
+    customStatus: { text: 'Managing webhooks' },
+  });
 });
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot || !message.content) return;
+  const parsed = parsePrefixCommand(message.content, PREFIX);
+  if (!parsed || parsed.command !== 'webhook') return;
 
-  const content = message.content.trim();
-  if (!content.startsWith(PREFIX)) return;
-
-  const args = content.slice(PREFIX.length).split(/\s+/);
-  const cmd = args.shift()?.toLowerCase();
-  const subcmd = args.shift()?.toLowerCase();
-
-  if (cmd !== 'webhook') return;
+  const [subcmd, ...args] = parsed.args;
 
   try {
     switch (subcmd) {
@@ -211,8 +197,8 @@ client.on(Events.MessageCreate, async (message) => {
       default:
         await message.reply(
           '**Webhook commands:**\n' +
-            '`!webhook create [channel_id] [name]` – Create a webhook\n' +
-            '`!webhook list [channel|guild] [id]` – List webhooks\n' +
+            '`!webhook create [name]` – Create a webhook\n' +
+            '`!webhook list [channel|guild]` – List webhooks\n' +
             '`!webhook send <id> <token> [message]` – Send via webhook\n' +
             '`!webhook delete <id>` – Delete a webhook',
         );
@@ -225,14 +211,8 @@ client.on(Events.MessageCreate, async (message) => {
 
 client.on(Events.Error, (err) => console.error('Client error:', err));
 
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled rejection:', err);
-  process.exit(1);
-});
-
 try {
   await client.login(token);
-  console.log('Gateway connected');
 } catch (err) {
   console.error('Login failed:', err);
   process.exit(1);

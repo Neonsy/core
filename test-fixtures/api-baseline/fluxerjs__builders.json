@@ -1,0 +1,23 @@
+{
+  "package": "@fluxerjs/builders",
+  "generatedAt": "2026-07-11T02:20:57.229Z",
+  "entries": [
+    {
+      "subpath": ".",
+      "exports": [
+        "APIAttachmentPayload",
+        "AttachmentBuilder",
+        "AttachmentPayloadOptions",
+        "EmbedAuthorOptions",
+        "EmbedBuilder",
+        "EmbedFieldData",
+        "EmbedFooterOptions",
+        "EmbedMediaOptions",
+        "MessagePayload",
+        "MessagePayloadCreateOptions",
+        "MessagePayloadData",
+        "RESTPostAPIEmbed"
+      ]
+    }
+  ]
+}

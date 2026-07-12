@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "eslint . --max-warnings 0 --config ../eslint.config.js",
-    "lint:fix": "eslint . --fix --config ../eslint.config.js"
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write ."
   },
   "dependencies": {
     "@fluxerjs/core": "workspace:*",

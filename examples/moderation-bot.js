@@ -1,20 +1,13 @@
 /**
- * Fluxer Moderation Example
+ * Moderation example — !ban, !kick, !unban, !perms.
  *
- * Prefix commands for ban, kick, and unban. Requires Ban Members / Kick Members permissions.
- * Server owner automatically has all permissions (no role needed).
- *
- * Commands:
- *   !ban @user [reason]      - Ban a user (optional: delete messages from last 24h)
- *   !kick @user [reason]     - Kick a user
- *   !unban @user            - Remove a ban
- *   !perms                  - List your guild-level permissions (owner sees all)
+ * Requires Ban Members / Kick Members (server owner has all permissions).
  *
  * Usage:
  *   FLUXER_BOT_TOKEN=your_token node examples/moderation-bot.js
  *
- * @see https://fluxerjs.blstmo.com/v/latest/guides/permissions
- * @see https://fluxerjs.blstmo.com/v/latest/guides/moderation
+ * @see https://fluxerjs.blstmo.com/guides/permissions/
+ * @see https://fluxerjs.blstmo.com/guides/moderation/
  */
 
 import {
@@ -24,68 +17,51 @@ import {
   FluxerError,
   ErrorCodes,
   PermissionFlags,
+  parsePrefixCommand,
+  parseUserMention,
 } from '@fluxerjs/core';
 
 const PREFIX = '!';
 
-/** Get the member who sent the message and their guild-level permissions. */
 async function getModeratorPerms(message) {
-  let guild = message.guild;
-  if (!guild && message.guildId) {
-    guild = await message.client.guilds.fetch(message.guildId);
-  }
+  const guild =
+    message.guild ??
+    (message.guildId ? await message.client.guilds.fetch(message.guildId).catch(() => null) : null);
   if (!guild) return null;
-  let member = guild.members.get(message.author.id);
-  if (!member) {
-    try {
-      member = await guild.fetchMember(message.author.id);
-    } catch {
-      return null;
-    }
-  }
-  return member.permissions;
+  const member =
+    guild.members.get(message.author.id) ??
+    (await guild.fetchMember(message.author.id).catch(() => null));
+  return member?.permissions ?? null;
 }
 
-/** Extract user ID from mention (<@123> or <@!123>) or raw snowflake. */
-function parseUserId(arg) {
-  if (!arg?.trim()) return null;
-  const mentionMatch = arg.trim().match(/^<@!?(\d{17,19})>$/);
-  if (mentionMatch) return mentionMatch[1];
-  if (/^\d{17,19}$/.test(arg.trim())) return arg.trim();
-  return null;
+function getPermissionNames(perms) {
+  return Object.keys(PermissionFlags).filter((name) => perms.has(PermissionFlags[name]));
 }
 
 const client = new Client({ intents: 0 });
 
 client.on(Events.Ready, () => {
-  console.log(
-    `Logged in as ${client.user?.username}. Moderation commands: !ban, !kick, !unban, !perms`,
-  );
+  console.log(`Logged in as ${client.user?.username}. Commands: !ban, !kick, !unban, !perms`);
 });
 
-/** Return array of permission names the user has. */
-function getPermissionNames(perms) {
-  return Object.keys(PermissionFlags).filter((name) => perms.has(PermissionFlags[name]));
-}
-
 client.on(Events.MessageCreate, async (message) => {
-  if (message.author.bot || !message.content?.startsWith(PREFIX)) return;
+  if (message.author.bot || !message.content) return;
+  const parsed = parsePrefixCommand(message.content, PREFIX);
+  if (!parsed) return;
 
-  const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
-  const command = args[0]?.toLowerCase();
-  const targetArg = args[1];
-  const reason = args.slice(2).join(' ') || null;
+  const { command, args } = parsed;
+  const targetArg = args[0];
+  const reason = args.slice(1).join(' ') || null;
 
-  let guild = message.guild;
-  if (!guild && message.guildId) {
-    guild = await message.client.guilds.fetch(message.guildId);
-  }
+  const guild =
+    message.guild ??
+    (message.guildId ? await message.client.guilds.fetch(message.guildId).catch(() => null) : null);
   if (!guild) {
     await message.reply('Moderation commands only work in a server.');
     return;
   }
 
-  const userId = parseUserId(targetArg);
+  const userId = targetArg ? parseUserMention(targetArg) : null;
   const perms = await getModeratorPerms(message);
   if (!perms) {
     await message.reply(
@@ -120,7 +96,7 @@ client.on(Events.MessageCreate, async (message) => {
     try {
       await guild.ban(userId, {
         reason: reason ?? undefined,
-        delete_message_days: 1,
+        deleteMessageDays: 1,
       });
       const targetUser = message.mentions.find((u) => u.id === userId) ?? { username: 'Unknown' };
       const embed = new EmbedBuilder()
@@ -132,7 +108,7 @@ client.on(Events.MessageCreate, async (message) => {
         )
         .setTimestamp();
       if (reason) embed.addFields({ name: 'Reason', value: reason });
-      await message.reply({ embeds: [embed.toJSON()] });
+      await message.reply({ embeds: [embed] });
     } catch (err) {
       const code = err instanceof FluxerError ? err.code : null;
       const status = err?.statusCode ?? err?.cause?.statusCode;
@@ -166,7 +142,7 @@ client.on(Events.MessageCreate, async (message) => {
         )
         .setTimestamp();
       if (reason) embed.addFields({ name: 'Reason', value: reason });
-      await message.reply({ embeds: [embed.toJSON()] });
+      await message.reply({ embeds: [embed] });
     } catch (err) {
       const code = err instanceof FluxerError ? err.code : null;
       const status = err?.statusCode ?? err?.cause?.statusCode;
@@ -197,13 +173,14 @@ client.on(Events.MessageCreate, async (message) => {
         status === 404 ? 'User is not banned.' : (err?.message ?? 'Failed to unban user.');
       await message.reply(`Error: ${msg}`);
     }
-    return;
   }
 });
 
 client.on(Events.Error, (err) => console.error('[fluxer]', err));
 
-client.login(process.env.FLUXER_BOT_TOKEN).catch((err) => {
+try {
+  await client.login(process.env.FLUXER_BOT_TOKEN);
+} catch (err) {
   console.error('Login failed:', err);
   process.exit(1);
-});
+}

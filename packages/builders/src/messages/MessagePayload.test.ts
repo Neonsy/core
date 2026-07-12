@@ -28,7 +28,7 @@ describe('MessagePayload', () => {
     expect(p.data.content).toHaveLength(2000);
   });
 
-  it('setEmbeds accepts EmbedBuilder and raw APIEmbed', () => {
+  it('setEmbeds accepts EmbedBuilder and raw request embeds', () => {
     const embed = new EmbedBuilder().setTitle('T').setDescription('D');
     const p = new MessagePayload().setEmbeds([embed]);
     expect(p.data.embeds).toHaveLength(1);
@@ -55,7 +55,7 @@ describe('MessagePayload', () => {
   it('setAttachments accepts AttachmentBuilder', () => {
     const att = new AttachmentBuilder(0, 'file.png');
     const p = new MessagePayload().setAttachments([att]);
-    expect(p.data.attachments).toEqual([{ id: 0, filename: 'file.png', description: undefined }]);
+    expect(p.data.attachments).toEqual([{ id: 0, filename: 'file.png' }]);
   });
 
   it('setAttachments accepts plain objects', () => {
@@ -65,7 +65,20 @@ describe('MessagePayload', () => {
     expect(p.data.attachments).toEqual([{ id: 0, filename: 'a.txt', description: 'desc' }]);
   });
 
-  it('setReply sets message_reference', () => {
+  it('setReply accepts camelCase and emits snake_case', () => {
+    const p = new MessagePayload().setReply({
+      channelId: 'c1',
+      messageId: 'm1',
+      guildId: 'g1',
+    });
+    expect(p.toJSON().message_reference).toEqual({
+      channel_id: 'c1',
+      message_id: 'm1',
+      guild_id: 'g1',
+    });
+  });
+
+  it('setReply accepts snake_case wire input', () => {
     const p = new MessagePayload().setReply({
       channel_id: 'c1',
       message_id: 'm1',
@@ -80,9 +93,9 @@ describe('MessagePayload', () => {
 
   it('setReply omits guild_id when null', () => {
     const p = new MessagePayload().setReply({
-      channel_id: 'c1',
-      message_id: 'm1',
-      guild_id: null,
+      channelId: 'c1',
+      messageId: 'm1',
+      guildId: null,
     });
     expect(p.data.message_reference?.guild_id).toBeUndefined();
   });

@@ -1,0 +1,46 @@
+---
+title: Discovery
+description: Point a Client at a self-hosted instance with Client.fromDiscovery.
+category: getting-started
+order: 5
+---
+
+Hosted Fluxer works with a normal `new Client()`. Self-hosted instances expose `GET /.well-known/fluxer`. `Client.fromDiscovery` loads that document and wires REST (and related endpoints) for you.
+
+## Bootstrap from an origin
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = await Client.fromDiscovery('https://api.my.instance');
+
+client.on(Events.Ready, () => {
+  console.log(client.instance.endpoints.api);
+});
+
+await client.login(process.env.SELFHOST_BOT_TOKEN);
+```
+
+Use a **token issued by that instance**. Hosted and self-hosted tokens are not interchangeable.
+
+## Inspect the instance
+
+```javascript
+const doc = await client.fetchInstance();
+console.log(doc);
+```
+
+Or read what discovery already applied:
+
+```javascript
+console.log(client.instance.endpoints);
+console.log(client.instance.discovery?.features);
+```
+
+## Multiple instances
+
+One `Client` equals one Fluxer instance. To run hosted and self-hosted together, use beta `ClientCluster` (see [Multi-instance](/guides/multi-instance/) and [multi-instance-bot](/examples/multi-instance-bot/)).
+
+## Prefer discovery over rest.api
+
+`ClientOptions.rest.api` can override the API host for legacy setups. For self-hosted media/CDN/invite hosts, discovery is the better path so you do not leave CDN URLs pointing at hosted defaults.

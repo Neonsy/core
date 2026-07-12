@@ -1,0 +1,58 @@
+---
+title: Builders
+description: EmbedBuilder, AttachmentBuilder, and MessagePayload without calling toJSON yourself.
+category: sending-messages
+order: 6
+---
+
+`@fluxerjs/core` re-exports builders from `@fluxerjs/builders`. Pass builders into `send` / `reply` / `edit`. The SDK serializes them.
+
+## EmbedBuilder
+
+```javascript
+import { EmbedBuilder } from '@fluxerjs/core';
+
+const embed = new EmbedBuilder()
+  .setTitle('Status')
+  .setDescription('All good')
+  .setColor(0x5865f2)
+  .setTimestamp();
+
+await message.reply({ embeds: [embed] });
+```
+
+Do not call `.toJSON()` at the call site. Details: [Embeds](/guides/embeds/).
+
+## AttachmentBuilder
+
+```javascript
+import { AttachmentBuilder } from '@fluxerjs/core';
+
+const file = new AttachmentBuilder(buffer, { name: 'report.txt' });
+await message.reply({
+  content: 'Report attached',
+  files: [file],
+});
+```
+
+Plain `{ name, data }` / `{ name, url }` objects also work. See [File Attachments](/guides/attachments/).
+
+## MessagePayload
+
+Use `MessagePayload` when you want a fluent send body (content, embeds, files, reply target) as one object:
+
+```javascript
+import { MessagePayload, EmbedBuilder } from '@fluxerjs/core';
+
+const payload = new MessagePayload()
+  .setContent('Hello')
+  .addEmbed(new EmbedBuilder().setDescription('From MessagePayload'));
+
+await channel.send(payload);
+```
+
+Prefer this over posting raw wire JSON. `prepareMessagePostPayload` (internal to send paths) is what turns builders into the multipart/REST body.
+
+## Length errors
+
+Builders may throw `RangeError` for oversize titles, descriptions, or field counts. That is separate from `FluxerError` used elsewhere in core.

@@ -1,12 +1,12 @@
 /**
  * First Steps Bot — five starter commands to learn the SDK.
  *
- * Commands: !ping, !hello [name], !avatar [@user], !embed, !perms
+ * Commands: !ping, !hello [name], !avatar [@user], !embed, !perms, !noreply
  *
  * Usage (from repo root after pnpm install && pnpm run build):
  *   FLUXER_BOT_TOKEN=your_token node examples/first-steps-bot.js
  *
- * See the Basic Bot guide: https://fluxerjs.blstmo.com/v/latest/guides/basic-bot
+ * See: https://fluxerjs.blstmo.com/guides/basic-bot/
  */
 
 import {
@@ -37,6 +37,11 @@ client.on(Events.MessageCreate, async (message) => {
       return;
     }
 
+    if (command === 'noreply') {
+      await message.reply({ content: 'Replied without pinging you.', ping: false });
+      return;
+    }
+
     if (command === 'hello') {
       const name = args[0] ?? message.author.username;
       await message.reply(`Hello, ${name}!`);
@@ -63,6 +68,7 @@ client.on(Events.MessageCreate, async (message) => {
         .setImage(user.displayAvatarURL({ size: 256 }))
         .setColor(user.avatarColor ?? 0x5865f2)
         .setTimestamp();
+      // Pass EmbedBuilder directly — no .toJSON()
       await message.reply({ embeds: [embed] });
       return;
     }
@@ -105,7 +111,6 @@ client.on(Events.MessageCreate, async (message) => {
         .setColor(0x57f287)
         .setTimestamp();
       await message.reply({ embeds: [embed] });
-      return;
     }
   } catch (err) {
     console.error('Command error:', err);

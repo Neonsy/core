@@ -1,8 +1,8 @@
-import { Client } from '../client/Client.js';
+import type { Client } from '../client/Client.js';
 import { Base } from './Base.js';
-import { APIBan } from '@fluxerjs/types';
+import type { APIBan } from '@fluxerjs/types';
 import { Routes } from '@fluxerjs/types';
-import { User } from './User.js';
+import type { User } from './User.js';
 
 /** Represents a ban in a guild. */
 export class GuildBan extends Base {

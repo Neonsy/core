@@ -1,0 +1,99 @@
+---
+title: Moderation
+description: Ban, kick, and unban with permission checks.
+category: other
+order: 19
+---
+
+Always check the moderator's permissions before calling guild moderation helpers. See [Permissions](/guides/permissions/).
+
+Ban options are camelCase: `reason`, `deleteMessageDays` (0 to 7), `banDurationSeconds`. Kick and unban take a user ID only.
+
+## Ban
+
+```javascript
+const userId = parseUserMention(target);
+if (userId) {
+  await guild.ban(userId, {
+    reason: rest.join(' ') || undefined,
+    deleteMessageDays: 1,
+  });
+  await message.reply(`Banned <@${userId}>.`);
+}
+```
+
+## Kick
+
+```javascript
+const userId = parseUserMention(target);
+if (userId) {
+  await guild.kick(userId);
+  await message.reply(`Kicked <@${userId}>.`);
+}
+```
+
+## Unban
+
+```javascript
+const userId = parseUserMention(target);
+if (userId) {
+  await guild.unban(userId);
+  await message.reply(`Unbanned <@${userId}>.`);
+}
+```
+
+## Skeleton with permission checks
+
+```javascript
+import { Client, Events, PermissionFlags, parseUserMention } from '@fluxerjs/core';
+
+const PREFIX = '!';
+const client = new Client({ intents: 0 });
+
+async function getModeratorPerms(message) {
+  const guild = message.guild ?? (await message.client.guilds.resolve(message.guildId));
+  if (!guild) return null;
+  const member =
+    guild.members.get(message.author.id) ??
+    (await guild.fetchMember(message.author.id).catch(() => null));
+  return member?.permissions ?? null;
+}
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.author.bot || !message.content?.startsWith(PREFIX)) return;
+  const [cmd, target, ...rest] = message.content.slice(PREFIX.length).trim().split(/\s+/);
+  const perms = await getModeratorPerms(message);
+  if (!perms) return;
+
+  const guild = message.guild ?? (await message.client.guilds.resolve(message.guildId));
+  if (!guild) return;
+
+  const canBan =
+    perms.has(PermissionFlags.BanMembers) || perms.has(PermissionFlags.Administrator);
+  const canKick =
+    perms.has(PermissionFlags.KickMembers) || perms.has(PermissionFlags.Administrator);
+
+  if (cmd === 'ban' && canBan) {
+    const userId = parseUserMention(target);
+    if (userId) {
+      await guild.ban(userId, {
+        reason: rest.join(' ') || undefined,
+        deleteMessageDays: 1,
+      });
+      await message.reply(`Banned <@${userId}>.`);
+    }
+  }
+
+  if (cmd === 'kick' && canKick) {
+    const userId = parseUserMention(target);
+    if (userId) {
+      await guild.kick(userId);
+      await message.reply(`Kicked <@${userId}>.`);
+    }
+  }
+});
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+Full bot with embeds and error mapping: [moderation-bot](/examples/moderation-bot/). Error codes: [Errors](/guides/errors/).

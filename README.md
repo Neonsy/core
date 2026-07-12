@@ -2,17 +2,16 @@
 
 [![CI](https://github.com/fluxerjs/core/actions/workflows/ci.yml/badge.svg)](https://github.com/fluxerjs/core/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/fluxerjs/core/actions/workflows/codeql.yml/badge.svg)](https://github.com/fluxerjs/core/actions/workflows/codeql.yml)
-[![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/fluxerjs/core?utm_source=oss&utm_medium=github&utm_campaign=fluxerjs%2Fcore&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
 [![npm version](https://img.shields.io/npm/v/@fluxerjs/core.svg)](https://www.npmjs.com/package/@fluxerjs/core)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Socket Badge](https://badge.socket.dev/npm/package/@fluxerjs/core/1.4.0)](https://badge.socket.dev/npm/package/@fluxerjs/core/1.4.0)
+[![Socket Badge](https://badge.socket.dev/npm/package/@fluxerjs/core/2.0.0)](https://badge.socket.dev/npm/package/@fluxerjs/core/2.0.0)
 
 SDK for building bots on [Fluxer](https://fluxer.app).
 
 ## Install
 
 ```bash
-npm install @fluxerjs/core
+pnpm add @fluxerjs/core
 ```
 
 ## Usage
@@ -30,11 +29,44 @@ client.on(Events.MessageCreate, async (m) => {
 await client.login(process.env.FLUXER_BOT_TOKEN);
 ```
 
-See [`examples/ping-bot.js`](./examples/ping-bot.js) for voice, embeds, and more.
+### Self-hosted / multiple instances
+
+One `Client` = one Fluxer instance (token, REST, gateway, caches, CDN/invite URLs).
+Each instance needs its **own** bot token.
+
+**Beta:** `ClientCluster` can add/remove/restart runtimes without restarting the process.
+The API may change; constructing a cluster emits a `FluxerClientClusterBeta` warning.
+`restart(id, { token })` requires re-supplying the instance token (never stored).
+
+```javascript
+import { ClientCluster, ClientClusterEvents, Events } from '@fluxerjs/core';
+// or: import { ClientCluster } from '@fluxerjs/core/cluster';
+
+const cluster = new ClientCluster({
+  configure(runtime) {
+    runtime.client.on(Events.MessageCreate, async (m) => {
+      if (m.content === '!ping') await m.reply(`Pong from ${runtime.id}`);
+    });
+  },
+});
+
+await cluster.add({ id: 'hosted', token: process.env.FLUXER_BOT_TOKEN });
+await cluster.add({
+  id: 'self',
+  token: process.env.SELFHOST_BOT_TOKEN, // must be issued by the self-hosted instance
+  discovery: 'https://api.my.instance',
+});
+
+// Later — no process restart
+await cluster.restart('self', { token: process.env.SELFHOST_BOT_TOKEN });
+await cluster.remove('self');
+```
+
+You can still manage raw `Client` instances yourself. See [`examples/multi-instance-bot.js`](./examples/multi-instance-bot.js) and the [multi-instance guide](https://fluxerjs.blstmo.com/guides/multi-instance/).
 
 ## Documentation
 
-The docs site is a custom Vue app that pulls API docs from the SDK via a custom docgen (TypeScript Compiler API).
+The docs site (`apps/docs`) is a Next.js app: MDX guides, OpenAPI REST reference, and SDK API docs from a custom docgen (TypeScript Compiler API → `public/api/main.json`).
 
 **From the repo root:**
 
@@ -42,7 +74,7 @@ The docs site is a custom Vue app that pulls API docs from the SDK via a custom 
 # Dev server — http://localhost:3333
 pnpm run docs:dev
 
-# Generate docs JSON + build the site
+# Build packages + generate docs + Next build
 pnpm run docs:build
 
 # Preview the production build
@@ -51,9 +83,9 @@ pnpm run docs:preview
 
 **What each command does:**
 
-- `docs:dev` — Start Vite dev server; loads `public/docs/main.json` at runtime
-- `docs:build` — Runs `generate:docs` (merges all packages into one JSON) then builds the site
-- `docs:preview` — Serves the built site for testing
+- `docs:dev` — Next.js on port 3333
+- `docs:build` — Builds packages, runs `generate:docs`, then `next build`
+- `docs:preview` — `next start` on port 3333
 
 ## License
 

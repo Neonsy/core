@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 import type { Message } from '../structures/Message.js';
-import type { GatewayGuildMembersChunkDispatchData } from '@fluxerjs/types';
+import type { GuildMembersChunkPayload } from './eventPayloads.js';
 import { Client } from './Client.js';
 import { Events } from '../util/Events.js';
 
@@ -20,11 +20,11 @@ describe('Client event typings (compile-time)', () => {
 
     client.on(Events.GuildMembersChunk, (chunk) => {
       type _notAny = Assert<IsAny<typeof chunk> extends false ? true : false>;
-      type _exact = Assert<IsExactly<typeof chunk, GatewayGuildMembersChunkDispatchData>>;
-      const _guildId: string = chunk.guild_id;
+      type _exact = Assert<IsExactly<typeof chunk, GuildMembersChunkPayload>>;
+      const _guildId: string = chunk.guildId;
     });
 
-    client.emit(Events.MessageDeleteBulk, { ids: ['1', '2'], channel_id: '3' });
+    client.emit(Events.MessageDeleteBulk, { ids: ['1', '2'], channelId: '3', guildId: null });
     client.emit(Events.Ready);
 
     // @ts-expect-error MessageCreate listeners receive exactly one message arg

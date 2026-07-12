@@ -1,0 +1,73 @@
+---
+title: Message History
+description: Fetch messages, pin history, and bulk delete with channel.messages and bulkDelete.
+category: sending-messages
+order: 12
+---
+
+## Fetch one message
+
+If you already have a text channel:
+
+```javascript
+const msg = await channel.messages.fetch(messageId);
+```
+
+From IDs only:
+
+```javascript
+const msg = await client.channels.fetchMessage(channelId, messageId);
+```
+
+## Fetch recent messages
+
+```javascript
+const page = await channel.messages.fetch({ limit: 50 });
+// or with cursors:
+const older = await channel.messages.fetch({ limit: 50, before: lastId });
+```
+
+Exact option names follow the manager (`limit`, `before`, `after`, `around`). Prefer structures from the manager over raw REST when you can.
+
+## Bulk delete
+
+`channel.bulkDelete` accepts a count or an ID list:
+
+```javascript
+// Fetch last N (1–100) in this channel, then delete them
+await channel.bulkDelete(20);
+
+// Delete specific IDs (1 uses DELETE; 2–100 uses the bulk route)
+await channel.bulkDelete([id1, id2, id3]);
+```
+
+Out-of-range counts throw `FluxerError` with `INVALID_FETCH_LIMIT` (or the bulk-delete equivalent). Catch and reply helpfully. See [Errors](/guides/errors/).
+
+## Pins
+
+```javascript
+const pinned = await channel.fetchPinnedMessages();
+```
+
+Check the SDK reference for the exact page shape if you paginate pins.
+
+## Permissions
+
+History and bulk delete need the usual channel permissions (View Channel, Read Message History, Manage Messages). Always check before deleting other people's messages.
+
+## Bulk fetch across channels
+
+For several channels in one request:
+
+```javascript
+const result = await client.bulkFetchMessages([
+  { channelId: '111', limit: 50 },
+  { channelId: '222', limit: 25, before: '999' },
+]);
+
+for (const batch of result.channels) {
+  console.log(batch.channelId, batch.messages.size);
+}
+```
+
+Request fields are camelCase (`channelId`, `limit`, `before`, `after`, `around`).

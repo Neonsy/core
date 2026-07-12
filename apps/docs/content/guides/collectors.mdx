@@ -1,0 +1,63 @@
+---
+title: Collectors
+description: Collect messages or reactions for a limited time with filters and max counts.
+category: events
+order: 22
+---
+
+Collectors listen for a while, keep matching items, then stop. Use them for confirmations, polls, or “reply with a choice” flows without wiring a permanent event handler.
+
+## Message collector
+
+Create one on a text-capable channel:
+
+```javascript
+const collector = channel.createMessageCollector({
+  filter: (m) => m.author.id === message.author.id,
+  time: 15_000,
+  max: 1,
+});
+
+collector.on('collect', async (m) => {
+  await m.reply(`Got it: ${m.content}`);
+});
+
+collector.on('end', (collected, reason) => {
+  console.log(`Stopped (${reason}) with ${collected.size} message(s)`);
+});
+```
+
+`reason` is typically `time`, `limit`, or `user` (you called `stop()`).
+
+## Reaction collector
+
+Create one on a message you already sent:
+
+```javascript
+const reply = await message.reply('React with 👍 or 👎');
+await reply.react('👍');
+await reply.react('👎');
+
+const collector = reply.createReactionCollector({
+  filter: (reaction, user) =>
+    !user.bot && (reaction.emoji.name === '👍' || reaction.emoji.name === '👎'),
+  time: 30_000,
+  max: 1,
+});
+
+collector.on('collect', (reaction, user) => {
+  console.log(`${user.username} picked ${reaction.emoji.name}`);
+});
+
+collector.on('end', (collected, reason) => {
+  console.log(`Ended: ${reason}, size=${collected.size}`);
+});
+```
+
+Reaction add events on the client still use a single payload object. The collector unwraps that for you and emits `(reaction, user)` on `collect`.
+
+## Tips
+
+- Always ignore bots in the filter unless you mean to collect them.
+- Call `collector.stop()` when you have what you need so you do not wait out the timer.
+- For long-lived reaction roles, prefer permanent `Events.MessageReactionAdd` listeners (see [reaction-roles-bot](/examples/reaction-roles-bot/)) instead of a short collector.

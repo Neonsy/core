@@ -6,6 +6,7 @@ export default defineConfig({
     client: 'src/subpath-client.ts',
     errors: 'src/subpath-errors.ts',
     message: 'src/subpath-message.ts',
+    cluster: 'src/subpath-cluster.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,

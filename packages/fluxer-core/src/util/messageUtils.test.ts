@@ -14,14 +14,14 @@ describe('Message._createMessageBody', () => {
     expect(result.body.content).toBe('Test');
   });
 
-  it('serializes EmbedBuilder to APIEmbed', async () => {
+  it('serializes EmbedBuilder to RESTPostAPIEmbed', async () => {
     const embed = new EmbedBuilder().setTitle('Test').setDescription('Desc');
     const result = await Message._createMessageBody({ embeds: [embed] });
     expect(result.body.embeds).toHaveLength(1);
     expect(result.body.embeds![0]).toEqual(embed.toJSON());
   });
 
-  it('passes through raw APIEmbed', async () => {
+  it('passes through raw RESTPostAPIEmbed', async () => {
     const raw = { title: 'Raw', type: 'rich' as const };
     const result = await Message._createMessageBody({ embeds: [raw] });
     expect(result.body.embeds).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('Message._createMessageBody', () => {
       message_id: 'msg1',
     });
     expect(payload.body.allowed_mentions).toEqual({ replied_user: false });
-    expect(payload.body.flags).toBe(4096);
+    expect(payload.body.flags).toBeUndefined();
   });
 
   it('AllowedMentions.suppressReplyPing maps to replied_user false', () => {
@@ -101,5 +101,59 @@ describe('Message._createMessageBody', () => {
     expect(result.body.embeds).toHaveLength(2);
     expect(result.body.embeds![0]).toBe(raw);
     expect(result.body.embeds![1]).toEqual(built.toJSON());
+  });
+
+  it('uses uploadedAttachments as JSON body without files', async () => {
+    const uploaded = [
+      {
+        id: 0,
+        filename: 'big.bin',
+        upload_filename: 'tmp/abc',
+        file_size: 10,
+        content_type: 'application/octet-stream',
+      },
+    ];
+    const result = await prepareMessagePostPayload({
+      content: 'hi',
+      uploadedAttachments: uploaded,
+    });
+    expect(result.files).toBeUndefined();
+    expect(result.body.attachments).toEqual(uploaded);
+  });
+
+  it('rejects combining files and uploadedAttachments', async () => {
+    await expect(
+      prepareMessagePostPayload({
+        files: [{ name: 'a.txt', data: new Uint8Array() }],
+        uploadedAttachments: [
+          {
+            id: 0,
+            filename: 'a.txt',
+            upload_filename: 'tmp/a',
+            file_size: 1,
+            content_type: 'text/plain',
+          },
+        ],
+      }),
+    ).rejects.toThrow(/Cannot combine/);
+  });
+
+  it('builds forward message_reference with type 1', async () => {
+    const payload = await prepareMessagePostPayload({
+      content: 'fwd',
+      forward: {
+        channelId: 'c1',
+        messageId: 'm1',
+        attachmentIds: ['a1'],
+        embedIndices: [0],
+      },
+    });
+    expect(payload.body.message_reference).toEqual({
+      channel_id: 'c1',
+      message_id: 'm1',
+      type: 1,
+      attachment_ids: ['a1'],
+      embed_indices: [0],
+    });
   });
 });

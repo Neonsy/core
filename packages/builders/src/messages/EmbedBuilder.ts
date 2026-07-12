@@ -1,19 +1,52 @@
-import { APIEmbed, APIEmbedAuthor, APIEmbedFooter, APIEmbedMedia } from '@fluxerjs/types';
+import type {
+  APIEmbed,
+  APIEmbedField,
+  RESTPostAPIEmbed,
+  RESTPostAPIEmbedAuthor,
+  RESTPostAPIEmbedFooter,
+  RESTPostAPIEmbedMedia,
+} from '@fluxerjs/types';
 import { ErrorCodes, FluxerError, resolveColor } from '@fluxerjs/util';
 
-/** Options for embed media (image, thumbnail, video, audio). */
+export type { RESTPostAPIEmbed } from '@fluxerjs/types';
+
+/** Options for embed media (image/thumbnail). */
 export interface EmbedMediaOptions {
+  /** Media URL (HTTP(S) or `attachment://filename`). */
   url: string;
-  content_type?: string | null;
-  width?: number | null;
-  height?: number | null;
+  /** Alt text for accessibility (optional). */
   description?: string | null;
-  placeholder?: string | null;
-  duration?: number | null;
-  flags?: number | null;
 }
 
-const EMBED_MAX = {
+/** Options for embed author. */
+export interface EmbedAuthorOptions {
+  /** Author name (max 256 characters, auto-truncated). */
+  name: string;
+  /** Author icon URL (optional). */
+  iconURL?: string;
+  /** Author URL (clickable name) (optional). */
+  url?: string;
+}
+
+/** Options for embed footer. */
+export interface EmbedFooterOptions {
+  /** Footer text (max 2048 characters, auto-truncated). */
+  text: string;
+  /** Footer icon URL (optional). */
+  iconURL?: string;
+}
+
+/** Embed field data (name-value pair). */
+export interface EmbedFieldData {
+  /** Field name (max 256 characters, auto-truncated). */
+  name: string;
+  /** Field value (max 1024 characters, auto-truncated). */
+  value: string;
+  /** Whether this field should display inline. */
+  inline?: boolean;
+}
+
+const MAX = {
   title: 256,
   description: 4096,
   fields: 25,
@@ -22,71 +55,84 @@ const EMBED_MAX = {
   footerText: 2048,
   authorName: 256,
   total: 6000,
-};
+} as const;
 
-function toEmbedMedia(input: string | EmbedMediaOptions): APIEmbedMedia {
-  if (typeof input === 'string') {
-    return { url: input };
-  }
-  if (!URL.canParse(input.url)) {
+function assertMediaUrl(url: string): void {
+  const ok =
+    (url.startsWith('attachment://') &&
+      url.length > 'attachment://'.length &&
+      !/[\\/]/.test(url.slice('attachment://'.length))) ||
+    URL.canParse(url);
+  if (!ok) {
     throw new FluxerError('Invalid embed media URL', { code: ErrorCodes.InvalidEmbedMediaUrl });
   }
-  const media: APIEmbedMedia = { url: input.url };
-  if (input.content_type != null) media.content_type = input.content_type;
-  if (input.width != null) media.width = input.width;
-  if (input.height != null) media.height = input.height;
-  if (input.description != null) media.description = input.description;
-  if (input.placeholder != null) media.placeholder = input.placeholder;
-  if (input.duration != null) media.duration = input.duration;
-  if (input.flags != null) media.flags = input.flags;
-  return media;
 }
 
-/** Author field for an embed. */
-export interface EmbedAuthorOptions {
-  name: string;
-  iconURL?: string;
-  url?: string;
+function toMedia(input: string | EmbedMediaOptions): RESTPostAPIEmbedMedia {
+  const url = typeof input === 'string' ? input : input.url;
+  assertMediaUrl(url);
+  if (typeof input === 'string') return { url };
+  return input.description != null ? { url, description: input.description } : { url };
 }
 
-/** Footer field for an embed. */
-export interface EmbedFooterOptions {
-  text: string;
-  iconURL?: string;
-}
-
-/** A single embed field (name, value, optional inline). */
-export interface EmbedFieldData {
-  name: string;
-  value: string;
-  inline?: boolean;
+function toField(field: EmbedFieldData): APIEmbedField {
+  return {
+    name: field.name.slice(0, MAX.fieldName),
+    value: field.value.slice(0, MAX.fieldValue),
+    inline: field.inline,
+  };
 }
 
 /**
- * Builder for creating rich embeds. Use `toJSON()` when passing to `reply`, `send`, or `edit`.
- * Embeds must have at least one of: title, description, fields, or image/thumbnail.
- * A description-only embed (no title) is valid.
+ * Request-only embed builder. Emits {@link RESTPostAPIEmbed} (no video/audio).
+ * @example
+ * ```ts
+ * const embed = new EmbedBuilder()
+ *   .setTitle('Hello')
+ *   .setDescription('World')
+ *   .setColor('#5865F2')
+ *   .setTimestamp();
+ * await channel.send({ embeds: [embed] });
+ * ```
  */
 export class EmbedBuilder {
-  public readonly data: Partial<APIEmbed> = {};
+  /** Partial embed data (built incrementally via setters). */
+  public readonly data: Partial<RESTPostAPIEmbed> = {};
 
-  /** Set the embed title. Max 256 characters. */
+  /**
+   * Set embed title (max 256 characters). Pass null to clear.
+   * @param title - Title text or null
+   * @returns This builder for chaining
+   * @throws {RangeError} If title exceeds 256 characters
+   */
   setTitle(title: string | null): this {
-    if (title !== null && title.length > EMBED_MAX.title)
-      throw new RangeError(`Title must be ≤${EMBED_MAX.title} characters`);
+    if (title !== null && title.length > MAX.title) {
+      throw new RangeError(`Title must be ≤${MAX.title} characters`);
+    }
     this.data.title = title ?? undefined;
     return this;
   }
 
-  /** Set the embed description. Max 4096 characters. */
+  /**
+   * Set embed description (max 4096 characters). Pass null to clear.
+   * @param description - Description text or null
+   * @returns This builder for chaining
+   * @throws {RangeError} If description exceeds 4096 characters
+   */
   setDescription(description: string | null): this {
-    if (description !== null && description.length > EMBED_MAX.description)
-      throw new RangeError(`Description must be ≤${EMBED_MAX.description} characters`);
+    if (description !== null && description.length > MAX.description) {
+      throw new RangeError(`Description must be ≤${MAX.description} characters`);
+    }
     this.data.description = description ?? undefined;
     return this;
   }
 
-  /** Set the embed URL (title becomes a link). */
+  /**
+   * Set embed URL (title becomes clickable). Pass null to clear.
+   * @param url - HTTP(S) URL or null
+   * @returns This builder for chaining
+   * @throws {@link FluxerError} If URL is invalid
+   */
   setURL(url: string | null): this {
     if (url != null && url !== '' && !URL.canParse(url)) {
       throw new FluxerError('Invalid embed URL', { code: ErrorCodes.InvalidEmbedUrl });
@@ -95,145 +141,191 @@ export class EmbedBuilder {
     return this;
   }
 
-  /** Set the embed color. Number (hex), hex string, or `[r,g,b]` array. */
+  /**
+   * Set embed color. Pass null to clear.
+   * @param color - Number (24-bit RGB), hex string (`#5865F2`), or RGB tuple, or null
+   * @returns This builder for chaining
+   */
   setColor(color: number | string | [number, number, number] | null): this {
-    if (color === null) {
-      this.data.color = undefined;
-      return this;
-    }
-    this.data.color = typeof color === 'number' ? color : resolveColor(color);
+    this.data.color =
+      color === null ? undefined : typeof color === 'number' ? color : resolveColor(color);
     return this;
   }
 
-  /** Set the embed timestamp. Omit for current time. */
+  /**
+   * Set embed timestamp. Pass null to clear.
+   * @param timestamp - Date object, Unix ms, or undefined (defaults to now), or null
+   * @returns This builder for chaining
+   */
   setTimestamp(timestamp?: Date | number | null): this {
-    if (timestamp === undefined || timestamp === null) {
+    if (timestamp === null) {
       this.data.timestamp = undefined;
       return this;
     }
-    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+    const date =
+      timestamp === undefined
+        ? new Date()
+        : timestamp instanceof Date
+          ? timestamp
+          : new Date(timestamp);
     this.data.timestamp = date.toISOString();
     return this;
   }
 
-  /** Set the embed author (name, optional icon URL and link). */
+  /**
+   * Set embed author. Pass null to clear.
+   * @param options - Author name, icon URL, and URL, or null
+   * @returns This builder for chaining
+   */
   setAuthor(options: EmbedAuthorOptions | null): this {
     if (!options) {
       this.data.author = undefined;
       return this;
     }
-    const name = options.name.slice(0, EMBED_MAX.authorName);
-    const author: APIEmbedAuthor = { name };
+    const author: RESTPostAPIEmbedAuthor = { name: options.name.slice(0, MAX.authorName) };
     if (options.url) author.url = options.url;
     if (options.iconURL) author.icon_url = options.iconURL;
     this.data.author = author;
     return this;
   }
 
-  /** Set the embed footer (text, optional icon URL). */
+  /**
+   * Set embed footer. Pass null to clear.
+   * @param options - Footer text and optional icon URL, or null
+   * @returns This builder for chaining
+   */
   setFooter(options: EmbedFooterOptions | null): this {
     if (!options) {
       this.data.footer = undefined;
       return this;
     }
-    const text = options.text.slice(0, EMBED_MAX.footerText);
-    const footer: APIEmbedFooter = { text };
+    const footer: RESTPostAPIEmbedFooter = { text: options.text.slice(0, MAX.footerText) };
     if (options.iconURL) footer.icon_url = options.iconURL;
     this.data.footer = footer;
     return this;
   }
 
-  /** Set the embed image (URL string or full media options). */
+  /**
+   * Set embed image (large media below description). Pass null to clear.
+   * @param input - URL string or media options, or null
+   * @returns This builder for chaining
+   * @throws {@link FluxerError} If URL is invalid
+   */
   setImage(input: string | EmbedMediaOptions | null): this {
-    this.data.image = input ? toEmbedMedia(input) : undefined;
+    this.data.image = input ? toMedia(input) : undefined;
     return this;
   }
 
-  /** Set the embed thumbnail (URL string or full media options). */
+  /**
+   * Set embed thumbnail (small media in top-right corner). Pass null to clear.
+   * @param input - URL string or media options, or null
+   * @returns This builder for chaining
+   * @throws {@link FluxerError} If URL is invalid
+   */
   setThumbnail(input: string | EmbedMediaOptions | null): this {
-    this.data.thumbnail = input ? toEmbedMedia(input) : undefined;
+    this.data.thumbnail = input ? toMedia(input) : undefined;
     return this;
   }
 
   /**
-   * Set the embed video. Supported by Fluxer.
-   * Embed stays type 'rich'; this adds the .video field.
-   * Include a title (e.g. setTitle) when using video.
-   *
-   * @param input - Video URL, full media options (e.g. duration for progress bars), or null to clear
+   * Replace all fields (max 25). Pass empty array to clear.
+   * @param fields - Field objects (name, value, inline)
+   * @returns This builder for chaining
    */
-  setVideo(input: string | EmbedMediaOptions | null): this {
-    this.data.video = input ? toEmbedMedia(input) : undefined;
+  setFields(...fields: EmbedFieldData[]): this {
+    this.data.fields = fields.length ? fields.slice(0, MAX.fields).map(toField) : undefined;
     return this;
   }
 
   /**
-   * Set the embed audio. Supported by Fluxer.
-   *
-   * @param input - Audio URL, full media options, or null to clear
+   * Add fields (up to 25 total). Existing fields are preserved.
+   * @param fields - Field objects to append
+   * @returns This builder for chaining
    */
-  setAudio(input: string | EmbedMediaOptions | null): this {
-    this.data.audio = input ? toEmbedMedia(input) : undefined;
-    return this;
-  }
-
-  /** Add one or more fields. Max 25 fields. */
   addFields(...fields: EmbedFieldData[]): this {
     const current = (this.data.fields ?? []).slice();
     for (const f of fields) {
-      if (current.length >= EMBED_MAX.fields) break;
-      current.push({
-        name: f.name.slice(0, EMBED_MAX.fieldName),
-        value: f.value.slice(0, EMBED_MAX.fieldValue),
-        inline: f.inline,
-      });
+      if (current.length >= MAX.fields) break;
+      current.push(toField(f));
     }
     this.data.fields = current.length ? current : undefined;
     return this;
   }
 
+  /**
+   * Splice fields (like Array.prototype.splice).
+   * @param index - Start index
+   * @param deleteCount - Number of fields to remove
+   * @param fields - Fields to insert at index
+   * @returns This builder for chaining
+   */
   spliceFields(index: number, deleteCount: number, ...fields: EmbedFieldData[]): this {
     const current = (this.data.fields ?? []).slice();
-    const toAdd = fields.map((f) => ({
-      name: f.name.slice(0, EMBED_MAX.fieldName),
-      value: f.value.slice(0, EMBED_MAX.fieldValue),
-      inline: f.inline,
-    }));
-    current.splice(index, deleteCount, ...toAdd);
+    current.splice(index, deleteCount, ...fields.map(toField));
     this.data.fields = current.length ? current : undefined;
     return this;
   }
 
-  /** Convert to API embed format for `reply`, `send`, or `edit`. */
-  toJSON(): APIEmbed {
-    const totalLength = [
-      this.data.title,
-      this.data.description,
-      ...(this.data.fields ?? []).flatMap((f) => [f.name, f.value]),
-      this.data.footer?.text,
+  /**
+   * Wire payload: request keys only, snake_case nested media/author/footer.
+   * @returns API-ready embed object
+   * @throws {RangeError} If total character count exceeds 6000
+   */
+  toJSON(): RESTPostAPIEmbed {
+    const d = this.data;
+    const total = [
+      d.title,
+      d.description,
+      ...(d.fields ?? []).flatMap((f) => [f.name, f.value]),
+      d.footer?.text,
     ]
       .filter(Boolean)
       .join('').length;
-    if (totalLength > EMBED_MAX.total)
-      throw new RangeError(`Embed total length must be ≤${EMBED_MAX.total}`);
-    return { ...this.data, type: 'rich' } as APIEmbed;
+    if (total > MAX.total) throw new RangeError(`Embed total length must be ≤${MAX.total}`);
+
+    const out: RESTPostAPIEmbed = {};
+    if (d.title != null) out.title = d.title;
+    if (d.description != null) out.description = d.description;
+    if (d.url != null) out.url = d.url;
+    if (d.color != null) out.color = d.color;
+    if (d.timestamp != null) out.timestamp = d.timestamp;
+    if (d.author) out.author = d.author;
+    if (d.footer) out.footer = d.footer;
+    if (d.image) out.image = d.image;
+    if (d.thumbnail) out.thumbnail = d.thumbnail;
+    if (d.fields?.length) out.fields = d.fields;
+    return out;
   }
 
-  /** Create an EmbedBuilder from an existing API embed. */
-  static from(data: APIEmbed): EmbedBuilder {
+  /**
+   * Copy request fields only — response video/audio/type/provider are ignored.
+   * @param data - API embed from message or webhook
+   * @returns New builder instance with copied data
+   */
+  static from(data: APIEmbed | RESTPostAPIEmbed): EmbedBuilder {
     const b = new EmbedBuilder();
-    b.data.title = data.title ?? undefined;
-    b.data.description = data.description ?? undefined;
-    b.data.url = data.url ?? undefined;
-    b.data.color = data.color ?? undefined;
-    b.data.timestamp = data.timestamp ?? undefined;
-    b.data.author = data.author ?? undefined;
-    b.data.footer = data.footer ?? undefined;
-    b.data.image = data.image ?? undefined;
-    b.data.thumbnail = data.thumbnail ?? undefined;
-    b.data.video = data.video ?? undefined;
-    b.data.audio = data.audio ?? undefined;
-    b.data.fields = data.fields ?? undefined;
+    if (data.title != null) b.data.title = data.title;
+    if (data.description != null) b.data.description = data.description;
+    if (data.url != null) b.data.url = data.url;
+    if (data.color != null) b.data.color = data.color;
+    if (data.timestamp != null) b.data.timestamp = data.timestamp;
+    if (data.author?.name) {
+      b.data.author = {
+        name: data.author.name,
+        url: data.author.url,
+        icon_url: data.author.icon_url,
+      };
+    }
+    if (data.footer?.text) {
+      b.data.footer = { text: data.footer.text, icon_url: data.footer.icon_url };
+    }
+    if (data.image?.url) {
+      b.data.image = { url: data.image.url, description: data.image.description };
+    }
+    if (data.thumbnail?.url) {
+      b.data.thumbnail = { url: data.thumbnail.url, description: data.thumbnail.description };
+    }
+    if (data.fields?.length) b.data.fields = data.fields;
     return b;
   }
 }

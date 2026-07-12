@@ -1,0 +1,70 @@
+---
+title: Basic Bot
+description: Login, handle Ready, and reply to !ping. Start here after install.
+category: getting-started
+order: 1
+---
+
+Smallest useful bot: connect, wait for Ready, reply to a prefix command.
+
+## Default style
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client.on(Events.Ready, () => console.log('Ready!'));
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.author.bot) return;
+  if (message.content === '!ping') {
+    await message.reply('Pong!');
+  }
+});
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+## Chainable handlers
+
+Same thing with `client.events` if you like autocomplete chaining:
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client
+  .events.Ready(() => console.log('Ready!'))
+  .events.MessageCreate(async (message) => {
+    if (message.author.bot) return;
+    if (message.content === '!ping') await message.reply('Pong!');
+  });
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+<Tip>
+Run [minimal-bot](/examples/minimal-bot/) or [first-steps-bot](/examples/first-steps-bot/) for more commands (`!hello`, `!avatar`, `!embed`, `!perms`).
+</Tip>
+
+## Habits that save you pain
+
+Always await replies so a failed send is not a silent unhandled rejection:
+
+```javascript
+// bad
+message.reply('Pong!');
+
+// good
+await message.reply('Pong!');
+```
+
+Pass builders straight into options. Do not call `.toJSON()` yourself:
+
+```javascript
+await message.reply({ embeds: [embed] });
+```
+
+Ignore other bots unless you have a reason not to. Infinite bot loops are embarrassing.

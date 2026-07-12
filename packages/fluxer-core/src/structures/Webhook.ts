@@ -1,81 +1,78 @@
-import { Client } from '../client/Client.js';
-import { Base } from './Base.js';
-import { APIEmbed, APIMessage } from '@fluxerjs/types';
-import {
-  APIWebhook,
-  APIWebhookUpdateRequest,
-  APIWebhookTokenUpdateRequest,
-  APIWebhookEditMessageRequest,
-} from '@fluxerjs/types';
-import { Routes } from '@fluxerjs/types';
 import { EmbedBuilder } from '@fluxerjs/builders';
 import {
-  buildSendBody,
-  resolveMessageFiles,
-  type MessageFileData,
-  type AllowedMentionsOptions,
-} from '../util/messageUtils.js';
-import { Message } from './Message.js';
-import { User } from './User.js';
-import { cdnAvatarURL } from '../util/cdn.js';
-import { FluxerError } from '../errors/FluxerError.js';
+  type APIMessage,
+  type APIWebhook,
+  type APIWebhookUpdateRequest,
+  type RESTPostAPIEmbed,
+  Routes,
+} from '@fluxerjs/types';
+
+import type { Client } from '../client/Client.js';
+import {
+  toMessageAttachmentEditWire,
+  type MessageAttachmentEdit,
+  type WebhookEditOptions,
+} from '../client/sdkOptions.js';
 import { ErrorCodes } from '../errors/ErrorCodes.js';
+import { FluxerError } from '../errors/FluxerError.js';
+import { cdnAvatarURL } from '../util/cdn.js';
+import {
+  prepareMessagePostPayload,
+  toAPIAllowedMentions,
+  type AllowedMentionsOptions,
+  type MessageAttachmentMeta,
+  type MessageFileData,
+  type MessageSendOptions,
+} from '../util/messageUtils.js';
+import { Base } from './Base.js';
+import { Message } from './Message.js';
+import type { User } from './User.js';
 
-/** File data for webhook attachment uploads. Use `data` for buffers or `url` to fetch from a URL. */
 export type WebhookFileData = MessageFileData;
+export type WebhookAttachmentMeta = MessageAttachmentMeta;
 
-/** Attachment metadata for webhook file uploads (id matches FormData index). */
-export interface WebhookAttachmentMeta {
-  id: number;
-  filename: string;
-  title?: string | null;
-  description?: string | null;
-  /** MessageAttachmentFlags: IS_SPOILER (8), CONTAINS_EXPLICIT_MEDIA (16), IS_ANIMATED (32) */
-  flags?: number;
-}
-
-/** Options for sending a message via webhook. Aligns with WebhookMessageRequest in the API. */
-export interface WebhookSendOptions {
-  /** Message text content (up to 2000 characters) */
-  content?: string;
-  /** Embed objects. Use EmbedBuilder or APIEmbed; EmbedBuilder is serialized automatically. */
-  embeds?: (APIEmbed | EmbedBuilder)[];
-  /** Override the webhook's default username for this message */
+/** Execute-webhook options: shared message fields plus username/avatar overrides. */
+export type WebhookSendOptions = Pick<
+  MessageSendOptions,
+  'content' | 'embeds' | 'tts' | 'allowedMentions' | 'files' | 'attachments'
+> & {
   username?: string;
-  /** Override the webhook's default avatar URL for this message */
-  avatar_url?: string;
-  /** Text-to-speech */
-  tts?: boolean;
-  /** Controls which mentions trigger notifications. */
-  allowedMentions?: AllowedMentionsOptions;
-  /** File attachments. When present, uses multipart/form-data (same as channel.send). */
-  files?: WebhookFileData[];
-  /** Attachment metadata for files (id = index). Use when files are provided. */
-  attachments?: WebhookAttachmentMeta[];
-}
-
-/** Options for editing a webhook message; `EmbedBuilder` values are serialized like channel messages. */
-export type WebhookMessageEditOptions = Omit<APIWebhookEditMessageRequest, 'embeds'> & {
-  embeds?: (APIEmbed | EmbedBuilder)[];
+  avatarUrl?: string;
 };
 
+/** Edit a previously sent webhook message (`EmbedBuilder` values are serialized). */
+export interface WebhookMessageEditOptions {
+  content?: string | null;
+  embeds?: (RESTPostAPIEmbed | EmbedBuilder)[];
+  attachments?: MessageAttachmentEdit[];
+  flags?: number;
+  allowedMentions?: AllowedMentionsOptions;
+}
+
 /**
- * Represents a Discord/Fluxer webhook. Supports creating, fetching, sending, and deleting.
- * The token is only available when the webhook was created; fetched webhooks cannot send messages.
+ * Incoming webhook. Token is only present after create / `fromToken`;
+ * fetched webhooks use bot auth and cannot execute.
+ * @see {@link Webhook.fromToken} to construct from URL
+ * @see {@link Webhook.fetch} to fetch by ID with bot auth
  */
 export class Webhook extends Base {
+  /** Parent client instance. */
   readonly client: Client;
+  /** Webhook snowflake ID. */
   readonly id: string;
+  /** Guild this webhook belongs to. */
   readonly guildId: string;
+  /** Channel this webhook posts to. */
   channelId: string;
+  /** Webhook name. */
   name: string;
+  /** Webhook avatar hash (null = default). */
   avatar: string | null;
-  /** Present only when webhook was created via createWebhook(); not returned when fetching. */
+  /** Present after create / `fromToken`; omitted when fetching by ID. */
   readonly token: string | null;
-  /** User who created the webhook. */
+  /** The user that created this webhook. */
   readonly user: User;
 
-  /** @param data - API webhook from POST /channels/{id}/webhooks (has token) or GET /webhooks/{id} (no token) */
   constructor(client: Client, data: APIWebhook & { token?: string | null }) {
     super();
     this.client = client;
@@ -88,169 +85,120 @@ export class Webhook extends Base {
     this.user = client.getOrCreateUser(data.user);
   }
 
-  /**
-   * Get the URL for this webhook's avatar.
-   * Returns null if the webhook has no custom avatar.
-   */
   avatarURL(options?: { size?: number; extension?: string }): string | null {
-    return cdnAvatarURL(this.id, this.avatar, options);
+    return cdnAvatarURL(this.id, this.avatar, {
+      ...options,
+      mediaBase: this.client.instance.endpoints.media,
+    });
   }
 
-  /** Delete this webhook. Requires bot token with Manage Webhooks permission. */
+  /** Delete this webhook (token auth when available, otherwise bot auth). */
   async delete(): Promise<void> {
+    if (this.token) {
+      await this.client.rest.delete(Routes.webhookExecute(this.id, this.token), { auth: false });
+      return;
+    }
     await this.client.rest.delete(Routes.webhook(this.id), { auth: true });
   }
 
   /**
-   * Edit this webhook. With token: name and avatar only. Without token (bot auth): name, avatar, and channel_id.
-   * @param options - Fields to update (name, avatar, channel_id when using bot auth)
-   * @returns This webhook instance with updated fields
+   * Edit name/avatar. With bot auth (no token), `channelId` may also be set.
    */
-  async edit(options: APIWebhookUpdateRequest | APIWebhookTokenUpdateRequest): Promise<Webhook> {
-    const body: Record<string, unknown> = {};
+  async edit(options: WebhookEditOptions): Promise<this> {
+    const body: APIWebhookUpdateRequest = {};
     if (options.name !== undefined) body.name = options.name;
     if (options.avatar !== undefined) body.avatar = options.avatar;
-    if ('channel_id' in options && options.channel_id !== undefined && !this.token) {
-      body.channel_id = options.channel_id;
+    if (!this.token && options.channelId !== undefined) {
+      body.channel_id = options.channelId;
     }
 
-    if (this.token) {
-      const data = await this.client.rest.patch(Routes.webhookExecute(this.id, this.token), {
-        body,
-        auth: false,
-      });
-      const w = data as APIWebhook;
-      this.name = w.name ?? this.name;
-      this.avatar = w.avatar ?? null;
-      return this;
-    }
+    const data = this.token
+      ? await this.client.rest.patch<APIWebhook>(Routes.webhookExecute(this.id, this.token), {
+          body,
+          auth: false,
+        })
+      : await this.client.rest.patch<APIWebhook>(Routes.webhook(this.id), { body, auth: true });
 
-    const data = await this.client.rest.patch(Routes.webhook(this.id), {
-      body,
-      auth: true,
-    });
-    const w = data as APIWebhook;
-    this.name = w.name ?? this.name;
-    this.avatar = w.avatar ?? null;
-    this.channelId = w.channel_id ?? this.channelId;
+    this.name = data.name ?? this.name;
+    this.avatar = data.avatar ?? null;
+    if (!this.token) this.channelId = data.channel_id ?? this.channelId;
     return this;
   }
 
   /**
-   * Send a message via this webhook. Requires the webhook token (only present when created, not when fetched).
-   * @param options - Text content or object with content, embeds, username, avatar_url, tts, files, attachments
-   * @param wait - If true, waits for the API and returns the created Message; otherwise returns void (204)
-   * @throws Error if token is not available
-   * @example
-   * await webhook.send('Hello!');
-   * await webhook.send({ embeds: [embed] });
-   * await webhook.send({ content: 'File attached', files: [{ name: 'data.txt', data: buffer }] });
-   * const msg = await webhook.send({ content: 'Hi' }, true);
+   * Execute the webhook. Requires token.
+   * @param wait - When true, appends `?wait=true` and returns the created `Message`.
    */
-  async send(options: string | WebhookSendOptions, wait?: boolean): Promise<Message | undefined> {
-    if (!this.token) {
-      throw new FluxerError(
-        'Webhook token is required to send. The token is only returned when creating a webhook; fetched webhooks cannot send.',
-        { code: ErrorCodes.WebhookTokenRequired },
-      );
+  async send(options: string | WebhookSendOptions, wait = false): Promise<Message | undefined> {
+    const token = this.requireToken();
+    const overrides =
+      typeof options === 'object'
+        ? { username: options.username, avatarUrl: options.avatarUrl }
+        : {};
+    const messageOpts: string | MessageSendOptions =
+      typeof options === 'string'
+        ? options
+        : (({ username: _u, avatarUrl: _a, ...rest }) => rest)(options);
+
+    const { body, files } = await prepareMessagePostPayload(messageOpts);
+    if (overrides.username !== undefined) {
+      (body as Record<string, unknown>).username = overrides.username;
     }
-    const opts = typeof options === 'string' ? { content: options } : options;
-
-    // Use same body-building flow as ChannelManager.send / message send
-    const body = buildSendBody(opts) as Record<string, unknown>;
-    if (opts.username !== undefined) body.username = opts.username;
-    if (opts.avatar_url !== undefined) body.avatar_url = opts.avatar_url;
-
-    const route = Routes.webhookExecute(this.id, this.token) + (wait ? '?wait=true' : '');
-
-    // Same pattern as ChannelManager: { body, files } when files present (URLs resolved automatically)
-    const files = opts.files?.length ? await resolveMessageFiles(opts.files) : undefined;
-    const postOptions = files?.length
-      ? { body, files, auth: false as const }
-      : { body, auth: false as const };
-
-    const data = await this.client.rest.post<APIMessage | undefined>(route, postOptions);
-
-    if (wait && data) {
-      return new Message(this.client, data);
+    if (overrides.avatarUrl !== undefined) {
+      (body as Record<string, unknown>).avatar_url = overrides.avatarUrl;
     }
-    return undefined;
+
+    const route = `${Routes.webhookExecute(this.id, token)}${wait ? '?wait=true' : ''}`;
+    const data = await this.client.rest.post<APIMessage | undefined>(route, {
+      body,
+      ...(files?.length ? { files } : {}),
+      auth: false,
+    });
+    return wait && data ? new Message(this.client, data) : undefined;
   }
 
-  /**
-   * Edit a message previously sent by this webhook.
-   * Requires the webhook token.
-   */
+  /** Edit a message previously sent by this webhook. Requires token. */
   async editMessage(messageId: string, options: WebhookMessageEditOptions): Promise<Message> {
-    if (!this.token) {
-      throw new FluxerError(
-        'Webhook token is required to edit messages. The token is only returned when creating a webhook; fetched webhooks cannot edit messages.',
-        { code: ErrorCodes.WebhookTokenRequired },
-      );
-    }
-    const body: Record<string, unknown> = { ...options };
+    const body: Record<string, unknown> = {};
+    if (options.content !== undefined) body.content = options.content;
     if (options.embeds !== undefined) {
       body.embeds = options.embeds.map((e) => (e instanceof EmbedBuilder ? e.toJSON() : e));
     }
-    const data = await this.client.rest.patch<APIMessage>(
-      Routes.webhookMessage(this.id, this.token, messageId),
-      { body, auth: false },
-    );
-    return new Message(this.client, data);
-  }
-
-  /**
-   * Fetch a message sent by this webhook.
-   * Requires the webhook token.
-   */
-  async fetchMessage(messageId: string): Promise<Message> {
-    if (!this.token) {
-      throw new FluxerError(
-        'Webhook token is required to fetch messages. The token is only returned when creating a webhook; fetched webhooks cannot fetch messages.',
-        { code: ErrorCodes.WebhookTokenRequired },
-      );
+    if (options.attachments !== undefined) {
+      body.attachments = toMessageAttachmentEditWire(options.attachments);
     }
-    const data = await this.client.rest.get<APIMessage>(
-      Routes.webhookMessage(this.id, this.token, messageId),
-      { auth: false },
-    );
-    return new Message(this.client, data);
-  }
-
-  /**
-   * Delete a message sent by this webhook.
-   * Requires the webhook token.
-   */
-  async deleteMessage(messageId: string): Promise<void> {
-    if (!this.token) {
-      throw new FluxerError(
-        'Webhook token is required to delete messages. The token is only returned when creating a webhook; fetched webhooks cannot delete messages.',
-        { code: ErrorCodes.WebhookTokenRequired },
-      );
+    if (options.flags !== undefined) body.flags = options.flags;
+    if (options.allowedMentions !== undefined) {
+      body.allowed_mentions = toAPIAllowedMentions(options.allowedMentions);
     }
-    await this.client.rest.delete(Routes.webhookMessage(this.id, this.token, messageId), {
+
+    const data = await this.client.rest.patch<APIMessage>(this.messageRoute(messageId), {
+      body,
       auth: false,
     });
+    return new Message(this.client, data);
   }
 
-  /**
-   * Fetch a webhook by ID using bot auth.
-   * @param client - The client instance
-   * @param webhookId - The webhook ID
-   * @returns Webhook without token (cannot send)
-   */
+  /** Fetch a message sent by this webhook. Requires token. */
+  async fetchMessage(messageId: string): Promise<Message> {
+    const data = await this.client.rest.get<APIMessage>(this.messageRoute(messageId), {
+      auth: false,
+    });
+    return new Message(this.client, data);
+  }
+
+  /** Delete a message sent by this webhook. Requires token. */
+  async deleteMessage(messageId: string): Promise<void> {
+    await this.client.rest.delete(this.messageRoute(messageId), { auth: false });
+  }
+
+  /** Fetch a webhook by ID (bot auth; no token). */
   static async fetch(client: Client, webhookId: string): Promise<Webhook> {
     const data = await client.rest.get(Routes.webhook(webhookId));
     return new Webhook(client, data as APIWebhook);
   }
 
-  /**
-   * Create a Webhook instance from an ID and token (e.g. from a stored webhook URL).
-   * @param client - The client instance
-   * @param webhookId - The webhook ID
-   * @param token - The webhook token (from createWebhook or stored)
-   * @param options - Optional channelId, guildId, name for display
-   */
+  /** Build a webhook from a stored id + token (e.g. webhook URL). */
   static fromToken(
     client: Client,
     webhookId: string,
@@ -266,5 +214,19 @@ export class Webhook extends Base {
       token,
       user: { id: '', username: 'webhook', discriminator: '0' },
     });
+  }
+
+  private requireToken(): string {
+    if (!this.token) {
+      throw new FluxerError(
+        'Webhook token is required. It is only returned when creating a webhook.',
+        { code: ErrorCodes.WebhookTokenRequired },
+      );
+    }
+    return this.token;
+  }
+
+  private messageRoute(messageId: string): string {
+    return Routes.webhookMessage(this.id, this.requireToken(), messageId);
   }
 }

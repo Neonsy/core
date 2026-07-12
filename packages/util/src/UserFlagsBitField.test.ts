@@ -3,14 +3,20 @@ import { UserFlagsBitField, UserFlagsBits } from './UserFlagsBitField.js';
 
 describe('UserFlagsBitField', () => {
   it('creates with default 0', () => {
-    const bf = new UserFlagsBitField();
-    expect(bf.bitfield).toBe(0n);
+    expect(new UserFlagsBitField().bitfield).toBe(0n);
   });
 
   it('has checks Staff flag', () => {
     const bf = new UserFlagsBitField([UserFlagsBits.Staff]);
     expect(bf.has(UserFlagsBits.Staff)).toBe(true);
     expect(bf.has(UserFlagsBits.Partner)).toBe(false);
+  });
+
+  it('handles high bits above 2^32', () => {
+    const bf = new UserFlagsBitField([UserFlagsBits.Deleted, UserFlagsBits.StaffHidden]);
+    expect(bf.has(UserFlagsBits.Deleted)).toBe(true);
+    expect(bf.has(UserFlagsBits.StaffHidden)).toBe(true);
+    expect(bf.toJSON()).toBe(String(UserFlagsBits.Deleted | UserFlagsBits.StaffHidden));
   });
 
   it('add and remove BugHunter', () => {
@@ -22,13 +28,11 @@ describe('UserFlagsBitField', () => {
 
   it('serialize returns flags object', () => {
     const bf = new UserFlagsBitField([UserFlagsBits.FriendlyBot]);
-    const s = bf.serialize();
-    expect(s.FriendlyBot).toBe(true);
+    expect(bf.serialize().FriendlyBot).toBe(true);
   });
 
   it('toArray returns enabled flag names', () => {
-    const bf = new UserFlagsBitField([UserFlagsBits.Staff, UserFlagsBits.Partner]);
-    const arr = bf.toArray();
+    const arr = new UserFlagsBitField([UserFlagsBits.Staff, UserFlagsBits.Partner]).toArray();
     expect(arr).toContain('Staff');
     expect(arr).toContain('Partner');
   });

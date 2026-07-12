@@ -2,3 +2,10 @@ packages:
   - 'packages/*'
   - 'examples'
   - 'apps/*'
+
+overrides:
+  tar: '>=7.5.16'
+  minimatch: '>=10.2.3'
+  ws: '>=8.21.0'
+  brace-expansion: '>=5.0.6'
+  postcss: '>=8.5.10'

@@ -1,42 +1,63 @@
-import { Snowflake } from '../common/snowflake.js';
+import type { Snowflake } from '../common/snowflake.js';
 import type { APIEmbed } from './embed.js';
-import { APIUser } from './user.js';
+import type { APIUser } from './user.js';
 
+/**
+ * Webhook type (OpenAPI WebhookType).
+ * - `Incoming` — standard webhook created by user/bot
+ * - `ChannelFollower` — webhook created by following an announcement channel
+ */
 export enum WebhookType {
   Incoming = 1,
   ChannelFollower = 2,
 }
 
 /**
- * Webhook from GET /channels/{id}/webhooks (includes token) or GET /webhooks/{id} (no token)
+ * Webhook from GET /channels/{id}/webhooks (includes token) or GET /webhooks/{id} (no token).
  */
 export interface APIWebhook {
+  /** Webhook ID. */
   id: Snowflake;
+  /** Guild containing the webhook. */
   guild_id: Snowflake;
+  /** Channel the webhook posts to. */
   channel_id: Snowflake;
+  /** Webhook display name. */
   name: string;
+  /** Webhook avatar hash. */
   avatar: string | null;
-  /** Present when listing channel webhooks; not returned when fetching by ID without token */
+  /** Webhook token (present when listing channel webhooks; not returned when fetching by ID without token). */
   token?: string;
+  /** User who created the webhook. */
   user: APIUser;
+  /** Webhook type (present on audit-log webhook entries and some list responses). */
+  type?: WebhookType;
 }
 
 /** Request body for PATCH /webhooks/{id} (bot auth). All fields optional. */
 export interface APIWebhookUpdateRequest {
+  /** New webhook name. */
   name?: string;
+  /** New webhook avatar (base64 or null to remove). */
   avatar?: string | null;
+  /** Move webhook to a different channel. */
   channel_id?: Snowflake;
 }
 
 /** Request body for PATCH /webhooks/{id}/{token} (token auth). All fields optional. */
 export interface APIWebhookTokenUpdateRequest {
+  /** New webhook name. */
   name?: string;
+  /** New webhook avatar (base64 or null to remove). */
   avatar?: string | null;
 }
 
 /** Request body for PATCH /webhooks/{id}/{token}/messages/{message_id}. All fields optional. */
 export interface APIWebhookEditMessageRequest {
+  /** New message content. */
   content?: string;
+  /** New embeds. */
   embeds?: APIEmbed[];
+  /** Attachment updates. */
   attachments?: unknown[];
 }

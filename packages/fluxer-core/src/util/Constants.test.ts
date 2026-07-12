@@ -10,7 +10,8 @@ describe('Constants', () => {
     expect(STATIC_CDN_URL).toBe('https://fluxerstatic.com');
   });
 
-  it('DEFAULT_USER_AGENT is fluxerjs', () => {
-    expect(DEFAULT_USER_AGENT).toBe('fluxerjs');
+  it('DEFAULT_USER_AGENT matches rest package', () => {
+    expect(DEFAULT_USER_AGENT).toContain('fluxerjs');
+    expect(DEFAULT_USER_AGENT).toContain('github.com/fluxerjs');
   });
 });

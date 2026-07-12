@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "REST client for the Fluxer API",
   "repository": {
     "type": "git",
@@ -41,13 +41,14 @@
   "scripts": {
     "build": "tsup",
     "clean": "rm -rf dist",
-    "lint": "eslint src --max-warnings 0 --config ../../eslint.config.js",
-    "lint:fix": "eslint src --fix --config ../../eslint.config.js",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
-    "@fluxerjs/types": "workspace:*"
+    "@fluxerjs/types": "workspace:*",
+    "undici": "^8.7.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

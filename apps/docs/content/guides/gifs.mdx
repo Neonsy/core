@@ -1,0 +1,54 @@
+---
+title: GIFs (Tenor)
+description: Send Tenor links as gifv content, or resolve a GIF URL for embeds.
+category: media
+order: 7
+---
+
+Fluxer's unfurler turns a Tenor page URL in message **content** into a `gifv` embed. You do not build that embed yourself.
+
+## Send a Tenor link as content
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.content === '!gif') {
+    await message.reply({
+      content: 'https://tenor.com/view/stressed-gif-7048057395502071840',
+    });
+  }
+});
+```
+
+That is the path for a full animated gifv preview.
+
+## Put a Tenor GIF inside a custom embed
+
+`setImage()` needs a direct image URL. A tenor.com/view page URL will not work. Resolve it first:
+
+```javascript
+import { EmbedBuilder, resolveTenorToImageUrl } from '@fluxerjs/core';
+
+const tenorUrl = 'https://tenor.com/view/stressed-gif-7048057395502071840';
+const media = await resolveTenorToImageUrl(tenorUrl);
+if (!media) {
+  await message.reply('Could not resolve that Tenor URL.');
+  return;
+}
+
+const embed = new EmbedBuilder()
+  .setTitle('Tenor in an embed')
+  .setImage(media) // includes GIF url + IS_ANIMATED flags
+  .setColor(0x5865f2);
+
+await message.reply({ embeds: [embed] });
+```
+
+## Rules of thumb
+
+- Want the native gifv unfurl? Send the Tenor URL as **content**.
+- Want your own title/fields around a GIF? Resolve to a GIF URL and use `setImage`.
+- Custom embeds cannot manufacture a `gifv` type. Only the unfurler path does that.

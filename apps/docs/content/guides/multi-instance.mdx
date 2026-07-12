@@ -1,0 +1,100 @@
+﻿---
+title: "Self-hosting & multi-instance"
+description: "Run bots against hosted Fluxer, a self-hosted instance, or both in the same Node process. One Client per instance. ClientCluster (beta) can add/remove runtimes without restart."
+category: getting-started
+order: 2
+---
+
+## Beta: ClientCluster
+
+ClientCluster is a beta supervisor for multiple independently-tokened clients in one process. The API may change before stabilization. Each runtime requires a bot token issued by that specific instance  -  tokens are not portable. Do not share Message/Guild objects across clients. Import from @fluxerjs/core or @fluxerjs/core/cluster.
+
+<Tip>
+Constructing ClientCluster emits a FluxerClientClusterBeta process warning once per process (suppress with suppressBetaWarning for tests only).
+</Tip>
+
+## One Client = one instance
+
+Each Client owns its own REST client, rate limits, gateway session, caches, and endpoint map (API, media CDN, invite base). Prefer ClientCluster for lifecycle; a manual Map still works. OS worker threads are not required for isolation.
+
+<Tip>
+Never mix structures across clients. Identical snowflake IDs on different instances are different resources.
+</Tip>
+
+## Hosted Fluxer (default)
+
+With no instance options, the client uses production Fluxer endpoints.
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client();
+client.on(Events.Ready, () => console.log(client.instance.endpoints.api));
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+## Discover a self-hosted instance
+
+Client.fromDiscovery(origin) fetches GET /.well-known/fluxer (unauthenticated), validates the document, and configures API/CDN/invite endpoints before login.
+
+```javascript
+const client = await Client.fromDiscovery('https://api.my.instance');
+console.log(client.instance.endpoints.media);
+console.log(client.instance.discovery?.features?.self_hosted);
+await client.login(process.env.SELFHOST_BOT_TOKEN);
+```
+
+## Explicit endpoints
+
+Pass ClientOptions.instance with a partial map (merged onto hosted defaults) or a full discovery document. Prefer instance over rest.api for multi-instance bots. Partial maps leave unspecified CDN/invite hosts on hosted defaults  -  use discovery for self-hosted media URLs.
+
+```javascript
+const client = new Client({
+  instance: {
+    api: 'https://api.my.instance',
+    media: 'https://media.my.instance',
+    static_cdn: 'https://static.my.instance',
+    invite: 'https://invite.my.instance',
+  },
+});
+```
+
+## ClientCluster  -  add/remove/restart without restart (beta)
+
+Start empty or with any mix of instances. Use configure to attach handlers before login. `add()` requires a distinct token per runtime. `remove(id)` tears down only that client. `restart(id, { token })` rebuilds a runtime (token must be re-supplied; never stored). `addAll()` settles a batch. Runtime status includes connecting / connected / ready / error / disconnecting; `lastError` is set on client errors. See [multi-instance-bot](/examples/multi-instance-bot/) (`!add-self` / `!remove-self` / `!restart-self`).
+
+```javascript
+import { ClientCluster, ClientClusterEvents, Events } from '@fluxerjs/core';
+
+const cluster = new ClientCluster({
+  configure(runtime) {
+    runtime.client.on(Events.MessageCreate, async (m) => {
+      if (m.content === '!ping') await m.reply(`Pong from ${runtime.id}`);
+    });
+  },
+});
+
+cluster.on(ClientClusterEvents.RuntimeReady, (rt) => console.log('ready', rt.id));
+cluster.on(ClientClusterEvents.RuntimeError, (rt, err) => {
+  console.error('error', rt.id, rt.status, err.message);
+});
+
+await cluster.add({ id: 'hosted', token: process.env.FLUXER_BOT_TOKEN });
+
+// Later  -  no process restart; token must be issued by the self-hosted instance
+await cluster.add({
+  id: 'school',
+  token: process.env.SELFHOST_BOT_TOKEN,
+  discovery: process.env.SELFHOST_API,
+});
+
+// Token rotation / rebuild (caller supplies token again)
+await cluster.restart('school', { token: process.env.SELFHOST_BOT_TOKEN });
+
+await cluster.remove('school'); // hosted keeps running
+await cluster.destroy(); // shutdown all + clear cluster listeners
+```
+
+## Legacy rest.api
+
+new Client(&#123; rest: &#123; api &#125; &#125;) still works and overrides only the API host (CDN/invite stay on hosted defaults unless you set instance). If both instance.api and rest.api are set and disagree, construction throws CONFLICTING_INSTANCE_CONFIG.

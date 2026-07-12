@@ -77,6 +77,11 @@ const TESTS = [
       if (typeof m.Client !== 'function') throw new Error('Client missing');
       if (typeof m.Events !== 'object') throw new Error('Events missing');
       if (!m.Events.Ready) throw new Error('Events.Ready missing');
+      if (typeof m.ClientCluster !== 'function') throw new Error('ClientCluster missing');
+      if (!m.ClientClusterEvents?.RuntimeAdded) throw new Error('ClientClusterEvents missing');
+      if (typeof m.BETA_CLIENT_CLUSTER_WARNING !== 'string') {
+        throw new Error('BETA_CLIENT_CLUSTER_WARNING missing');
+      }
     },
   },
   {
@@ -97,6 +102,17 @@ const TESTS = [
     pkg: '@fluxerjs/core/message',
     exercise: async (m) => {
       if (typeof m.Message !== 'function') throw new Error('subpath Message missing');
+    },
+  },
+  {
+    pkg: '@fluxerjs/core/cluster',
+    exercise: async (m) => {
+      if (typeof m.ClientCluster !== 'function') throw new Error('subpath ClientCluster missing');
+      if (!m.ClientClusterEvents?.RuntimeReady) {
+        throw new Error('subpath ClientClusterEvents missing');
+      }
+      const cluster = new m.ClientCluster({ suppressBetaWarning: true });
+      if (cluster.size !== 0) throw new Error('ClientCluster should start empty');
     },
   },
   {

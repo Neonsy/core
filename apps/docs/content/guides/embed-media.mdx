@@ -1,0 +1,47 @@
+﻿---
+title: Embed Media
+description: Add images and thumbnails to embeds with EmbedBuilder and EmbedMediaOptions.
+category: media
+order: 6
+---
+
+## Images and thumbnails
+
+Use `setImage()` and `setThumbnail()` with a URL string, or pass `EmbedMediaOptions` (`url` and optional `description` for alt text). HTTP(S) and `attachment://filename` URLs are both valid.
+
+```javascript
+import { Client, Events, EmbedBuilder } from '@fluxerjs/core';
+
+const client = new Client({ intents: 0 });
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.content === '!embedimg') {
+    const embed = new EmbedBuilder()
+      .setTitle('Image Embed')
+      .setDescription('Simple image from URL.')
+      .setImage('https://placehold.co/400x200/5865f2/white?text=Image')
+      .setThumbnail('https://placehold.co/100x100/57f287/white?text=Thumb')
+      .setColor(0x5865f2);
+
+    await message.reply({ embeds: [embed] });
+  }
+});
+```
+
+## Alt text
+
+```javascript
+const embed = new EmbedBuilder()
+  .setTitle('Accessible image')
+  .setImage({
+    url: 'https://placehold.co/400x200/5865f2/white?text=Image',
+    description: 'A blue placeholder banner',
+  })
+  .setColor(0x5865f2);
+```
+
+`setVideo` / `setAudio` are removed. Those fields are response-only when reading embeds. See [Migrating to 2.0](/guides/migration/).
+
+## GIFs in embeds
+
+Embeds need a GIF URL for animated images (not MP4). For Tenor, use `resolveTenorToImageUrl()` — see [GIFs (Tenor)](/guides/gifs/).

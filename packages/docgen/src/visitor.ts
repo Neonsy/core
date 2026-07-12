@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 import { relative } from 'path';
-import { DocClass, DocInterface, DocEnum, DocSource } from './schema.js';
+import type { DocClass, DocInterface, DocEnum, DocSource } from './schema.js';
 import {
   extractConstructor,
   extractProperty,
@@ -8,9 +8,10 @@ import {
   extractGetterProperty,
   extractInterfaceProperty,
   extractEnumMember,
+  extractTypeAliasMembers,
   getDescriptionFromJSDocComment,
   getDeprecatedFromJSDoc,
-  getDiscordJsCompatFromJSDoc,
+  getSeeFromJSDoc,
 } from './extract.js';
 
 function getJSDoc(node: ts.Node): string {
@@ -58,7 +59,9 @@ export function visitSourceFile(
       if (name && isExported(node)) {
         const comment = getJSDoc(node);
         const docClass: DocClass = {
+          id: `class:${name}`,
           name,
+          kind: 'class',
           description: getDescriptionFromJSDocComment(comment) || undefined,
           extends: node.heritageClauses
             ?.find((c) => c.token === ts.SyntaxKind.ExtendsKeyword)
@@ -68,7 +71,7 @@ export function visitSourceFile(
           methods: [],
           source: getSource(node, options?.repoRoot),
           deprecated: getDeprecatedFromJSDoc(comment),
-          discordJsCompat: getDiscordJsCompatFromJSDoc(comment),
+          see: getSeeFromJSDoc(comment),
         };
 
         for (const member of node.members) {
@@ -96,21 +99,35 @@ export function visitSourceFile(
       const name = node.name.getText();
       if (isExported(node)) {
         const comment = getJSDoc(node);
+        const extendsTypes =
+          node.heritageClauses
+            ?.filter((c) => c.token === ts.SyntaxKind.ExtendsKeyword)
+            .flatMap((c) => c.types.map((t) => t.expression.getText())) ?? [];
         const docInterface: DocInterface = {
+          id: `interface:${name}`,
           name,
+          kind: 'interface',
           description: getDescriptionFromJSDocComment(comment) || undefined,
           properties: [],
+          methods: [],
+          extends: extendsTypes.length ? extendsTypes : undefined,
           source: getSource(node, options?.repoRoot),
+          see: getSeeFromJSDoc(comment),
         };
 
         for (const member of node.members) {
           if (ts.isPropertySignature(member)) {
             const prop = extractInterfaceProperty(checker, member);
             if (prop) docInterface.properties.push(prop);
+          } else if (ts.isMethodSignature(member)) {
+            const method = extractMethod(checker, member);
+            if (method) docInterface.methods!.push(method);
           }
         }
 
         docInterface.properties.sort((a, b) => a.name.localeCompare(b.name));
+        docInterface.methods!.sort((a, b) => a.name.localeCompare(b.name));
+        if (!docInterface.methods!.length) delete docInterface.methods;
         interfaces.push(docInterface);
       }
     } else if (ts.isEnumDeclaration(node)) {
@@ -118,10 +135,13 @@ export function visitSourceFile(
       if (isExported(node)) {
         const comment = getJSDoc(node);
         const docEnum: DocEnum = {
+          id: `enum:${name}`,
           name,
+          kind: 'enum',
           description: getDescriptionFromJSDocComment(comment) || undefined,
           members: node.members.map(extractEnumMember),
           source: getSource(node, options?.repoRoot),
+          see: getSeeFromJSDoc(comment),
         };
         enums.push(docEnum);
       }
@@ -129,11 +149,17 @@ export function visitSourceFile(
       const name = node.name.getText();
       if (isExported(node)) {
         const comment = getJSDoc(node);
+        const extracted = extractTypeAliasMembers(checker, node);
         const docInterface: DocInterface = {
+          id: `interface:${name}`,
           name,
+          kind: 'interface',
           description: getDescriptionFromJSDocComment(comment) || undefined,
-          properties: [],
+          properties: extracted.properties,
+          typeSignature: extracted.typeSignature,
+          unionMembers: extracted.unionMembers,
           source: getSource(node, options?.repoRoot),
+          see: getSeeFromJSDoc(comment),
         };
         interfaces.push(docInterface);
       }

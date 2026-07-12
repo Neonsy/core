@@ -39,9 +39,37 @@ describe('Collection', () => {
     expect(coll.last()).toBe(3);
   });
 
+  it('first/last/random single-item do not call toJSON', () => {
+    const coll = new Collection<string, number>([
+      ['a', 1],
+      ['b', 2],
+      ['c', 3],
+    ]);
+    let toJSONCalls = 0;
+    const original = coll.toJSON.bind(coll);
+    coll.toJSON = (): number[] => {
+      toJSONCalls++;
+      return original();
+    };
+    expect(coll.first()).toBe(1);
+    expect(coll.last()).toBe(3);
+    expect([1, 2, 3]).toContain(coll.random());
+    expect(toJSONCalls).toBe(0);
+  });
+
   it('random returns undefined for empty', () => {
     const coll = new Collection<string, number>();
     expect(coll.random()).toBeUndefined();
+  });
+
+  it('random returns a value from the collection', () => {
+    const coll = new Collection<string, number>([
+      ['a', 1],
+      ['b', 2],
+      ['c', 3],
+    ]);
+    const value = coll.random();
+    expect([1, 2, 3]).toContain(value);
   });
 
   it('find returns matching value', () => {
@@ -156,6 +184,22 @@ describe('Collection', () => {
       ['c', 3],
     ]);
     expect(coll.last(2)).toEqual([2, 3]);
+  });
+
+  it('each invokes fn for every entry and returns this', () => {
+    const coll = new Collection<string, number>([
+      ['a', 1],
+      ['b', 2],
+    ]);
+    const seen: Array<[string, number]> = [];
+    const result = coll.each((value, key) => {
+      seen.push([key, value]);
+    });
+    expect(seen).toEqual([
+      ['a', 1],
+      ['b', 2],
+    ]);
+    expect(result).toBe(coll);
   });
 
   it('tap invokes fn and returns this', () => {

@@ -1,0 +1,58 @@
+---
+title: Errors
+description: Catch FluxerError, read ErrorCodes, and turn API failures into useful replies.
+category: getting-started
+order: 2
+---
+
+User-facing validation and not-found cases in `@fluxerjs/core` throw `FluxerError` with an `ErrorCodes` value. Prefer checking the code over scraping the message string.
+
+## Catch and inspect
+
+```javascript
+import { FluxerError, ErrorCodes } from '@fluxerjs/core';
+
+try {
+  await guild.fetchMember(userId);
+} catch (err) {
+  if (err instanceof FluxerError && err.code === ErrorCodes.MemberNotFound) {
+    await message.reply('That user is not in this server.');
+    return;
+  }
+  console.error(err);
+  await message.reply('Something went wrong.');
+}
+```
+
+`FluxerError` often wraps a REST failure in `cause`. HTTP status may live on `err.statusCode` or `err.cause?.statusCode` depending on the path.
+
+## Common codes
+
+Exact members live on `ErrorCodes`. Ones you will hit early:
+
+| Situation | Typical code |
+| --------- | ------------ |
+| Channel / message / member missing | `*NotFound` family |
+| Bad fetch limit | `INVALID_FETCH_LIMIT` |
+| Validation on a public method | named code for that check |
+
+Builders (`EmbedBuilder`, etc.) may still throw plain `RangeError` for length limits. That is intentional.
+
+## Pattern for commands
+
+Keep handlers boring: try the mutation, map known codes to a short reply, log everything else.
+
+```javascript
+try {
+  await guild.ban(userId, { reason, deleteMessageDays: 1 });
+  await message.reply(`Banned <@${userId}>.`);
+} catch (err) {
+  if (err instanceof FluxerError && err.code === ErrorCodes.MemberNotFound) {
+    await message.reply('User not found.');
+    return;
+  }
+  throw err; // or log + generic reply
+}
+```
+
+See [moderation-bot](/examples/moderation-bot/) for this pattern in a full bot.

@@ -18,6 +18,11 @@ describe('cdnAvatarURL', () => {
     expect(url).toContain('fluxerusercontent.com/avatars/123456789012345678/abc123hash.png');
   });
 
+  it('uses custom mediaBase when provided', () => {
+    const url = cdnAvatarURL('123', 'hash', { mediaBase: 'https://media.example' });
+    expect(url).toBe('https://media.example/avatars/123/hash.png');
+  });
+
   it('uses gif for a_ prefix (animated)', () => {
     const url = cdnAvatarURL('123', 'a_animatedhash');
     expect(url).toContain('.gif');

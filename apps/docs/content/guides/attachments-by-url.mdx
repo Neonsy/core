@@ -1,0 +1,26 @@
+---
+title: Attachments by URL
+description: "Attach a remote file with files: [{ name, url }] instead of downloading first."
+category: media
+order: 9
+---
+
+When the file already lives on the web, pass a URL. The REST layer fetches it for the upload.
+
+```javascript
+await message.reply({
+  content: 'Image from the web:',
+  files: [
+    {
+      name: 'photo.jpg',
+      url: 'https://www.w3schools.com/html/pic_trulli.jpg',
+    },
+  ],
+});
+```
+
+Works on `reply`, `send`, channel send, and webhook send. You still need a filename so Fluxer knows how to present the attachment.
+
+Combine with local buffers in the same `files` array if you want. Spoiler / metadata flags still go through the `attachments` array keyed by index (see [File Attachments](/guides/attachments/)).
+
+Runnable: [attachments-bot](/examples/attachments-bot/) (`!urlfile`) and `!attachurl` in [ping-bot](/examples/ping-bot/).

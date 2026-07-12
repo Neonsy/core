@@ -1,8 +1,8 @@
-import { Client } from '../client/Client.js';
+import type { Client } from '../client/Client.js';
 import { Base } from './Base.js';
-import { APISticker } from '@fluxerjs/types';
+import type { APISticker } from '@fluxerjs/types';
 import { Routes } from '@fluxerjs/types';
-import { CDN_URL } from '../util/Constants.js';
+import { cdnStickerURL } from '../util/cdn.js';
 
 /** Represents a custom sticker in a guild. */
 export class GuildSticker extends Base {
@@ -13,6 +13,8 @@ export class GuildSticker extends Base {
   description: string;
   readonly tags: string[];
   readonly animated: boolean;
+  /** Whether this sticker is classified as NSFW */
+  nsfw: boolean;
 
   /** @param data - API sticker from GET /guilds/{id}/stickers or guild sticker events */
   constructor(client: Client, data: APISticker & { guild_id?: string }, guildId: string) {
@@ -24,12 +26,14 @@ export class GuildSticker extends Base {
     this.description = data.description ?? '';
     this.tags = data.tags ?? [];
     this.animated = data.animated ?? false;
+    this.nsfw = data.nsfw ?? false;
   }
 
   /** CDN URL for this sticker image. */
   get url(): string {
-    const ext = this.animated ? 'gif' : 'png';
-    return `${CDN_URL}/stickers/${this.id}.${ext}`;
+    return cdnStickerURL(this.id, this.animated, {
+      mediaBase: this.client.instance.endpoints.media,
+    });
   }
 
   /** Delete this sticker. Requires Manage Emojis and Stickers permission. */

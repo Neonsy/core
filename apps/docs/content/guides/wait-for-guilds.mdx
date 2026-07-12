@@ -1,0 +1,40 @@
+---
+title: Wait for All Guilds
+description: Delay Ready until every guild from the handshake is in cache.
+category: events
+order: 15
+---
+
+By default Ready fires when the gateway READY payload arrives. Some guilds may still be unavailable stubs that show up later as GUILD_CREATE. If your Ready handler needs a complete `client.guilds` map, turn on `waitForGuilds`.
+
+While guilds are syncing, other gateway events (like MESSAGE_CREATE) are held and replayed after Ready. That keeps setup work in Ready from racing with early message handlers.
+
+## Enable it
+
+```javascript
+import { Client, Events } from '@fluxerjs/core';
+
+const client = new Client({
+  waitForGuilds: true,
+});
+
+client.on(Events.Ready, () => {
+  // Every guild from READY should be present and fully loaded
+  console.log(`Bot is in ${client.guilds.size} guilds`);
+  for (const [id, guild] of client.guilds) {
+    console.log(`- ${guild.name} (${guild.channels.size} channels)`);
+  }
+});
+
+await client.login(process.env.FLUXER_BOT_TOKEN);
+```
+
+## When you need it
+
+Use this when Ready iterates all guilds: syncing a database, seeding caches, or posting a startup announcement everywhere.
+
+If you only care about a handful of guild IDs, skip it and call `client.guilds.resolve(guildId)` (or fetch) for those IDs instead.
+
+<Tip>
+Most small bots do not need `waitForGuilds`. Turn it on when incomplete Ready has bitten you once.
+</Tip>

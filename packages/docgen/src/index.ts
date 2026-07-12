@@ -7,7 +7,7 @@
 import * as ts from 'typescript';
 import { resolve, dirname } from 'path';
 import { mkdirSync, writeFileSync } from 'fs';
-import { DocOutput } from './schema.js';
+import type { DocOutput } from './schema.js';
 
 export type { DocOutput, DocClass, DocInterface, DocEnum } from './schema.js';
 import { visitSourceFile } from './visitor.js';
@@ -37,6 +37,7 @@ export function generateDocs(options: DocgenOptions): DocOutput {
   );
 
   const rootPath = dirname(configPath);
+  const rootPathNorm = rootPath.replace(/\\/g, '/').toLowerCase();
   const program = ts.createProgram(
     parsedConfig.fileNames.length
       ? parsedConfig.fileNames
@@ -58,7 +59,8 @@ export function generateDocs(options: DocgenOptions): DocOutput {
   for (const sourceFile of program.getSourceFiles()) {
     const filePath = sourceFile.fileName;
     if (filePath.includes('node_modules')) continue;
-    if (!filePath.includes(rootPath)) continue;
+    const filePathNorm = filePath.replace(/\\/g, '/').toLowerCase();
+    if (!filePathNorm.includes(rootPathNorm)) continue;
 
     const result = visitSourceFile(checker, sourceFile, visitOptions);
     for (const c of result.classes) {
@@ -88,7 +90,7 @@ export function generateDocs(options: DocgenOptions): DocOutput {
   const output: DocOutput = {
     meta: {
       generator: 'fluxer-docgen',
-      version: '1',
+      version: '2',
       date: Date.now(),
     },
     package: packageName,

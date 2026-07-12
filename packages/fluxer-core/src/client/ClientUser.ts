@@ -1,40 +1,71 @@
-import { Client } from './Client.js';
-import { User } from '../structures/User.js';
-import { APIGuild, APIUserPartial } from '@fluxerjs/types';
-import { Routes } from '@fluxerjs/types';
-import { Guild } from '../structures/Guild.js';
+import type { APIUserPartial, GatewayPresenceUpdateData } from '@fluxerjs/types';
+import { GatewayOpcodes, Routes } from '@fluxerjs/types';
 
+import { User } from '../structures/User.js';
+import type { Client } from './Client.js';
+import type { PartialUserGuildPayload } from './eventPayloads.js';
+import {
+  toPresenceWire,
+  toSudoBody,
+  type PresenceUpdateOptions,
+  type SudoVerificationOptions,
+} from './sdkOptions.js';
+
+/** The logged-in bot/user (`client.user`). */
 export class ClientUser extends User {
   declare readonly client: Client;
 
   constructor(client: Client, data: APIUserPartial) {
-    super(client, { ...data });
+    super(client, data);
   }
 
-  /**
-   * Fetch guilds the bot is a member of.
-   * @returns Array of Guild objects (cached in client.guilds)
-   */
-  async fetchGuilds(): Promise<Guild[]> {
-    const data = await this.client.rest.get<APIGuild[] | { guilds?: APIGuild[] }>(
-      Routes.currentUserGuilds(),
-    );
-    const list = Array.isArray(data) ? data : (data?.guilds ?? []);
-    const guilds: Guild[] = [];
-    for (const g of list) {
-      const guild = new Guild(this.client, g);
-      this.client.guilds.set(guild.id, guild);
-      guilds.push(guild);
-    }
-    return guilds;
+  /** Broadcast presence (gateway opcode 3) on all shards. */
+  setPresence(presence: PresenceUpdateOptions): void {
+    const wire = toPresenceWire(presence) as unknown as GatewayPresenceUpdateData;
+    this.client.options.presence = wire;
+    this.client._sendToAllShards({ op: GatewayOpcodes.PresenceUpdate, d: wire });
   }
 
-  /**
-   * Leave a guild. Requires the bot to be a member.
-   * @param guildId - The guild ID to leave
-   */
-  async leaveGuild(guildId: string): Promise<void> {
-    await this.client.rest.delete(Routes.leaveGuild(guildId), { auth: true });
-    this.client.guilds.delete(guildId);
+  /** GET /users/@me/guilds — returns camelCase partial guilds. */
+  async fetchGuilds(): Promise<PartialUserGuildPayload[]> {
+    const data = await this.client.rest.get<
+      Array<{
+        id: string;
+        name: string;
+        icon: string | null;
+        owner?: boolean;
+        permissions?: string | null;
+        features?: string[];
+      }>
+    >(Routes.currentUserGuilds(), { auth: true });
+    return data.map((g) => ({
+      id: g.id,
+      name: g.name,
+      icon: g.icon ?? null,
+      ...(g.owner !== undefined ? { owner: g.owner } : {}),
+      ...(g.permissions !== undefined ? { permissions: g.permissions } : {}),
+      ...(g.features !== undefined ? { features: g.features } : {}),
+    }));
+  }
+
+  /** DELETE /users/@me/guilds/{guild_id} */
+  async leaveGuild(guildId: string, options?: SudoVerificationOptions): Promise<void> {
+    const body = options ? toSudoBody(options) : undefined;
+    await this.client.rest.delete(Routes.leaveGuild(guildId), {
+      body: body && Object.keys(body).length ? body : undefined,
+      auth: true,
+    });
+  }
+
+  /** Delete every message authored by the caller across a guild (sudo). */
+  async bulkDeleteMyMessagesInGuild(
+    guildId: string,
+    options?: SudoVerificationOptions,
+  ): Promise<void> {
+    const body = options ? toSudoBody(options) : undefined;
+    await this.client.rest.post(Routes.guildBulkDeleteMine(guildId), {
+      body: body && Object.keys(body).length ? body : undefined,
+      auth: true,
+    });
   }
 }

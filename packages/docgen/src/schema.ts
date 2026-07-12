@@ -1,9 +1,10 @@
 /**
- * Output schema for the custom doc generator.
+ * Output schema for the custom doc generator (v2).
  */
 
 export interface DocMeta {
   generator: string;
+  /** Schema version of this JSON shape */
   version: string;
   date: number;
 }
@@ -28,8 +29,6 @@ export interface DocProperty {
   description?: string;
   examples?: string[];
   optional?: boolean;
-  /** Discord.js compatible: string = link to d.js docs, true = no link */
-  discordJsCompat?: boolean | string;
 }
 
 export interface DocMethod {
@@ -40,9 +39,8 @@ export interface DocMethod {
   examples?: string[];
   async?: boolean;
   deprecated?: boolean | string;
-  /** Discord.js compatible: string = link to d.js docs, true = no link */
-  discordJsCompat?: boolean | string;
   source?: DocSource;
+  see?: string[];
 }
 
 export interface DocSource {
@@ -53,7 +51,10 @@ export interface DocSource {
 }
 
 export interface DocClass {
+  /** Stable id e.g. class:Client */
+  id: string;
   name: string;
+  kind: 'class';
   description?: string;
   extends?: string;
   constructor?: DocConstructor;
@@ -61,8 +62,8 @@ export interface DocClass {
   methods: DocMethod[];
   source?: DocSource;
   deprecated?: boolean | string;
-  /** Discord.js compatible: string = link to d.js docs, true = no link */
-  discordJsCompat?: boolean | string;
+  package?: string;
+  see?: string[];
 }
 
 export interface DocInterfaceProperty {
@@ -70,13 +71,29 @@ export interface DocInterfaceProperty {
   type: string;
   optional?: boolean;
   description?: string;
+  readonly?: boolean;
 }
 
 export interface DocInterface {
+  id: string;
   name: string;
+  kind: 'interface';
   description?: string;
   properties: DocInterfaceProperty[];
+  /** Method signatures on the interface (if any). */
+  methods?: DocMethod[];
+  /** Heritage type names. */
+  extends?: string[];
+  /**
+   * For `export type` aliases that are not object shapes (unions, primitives, etc.).
+   * Object-literal aliases expand into `properties` instead.
+   */
+  typeSignature?: string;
+  /** String/number literal union members (e.g. EmbedType = 'rich' | 'image' | …). */
+  unionMembers?: DocEnumMember[];
   source?: DocSource;
+  package?: string;
+  see?: string[];
 }
 
 export interface DocEnumMember {
@@ -85,15 +102,25 @@ export interface DocEnumMember {
 }
 
 export interface DocEnum {
+  id: string;
   name: string;
+  kind: 'enum';
   description?: string;
   members: DocEnumMember[];
   source?: DocSource;
+  package?: string;
+  see?: string[];
 }
+
+export type DocSymbol = DocClass | DocInterface | DocEnum;
 
 export interface DocOutput {
   meta: DocMeta;
   package: string;
+  /** SDK version e.g. 2.0.0 */
+  version?: string;
+  /** Available packages for filtering */
+  packages?: string[];
   classes: DocClass[];
   interfaces: DocInterface[];
   enums: DocEnum[];

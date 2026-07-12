@@ -1,18 +1,43 @@
 import { EventEmitter } from 'events';
 import { ErrorCodes, FluxerError } from '@fluxerjs/util';
-import { APIGatewayBotResponse, GatewayPresenceUpdateData } from '@fluxerjs/types';
-import { WebSocketShard } from './WebSocketShard.js';
+import type { APIGatewayBotResponse, GatewayPresenceUpdateData } from '@fluxerjs/types';
+import { WebSocketShard, type WebSocketConstructor } from './WebSocketShard.js';
 import { getDefaultWebSocket } from './utils/getWebSocket.js';
 
-import { WebSocketConstructor as WSConstructor } from './WebSocketShard';
-
-export type WebSocketConstructor = WSConstructor;
+export type { WebSocketConstructor };
 
 const RETRY_INITIAL_MS = 1000;
-const RETRY_MAX_MS = 45000;
+const RETRY_MAX_MS = 45_000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isGatewayBotResponse(value: unknown): value is APIGatewayBotResponse {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { url?: unknown }).url === 'string' &&
+    typeof (value as { shards?: unknown }).shards === 'number'
+  );
+}
+
+async function retryUntil<T>(
+  isAborted: () => boolean,
+  attempt: () => Promise<T>,
+  onError: (error: Error) => void,
+): Promise<T | null> {
+  let delayMs = RETRY_INITIAL_MS;
+  while (!isAborted()) {
+    try {
+      return await attempt();
+    } catch (err) {
+      onError(err instanceof Error ? err : new Error(String(err)));
+      await sleep(delayMs);
+      delayMs = Math.min(RETRY_MAX_MS, Math.floor(delayMs * 1.5));
+    }
+  }
+  return null;
 }
 
 export interface WebSocketManagerOptions {
@@ -30,10 +55,10 @@ export interface WebSocketManagerOptions {
 
 export class WebSocketManager extends EventEmitter {
   private readonly options: WebSocketManagerOptions;
-  private shards = new Map<number, WebSocketShard>();
+  private readonly shards = new Map<number, WebSocketShard>();
   private gatewayUrl: string | null = null;
   private shardCount = 1;
-  private _aborted = false;
+  private aborted = false;
 
   constructor(options: WebSocketManagerOptions) {
     super();
@@ -41,24 +66,16 @@ export class WebSocketManager extends EventEmitter {
   }
 
   async connect(): Promise<void> {
-    this._aborted = false;
+    this.aborted = false;
+    const emitManagerError = (error: Error): void => {
+      this.emit('error', { shardId: -1, error });
+    };
+    const isAborted = (): boolean => this.aborted;
 
     let WS = this.options.WebSocket;
-    let delayMs = RETRY_INITIAL_MS;
-
     if (!WS) {
-      while (!this._aborted) {
-        try {
-          WS = await getDefaultWebSocket();
-          break;
-        } catch (err) {
-          const e = err instanceof Error ? err : new Error(String(err));
-          this.emit('error', { shardId: -1, error: e });
-          await sleep(delayMs);
-          delayMs = Math.min(RETRY_MAX_MS, Math.floor(delayMs * 1.5));
-        }
-      }
-      if (this._aborted) {
+      WS = (await retryUntil(isAborted, getDefaultWebSocket, emitManagerError)) ?? undefined;
+      if (this.aborted) {
         throw new FluxerError('Connection aborted', { code: ErrorCodes.GatewayConnectionAborted });
       }
       if (!WS) {
@@ -66,20 +83,19 @@ export class WebSocketManager extends EventEmitter {
       }
     }
 
-    let gateway: APIGatewayBotResponse | null = null;
-    while (!this._aborted) {
-      try {
-        gateway = (await this.options.rest.get('/gateway/bot')) as APIGatewayBotResponse;
-        break;
-      } catch (err) {
-        const e = err instanceof Error ? err : new Error(String(err));
-        this.emit('error', { shardId: -1, error: e });
-        await sleep(delayMs);
-        delayMs = Math.min(RETRY_MAX_MS, Math.floor(delayMs * 1.5));
-      }
-    }
+    const gateway = await retryUntil(
+      isAborted,
+      async () => {
+        const raw: unknown = await this.options.rest.get('/gateway/bot');
+        if (!isGatewayBotResponse(raw)) {
+          throw new TypeError('Invalid /gateway/bot response');
+        }
+        return raw;
+      },
+      emitManagerError,
+    );
 
-    if (this._aborted) {
+    if (this.aborted) {
       throw new FluxerError('Connection aborted', { code: ErrorCodes.GatewayConnectionAborted });
     }
     if (!gateway) {
@@ -90,12 +106,13 @@ export class WebSocketManager extends EventEmitter {
     this.shardCount = this.options.shardCount ?? gateway.shards;
 
     const ids = this.options.shardIds ?? [...Array(this.shardCount).keys()];
-
     const version = this.options.version ?? '1';
 
     for (const id of ids) {
+      if (this.aborted) break;
+
       const shard = new WebSocketShard({
-        url: this.gatewayUrl ?? gateway.url,
+        url: gateway.url,
         token: this.options.token,
         intents: this.options.intents,
         presence: this.options.presence,
@@ -130,7 +147,7 @@ export class WebSocketManager extends EventEmitter {
   }
 
   destroy(): void {
-    this._aborted = true;
+    this.aborted = true;
     for (const shard of this.shards.values()) shard.destroy();
     this.shards.clear();
     this.gatewayUrl = null;

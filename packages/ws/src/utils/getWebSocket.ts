@@ -1,14 +1,15 @@
 /**
  * Returns the WebSocket implementation to use.
- * Uses global WebSocket (browser, Node 22+, Deno, Bun) when available;
+ * Prefers global WebSocket (browser, Node 22+, Deno, Bun);
  * otherwise uses the bundled `ws` package (Node 18/20).
- * Users never need to install ws themselves.
  */
 
 import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import ws from 'ws';
 
-type WSConstructor = new (url: string) => {
+export type ResolvedWebSocketConstructor = new (
+  url: string,
+) => {
   send(data: string | ArrayBufferLike): void;
   close(code?: number): void;
   readyState: number;
@@ -16,42 +17,42 @@ type WSConstructor = new (url: string) => {
   on?(event: string, cb: (data?: unknown) => void): void;
 };
 
-let cached: WSConstructor | null = null;
+let cached: ResolvedWebSocketConstructor | null = null;
 
-export function getDefaultWebSocketSync(): WSConstructor {
+function fromGlobal(): ResolvedWebSocketConstructor | null {
+  if (typeof globalThis.WebSocket === 'undefined') return null;
+  return globalThis.WebSocket as unknown as ResolvedWebSocketConstructor;
+}
+
+function fromRequire(): ResolvedWebSocketConstructor | null {
+  if (typeof require !== 'function') return null;
+  try {
+    return require('ws') as ResolvedWebSocketConstructor;
+  } catch {
+    return null;
+  }
+}
+
+function resolve(allowBundledFallback: boolean): ResolvedWebSocketConstructor | null {
   if (cached) return cached;
-  if (typeof globalThis.WebSocket !== 'undefined') {
-    cached = globalThis.WebSocket as unknown as WSConstructor;
-    return cached;
-  }
-  if (typeof require === 'function') {
-    try {
-      cached = require('ws') as WSConstructor;
-      return cached;
-    } catch {
-      // fall through
-    }
-  }
+  const resolved =
+    fromGlobal() ??
+    fromRequire() ??
+    (allowBundledFallback ? (ws as unknown as ResolvedWebSocketConstructor) : null);
+  if (resolved) cached = resolved;
+  return resolved;
+}
+
+export function getDefaultWebSocketSync(): ResolvedWebSocketConstructor {
+  const resolved = resolve(false);
+  if (resolved) return resolved;
   throw new FluxerError(
     'No WebSocket implementation. Use Node 22+, or run with CommonJS. The "ws" package is bundled with @fluxerjs/ws.',
     { code: ErrorCodes.WebSocketLoadFailed },
   );
 }
 
-/** Async version for ESM where we need dynamic import('ws'). */
-export async function getDefaultWebSocket(): Promise<WSConstructor> {
-  if (cached) return cached;
-  if (typeof globalThis.WebSocket !== 'undefined') {
-    cached = globalThis.WebSocket as unknown as WSConstructor;
-    return cached;
-  }
-  if (typeof require === 'function') {
-    try {
-      cached = require('ws') as WSConstructor;
-      return cached;
-    } catch {
-      // continue
-    }
-  }
-  return ws;
+/** Async resolver — same selection order as sync, but falls back to bundled `ws` in ESM. */
+export async function getDefaultWebSocket(): Promise<ResolvedWebSocketConstructor> {
+  return resolve(true)!;
 }

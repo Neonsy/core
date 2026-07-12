@@ -1,0 +1,43 @@
+---
+title: Allowed Mentions
+description: Control @everyone, role, and reply pings with allowedMentions.
+category: sending-messages
+order: 13
+---
+
+By default replies can ping the author of the message you reply to. Use `allowedMentions` (or the `ping` shortcut on `reply`) when you want silence.
+
+## Suppress reply ping
+
+```javascript
+await message.reply('Got it.', { ping: false });
+
+// Same idea, explicit:
+await message.reply({
+  content: 'Got it.',
+  allowedMentions: { repliedUser: false },
+});
+```
+
+`AllowedMentions.suppressReplyPing` is also available as a preset if you import it from `@fluxerjs/core`.
+
+## Limit parse types
+
+```javascript
+await channel.send({
+  content: 'Hello @everyone (not really)',
+  allowedMentions: {
+    parse: [], // do not parse @everyone / @here / roles / users from content
+  },
+});
+```
+
+You can allow specific users or roles by ID when needed. Prefer an empty `parse` list plus explicit IDs over wide-open mentions in bots.
+
+## Client default
+
+Set `defaultAllowedMentions` on `Client` options if most of your sends should share the same policy. Per-call `allowedMentions` overrides that default.
+
+## Demo
+
+`!noreply` in [first-steps-bot](/examples/first-steps-bot/) and `!replynoping` in [ping-bot](/examples/ping-bot/).

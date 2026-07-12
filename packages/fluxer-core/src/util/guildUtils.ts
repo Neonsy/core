@@ -1,33 +1,34 @@
-import { APIGuild, APIRole } from '@fluxerjs/types';
-
-/** Guild payload shape from Fluxer gateway (GUILD_CREATE, GUILD_UPDATE, READY). */
-type GatewayGuildPayload =
-  | APIGuild
-  | {
-      id: string;
-      properties?: Record<string, unknown>;
-      roles?: APIRole[] | unknown;
-      [key: string]: unknown;
-    };
+import type { APIGuild, APIRole } from '@fluxerjs/types';
 
 /**
- * Normalize gateway guild payload to APIGuild shape.
- * Fluxer gateway may send { id, properties: { owner_id, ... }, roles } instead of flat APIGuild.
- * @param raw - Raw guild data from gateway (accepts unknown for gateway payloads)
- * @returns Normalized APIGuild with roles, or null if raw is null/undefined
+ * Validate and coerce a gateway guild payload to {@link APIGuild}.
+ * Requires a string `id`. Other fields are type-checked only when present
+ * (GUILD_UPDATE payloads are often partial).
  */
 export function normalizeGuildPayload(
-  raw: GatewayGuildPayload | null | undefined | unknown,
+  raw: APIGuild | null | undefined | unknown,
 ): (APIGuild & { roles?: APIRole[] }) | null {
-  if (!raw || typeof raw !== 'object') {
-    return null;
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+
+  if (typeof o.id !== 'string' || o.id.length === 0) return null;
+  if ('name' in o && typeof o.name !== 'string') return null;
+  if ('owner_id' in o && typeof o.owner_id !== 'string') return null;
+  if ('features' in o && !Array.isArray(o.features)) return null;
+  if ('afk_timeout' in o && typeof o.afk_timeout !== 'number') return null;
+
+  for (const key of [
+    'verification_level',
+    'mfa_level',
+    'nsfw_level',
+    'explicit_content_filter',
+    'default_message_notifications',
+  ] as const) {
+    if (key in o && typeof o[key] !== 'number') return null;
   }
-  if ('properties' in raw && raw.properties != null && typeof raw.properties === 'object') {
-    const r = raw as { properties: Record<string, unknown>; roles?: APIRole[] | unknown };
-    return {
-      ...r.properties,
-      roles: r.roles as APIRole[] | undefined,
-    } as APIGuild & { roles?: APIRole[] };
-  }
+
+  if ('icon' in o && o.icon !== null && typeof o.icon !== 'string') return null;
+  if ('banner' in o && o.banner !== null && typeof o.banner !== 'string') return null;
+
   return raw as APIGuild & { roles?: APIRole[] };
 }

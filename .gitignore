@@ -11,9 +11,8 @@ test-results
 openapi.json
 .cl*
 .cu*
-.wrangler
 
-# Changelog maintained in apps/docs/src/data/changelog.ts only
+# Changelog maintained in apps/docs/data/changelog.ts only
 **/CHANGELOG.md
 
 webi-bot.js
@@ -26,5 +25,7 @@ fluxer-ai-bot.js
 # OS files
 Thumbs.db
 
-# Vite build artifacts
+# Vite / Next build artifacts
 *.timestamp-*.mjs
+apps/docs/.next
+apps/docs/out

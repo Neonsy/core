@@ -1,0 +1,2716 @@
+{
+  "summary": {
+    "total": 337,
+    "byCategory": {
+      "public": 53,
+      "bot": 115,
+      "session": 156,
+      "voice": 13
+    },
+    "byStatus": {
+      "public": 53,
+      "wrapped": 115,
+      "session_only": 156,
+      "voice_excluded": 13
+    },
+    "generatedAt": "2026-07-12T06:47:05.796Z"
+  },
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/.well-known/fluxer",
+      "operationId": "get_well_known_fluxer",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/applications/@me",
+      "operationId": "get_current_user_applications",
+      "auth": "botToken",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/authorize-ip",
+      "operationId": "authorize_ip_address",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/email-revert",
+      "operationId": "revert_email_change",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/forgot",
+      "operationId": "forgot_password",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/handoff/complete",
+      "operationId": "complete_handoff",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/handoff/initiate",
+      "operationId": "initiate_handoff",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "DELETE",
+      "path": "/auth/handoff/{code}",
+      "operationId": "cancel_handoff",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/handoff/{code}/info",
+      "operationId": "get_handoff_info",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/handoff/{code}/status",
+      "operationId": "get_handoff_status",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/ip-authorization/poll",
+      "operationId": "poll_ip_authorization",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/ip-authorization/resend",
+      "operationId": "resend_ip_authorization",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "operationId": "login_user",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login/mfa/totp",
+      "operationId": "login_with_totp",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login/mfa/webauthn",
+      "operationId": "login_with_webauthn_mfa",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/login/mfa/webauthn/authentication-options",
+      "operationId": "get_webauthn_mfa_options",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "operationId": "logout_user",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/register",
+      "operationId": "register_account",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/reset",
+      "operationId": "reset_password",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/reset/{token}",
+      "operationId": "validate_reset_password_token",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/sessions",
+      "operationId": "list_auth_sessions",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/sessions/logout",
+      "operationId": "logout_all_sessions",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/sso/complete",
+      "operationId": "complete_sso",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/sso/start",
+      "operationId": "start_sso",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/sso/status",
+      "operationId": "get_sso_status",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/username-suggestions",
+      "operationId": "get_username_suggestions",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/verify",
+      "operationId": "verify_email",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/verify/resend",
+      "operationId": "resend_verification_email",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/webauthn/authenticate",
+      "operationId": "authenticate_with_webauthn",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/webauthn/authentication-options",
+      "operationId": "get_webauthn_authentication_options",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/messages/bulk",
+      "operationId": "bulk_list_channel_messages",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}",
+      "operationId": "get_channel",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/channels/{channel_id}",
+      "operationId": "update_channel",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}",
+      "operationId": "delete_channel",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/attachments",
+      "operationId": "request_presigned_message_attachment_uploads",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/attachments/complete",
+      "operationId": "complete_multipart_message_attachment_uploads",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/call",
+      "operationId": "get_call_eligibility",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/channels/{channel_id}/call",
+      "operationId": "update_call_region",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/call/end",
+      "operationId": "end_call",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/call/ring",
+      "operationId": "ring_call_recipients",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/call/stop-ringing",
+      "operationId": "stop_ringing_call_recipients",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/invites",
+      "operationId": "create_channel_invite",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/invites",
+      "operationId": "list_channel_invites",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/messages",
+      "operationId": "list_messages",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages",
+      "operationId": "send_message",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/ack",
+      "operationId": "clear_channel_read_state",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages/bulk-delete",
+      "operationId": "bulk_delete_messages",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages/bulk-delete-mine",
+      "operationId": "bulk_delete_my_messages_in_channel",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/messages/pins",
+      "operationId": "list_pinned_messages",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages/purge",
+      "operationId": "purge_personal_notes_messages",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages/schedule",
+      "operationId": "schedule_message",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/messages/{message_id}",
+      "operationId": "get_message",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/channels/{channel_id}/messages/{message_id}",
+      "operationId": "edit_message",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}",
+      "operationId": "delete_message",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages/{message_id}/ack",
+      "operationId": "acknowledge_message",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}/attachments/{attachment_id}",
+      "operationId": "delete_message_attachment",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages/{message_id}/memes",
+      "operationId": "create_meme_from_message",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions",
+      "operationId": "remove_all_reactions",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji}",
+      "operationId": "list_reaction_users",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji}",
+      "operationId": "remove_all_reactions_for_emoji",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PUT",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/@me",
+      "operationId": "add_reaction",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/@me",
+      "operationId": "remove_own_reaction",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/users",
+      "operationId": "list_reaction_users_v2",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/{target_id}",
+      "operationId": "remove_reaction",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PUT",
+      "path": "/channels/{channel_id}/permissions/{overwrite_id}",
+      "operationId": "set_channel_permission_overwrite",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/permissions/{overwrite_id}",
+      "operationId": "delete_channel_permission_overwrite",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/pins/ack",
+      "operationId": "acknowledge_pins",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PUT",
+      "path": "/channels/{channel_id}/pins/{message_id}",
+      "operationId": "pin_message",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/pins/{message_id}",
+      "operationId": "unpin_message",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PUT",
+      "path": "/channels/{channel_id}/recipients/{user_id}",
+      "operationId": "add_group_dm_recipient",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/recipients/{user_id}",
+      "operationId": "remove_group_dm_recipient",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/rtc-regions",
+      "operationId": "list_rtc_regions",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/slowmode",
+      "operationId": "get_channel_slowmode_state",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/typing",
+      "operationId": "indicate_typing",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/voice-debug-logging/events",
+      "operationId": "upload_voice_debug_logging_events",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/voice-debug-logging/session",
+      "operationId": "get_voice_debug_logging_status",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "PUT",
+      "path": "/channels/{channel_id}/voice-debug-logging/session",
+      "operationId": "set_voice_debug_logging_status",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/voice-presence/heartbeat",
+      "operationId": "heartbeat_voice_presence",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/voice-presence/heartbeat",
+      "operationId": "end_voice_presence_heartbeat",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "GET",
+      "path": "/channels/{channel_id}/webhooks",
+      "operationId": "list_channel_webhooks",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/channels/{channel_id}/webhooks",
+      "operationId": "create_webhook",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/discovery/categories",
+      "operationId": "list_discovery_categories",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/discovery/guilds",
+      "operationId": "search_discovery_guilds",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/discovery/guilds/{guild_id}/join",
+      "operationId": "join_discovery_guild",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/donations/checkout",
+      "operationId": "create_donation_checkout",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/donations/manage",
+      "operationId": "manage_donation",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/donations/request-link",
+      "operationId": "request_donation_magic_link",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/emojis/{emoji_id}/metadata",
+      "operationId": "get_emoji_metadata",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/gateway/bot",
+      "operationId": "get_gateway_bot",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/gifts/{code}",
+      "operationId": "get_gift_code",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/gifts/{code}/redeem",
+      "operationId": "redeem_gift_code",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds",
+      "operationId": "create_guild",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}",
+      "operationId": "get_guild",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}",
+      "operationId": "update_guild",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/audit-logs",
+      "operationId": "list_guild_audit_logs",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/bans",
+      "operationId": "list_guild_bans",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PUT",
+      "path": "/guilds/{guild_id}/bans/{user_id}",
+      "operationId": "ban_guild_member",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/bans/{user_id}",
+      "operationId": "unban_guild_member",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/channels",
+      "operationId": "list_guild_channels",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/channels",
+      "operationId": "create_guild_channel",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/channels",
+      "operationId": "update_guild_channel_positions",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/delete",
+      "operationId": "delete_guild",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/discovery",
+      "operationId": "apply_for_discovery",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/discovery",
+      "operationId": "edit_discovery_application",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/discovery",
+      "operationId": "withdraw_discovery_application",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/discovery",
+      "operationId": "get_discovery_status",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/emojis",
+      "operationId": "create_guild_emoji",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/emojis",
+      "operationId": "list_guild_emojis",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/emojis/bulk",
+      "operationId": "bulk_create_guild_emojis",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/emojis/clone",
+      "operationId": "clone_guild_emoji",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/emojis/{emoji_id}",
+      "operationId": "update_guild_emoji",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/emojis/{emoji_id}",
+      "operationId": "delete_guild_emoji",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/invites",
+      "operationId": "list_guild_invites",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/members",
+      "operationId": "list_guild_members",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/members-search",
+      "operationId": "search_guild_members",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/members/@me",
+      "operationId": "get_current_guild_member",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/members/@me",
+      "operationId": "update_current_guild_member",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/members/{user_id}",
+      "operationId": "get_guild_member",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/members/{user_id}",
+      "operationId": "update_guild_member",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/members/{user_id}",
+      "operationId": "remove_guild_member",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PUT",
+      "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
+      "operationId": "add_guild_member_role",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
+      "operationId": "remove_guild_member_role",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/roles",
+      "operationId": "list_guild_roles",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/roles",
+      "operationId": "create_guild_role",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/roles",
+      "operationId": "update_guild_role_positions",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/roles/hoist-positions",
+      "operationId": "update_role_hoist_positions",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/roles/hoist-positions",
+      "operationId": "reset_role_hoist_positions",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/roles/{role_id}",
+      "operationId": "update_guild_role",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/roles/{role_id}",
+      "operationId": "delete_guild_role",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/stickers",
+      "operationId": "create_guild_sticker",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/stickers",
+      "operationId": "list_guild_stickers",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/stickers/bulk",
+      "operationId": "bulk_create_guild_stickers",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/stickers/clone",
+      "operationId": "clone_guild_sticker",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/stickers/{sticker_id}",
+      "operationId": "update_guild_sticker",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/stickers/{sticker_id}",
+      "operationId": "delete_guild_sticker",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/guilds/{guild_id}/transfer-ownership",
+      "operationId": "transfer_guild_ownership",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/vanity-url",
+      "operationId": "get_guild_vanity_url",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/vanity-url",
+      "operationId": "update_guild_vanity_url",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/guilds/{guild_id}/webhooks",
+      "operationId": "list_guild_webhooks",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/invites/{invite_code}",
+      "operationId": "get_invite",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/invites/{invite_code}",
+      "operationId": "accept_invite",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/invites/{invite_code}",
+      "operationId": "delete_invite",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/oauth2/@me",
+      "operationId": "get_current_user_oauth2",
+      "auth": "public",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/oauth2/@me/authorizations",
+      "operationId": "list_user_oauth2_authorizations",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/oauth2/@me/authorizations/revoke",
+      "operationId": "bulk_delete_user_oauth2_authorizations",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/oauth2/@me/authorizations/{applicationId}",
+      "operationId": "delete_user_oauth2_authorization",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/oauth2/applications",
+      "operationId": "create_oauth_application",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/oauth2/applications/@me",
+      "operationId": "get_oauth_applications_me",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/oauth2/applications/{id}",
+      "operationId": "get_oauth_application",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/oauth2/applications/{id}",
+      "operationId": "update_oauth_application",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/oauth2/applications/{id}",
+      "operationId": "delete_oauth_application",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/oauth2/applications/{id}/bot",
+      "operationId": "update_bot_profile",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/oauth2/applications/{id}/bot/reset-token",
+      "operationId": "reset_bot_token",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/oauth2/applications/{id}/client-secret/reset",
+      "operationId": "reset_client_secret",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/oauth2/applications/{id}/public",
+      "operationId": "get_public_application",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/oauth2/authorize/consent",
+      "operationId": "provide_oauth2_consent",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/oauth2/introspect",
+      "operationId": "introspect_oauth2_token",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/oauth2/token",
+      "operationId": "exchange_oauth2_token",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/oauth2/token/revoke",
+      "operationId": "revoke_oauth2_token",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/oauth2/userinfo",
+      "operationId": "get_oauth2_userinfo",
+      "auth": "public",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/packs",
+      "operationId": "list_user_packs",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/packs/emojis/{pack_id}",
+      "operationId": "create_pack_emoji",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/packs/emojis/{pack_id}",
+      "operationId": "list_pack_emojis",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/packs/emojis/{pack_id}/bulk",
+      "operationId": "bulk_create_pack_emojis",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/packs/emojis/{pack_id}/{emoji_id}",
+      "operationId": "update_pack_emoji",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/packs/emojis/{pack_id}/{emoji_id}",
+      "operationId": "delete_pack_emoji",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/packs/stickers/{pack_id}",
+      "operationId": "create_pack_sticker",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/packs/stickers/{pack_id}",
+      "operationId": "list_pack_stickers",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/packs/stickers/{pack_id}/bulk",
+      "operationId": "bulk_create_pack_stickers",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/packs/stickers/{pack_id}/{sticker_id}",
+      "operationId": "update_pack_sticker",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/packs/stickers/{pack_id}/{sticker_id}",
+      "operationId": "delete_pack_sticker",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/packs/{pack_id}",
+      "operationId": "update_pack",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/packs/{pack_id}",
+      "operationId": "delete_pack",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/packs/{pack_id}/install",
+      "operationId": "install_pack",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/packs/{pack_id}/install",
+      "operationId": "uninstall_pack",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/packs/{pack_id}/invites",
+      "operationId": "list_pack_invites",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/packs/{pack_id}/invites",
+      "operationId": "create_pack_invite",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/packs/{pack_type}",
+      "operationId": "create_pack",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/premium/cancel-pending-subscription-change",
+      "operationId": "cancel_pending_subscription_change",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/premium/cancel-subscription",
+      "operationId": "cancel_subscription",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/premium/change-subscription",
+      "operationId": "change_subscription_billing_cycle",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/premium/current-subscription-price",
+      "operationId": "get_current_subscription_price",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/premium/customer-portal",
+      "operationId": "create_customer_portal",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/premium/grace/end",
+      "operationId": "end_premium_grace_period",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/premium/perks-disabled",
+      "operationId": "set_premium_perks_disabled",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/premium/price-ids",
+      "operationId": "get_price_ids",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/premium/reactivate-subscription",
+      "operationId": "reactivate_subscription",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/premium/refund-eligibility",
+      "operationId": "get_self_serve_refund_eligibility",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/premium/refund-latest",
+      "operationId": "self_serve_refund_latest_purchase",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/premium/state",
+      "operationId": "get_premium_state",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/premium/visionary/rejoin",
+      "operationId": "rejoin_visionary_guild",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/read-states/ack",
+      "operationId": "ack_read_states",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/read-states/ack-bulk",
+      "operationId": "ack_bulk_messages",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/reports/dsa",
+      "operationId": "create_dsa_report",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/reports/dsa/email/send",
+      "operationId": "send_dsa_report_email",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/reports/dsa/email/verify",
+      "operationId": "verify_dsa_report_email",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/reports/guild",
+      "operationId": "report_guild",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/reports/message",
+      "operationId": "report_message",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/reports/user",
+      "operationId": "report_user",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/search/messages",
+      "operationId": "search_messages",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/stickers/{sticker_id}/metadata",
+      "operationId": "get_sticker_metadata",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/streams/{stream_key}/preview",
+      "operationId": "get_stream_preview",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "POST",
+      "path": "/streams/{stream_key}/preview",
+      "operationId": "upload_stream_preview",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "DELETE",
+      "path": "/streams/{stream_key}/preview",
+      "operationId": "delete_stream_preview",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "POST",
+      "path": "/streams/{stream_key}/preview/upload-url",
+      "operationId": "create_stream_preview_upload_url",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "PATCH",
+      "path": "/streams/{stream_key}/stream",
+      "operationId": "update_stream_region",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "POST",
+      "path": "/stripe/checkout/gift",
+      "operationId": "create_gift_checkout_session",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/stripe/checkout/subscription",
+      "operationId": "create_checkout_session",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/stripe/checkout/subscription/preapproval",
+      "operationId": "create_localized_card_preapproval_session",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/stripe/checkout/subscription/preapproval/continue",
+      "operationId": "continue_localized_card_preapproval_session",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/stripe/webhook",
+      "operationId": "process_stripe_webhook",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/unfurl",
+      "operationId": "debug_unfurl",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me",
+      "operationId": "get_current_user",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me",
+      "operationId": "update_current_user",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/age-verification",
+      "operationId": "create_age_verification_session",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/applications",
+      "operationId": "list_user_applications",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/authorized-ips",
+      "operationId": "forget_authorized_ips",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/canary-tester/join",
+      "operationId": "join_canary_testers",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/channels",
+      "operationId": "list_private_channels",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/channels",
+      "operationId": "create_private_channel",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/channels/messages/preload",
+      "operationId": "preload_messages_for_channels_alt",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PUT",
+      "path": "/users/@me/channels/{channel_id}/pin",
+      "operationId": "pin_direct_message_channel",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/channels/{channel_id}/pin",
+      "operationId": "unpin_direct_message_channel",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/connections",
+      "operationId": "list_connections",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/connections",
+      "operationId": "initiate_connection",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/connections/bluesky/authorize",
+      "operationId": "authorize_bluesky_connection",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me/connections/reorder",
+      "operationId": "reorder_connections",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/connections/verify",
+      "operationId": "verify_and_create_connection",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me/connections/{type}/{connection_id}",
+      "operationId": "update_connection",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/connections/{type}/{connection_id}",
+      "operationId": "delete_connection",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/connections/{type}/{connection_id}/verify",
+      "operationId": "verify_connection",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/delete",
+      "operationId": "delete_current_user_account",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/disable",
+      "operationId": "disable_current_user_account",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/email-change/apply",
+      "operationId": "apply_email_change",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/email-change/bounced/request-new",
+      "operationId": "request_bounced_email_replacement",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/email-change/bounced/resend-new",
+      "operationId": "resend_bounced_email_replacement_code",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/email-change/bounced/verify-new",
+      "operationId": "verify_bounced_email_replacement",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/email-change/request-new",
+      "operationId": "request_new_email_address",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/email-change/resend-new",
+      "operationId": "resend_new_email_confirmation",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/email-change/resend-original",
+      "operationId": "resend_original_email_confirmation",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/email-change/start",
+      "operationId": "start_email_change",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/email-change/verify-new",
+      "operationId": "verify_new_email_address",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/email-change/verify-original",
+      "operationId": "verify_original_email_address",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PUT",
+      "path": "/users/@me/entrance-sound-selections",
+      "operationId": "set_entrance_sound_selection",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/entrance-sounds",
+      "operationId": "list_entrance_sounds",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/entrance-sounds",
+      "operationId": "upload_entrance_sound",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me/entrance-sounds/{sound_id}",
+      "operationId": "rename_entrance_sound",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/entrance-sounds/{sound_id}",
+      "operationId": "delete_entrance_sound",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/favorite-gifs/resolve",
+      "operationId": "resolve_gif_urls",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/gifts",
+      "operationId": "list_user_gifts",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/guilds",
+      "operationId": "list_guilds",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me/guilds/@me/settings",
+      "operationId": "update_dm_notification_settings",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/guilds/{guild_id}",
+      "operationId": "leave_guild",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/guilds/{guild_id}/messages/bulk-delete-mine",
+      "operationId": "bulk_delete_my_messages_in_guild",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me/guilds/{guild_id}/settings",
+      "operationId": "update_guild_settings_for_user",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/harvest",
+      "operationId": "request_data_harvest",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/harvest/filtered",
+      "operationId": "request_filtered_data_harvest",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/harvest/latest",
+      "operationId": "get_latest_data_harvest",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/harvest/{harvestId}",
+      "operationId": "get_data_harvest_status",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/harvest/{harvestId}/download",
+      "operationId": "get_data_harvest_download_url",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/memes",
+      "operationId": "list_favorite_memes",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/memes",
+      "operationId": "create_meme_from_url",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/memes/{meme_id}",
+      "operationId": "get_favorite_meme",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me/memes/{meme_id}",
+      "operationId": "update_favorite_meme",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/memes/{meme_id}",
+      "operationId": "delete_favorite_meme",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/mentions",
+      "operationId": "list_mentions_for_current_user",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/mentions/read",
+      "operationId": "mark_mentions_read",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/mentions/{message_id}",
+      "operationId": "delete_mention",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/messages/bulk-delete-mine",
+      "operationId": "bulk_delete_my_messages",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/messages/delete",
+      "operationId": "request_bulk_message_deletion",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/messages/delete",
+      "operationId": "cancel_bulk_message_deletion",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/mfa/backup-codes",
+      "operationId": "get_backup_codes_mfa",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/mfa/totp/disable",
+      "operationId": "disable_totp_mfa",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/mfa/totp/enable",
+      "operationId": "enable_totp_mfa",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/mfa/webauthn/credentials",
+      "operationId": "list_webauthn_credentials",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/mfa/webauthn/credentials",
+      "operationId": "register_webauthn_credential",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/mfa/webauthn/credentials/registration-options",
+      "operationId": "get_webauthn_registration_options",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me/mfa/webauthn/credentials/{credential_id}",
+      "operationId": "update_webauthn_credential",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/mfa/webauthn/credentials/{credential_id}",
+      "operationId": "delete_webauthn_credential",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/mobile-devices",
+      "operationId": "register_mobile_push_device",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/mobile-devices",
+      "operationId": "list_mobile_push_devices",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/mobile-devices/unregister",
+      "operationId": "unregister_mobile_push_device",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/mobile-devices/{device_id}",
+      "operationId": "delete_mobile_push_device",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/notes",
+      "operationId": "list_current_user_notes",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/notes/{target_id}",
+      "operationId": "get_note_on_user",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PUT",
+      "path": "/users/@me/notes/{target_id}",
+      "operationId": "set_note_on_user",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/password-change/complete",
+      "operationId": "complete_password_change",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/password-change/resend",
+      "operationId": "resend_password_change_code",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/password-change/start",
+      "operationId": "start_password_change",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/password-change/verify",
+      "operationId": "verify_password_change_code",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/phone/inbound-challenge",
+      "operationId": "start_inbound_phone_challenge",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/phone/send-verification",
+      "operationId": "send_phone_verification_code",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/phone/verify",
+      "operationId": "verify_phone_code",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/preload-messages",
+      "operationId": "preload_messages_for_channels",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/premium/reset",
+      "operationId": "reset_current_user_premium_state",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/push/rotate",
+      "operationId": "rotate_push_subscription",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/push/subscribe",
+      "operationId": "subscribe_to_push_notifications",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/push/subscriptions",
+      "operationId": "list_push_subscriptions",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/push/subscriptions/{subscription_id}",
+      "operationId": "unsubscribe_from_push_notifications",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/relationships",
+      "operationId": "list_user_relationships",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/relationships",
+      "operationId": "send_friend_request_by_tag",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/relationships/bulk-ignore",
+      "operationId": "bulk_ignore_friend_requests",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/relationships/{user_id}",
+      "operationId": "send_friend_request",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PUT",
+      "path": "/users/@me/relationships/{user_id}",
+      "operationId": "accept_or_update_friend_request",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/relationships/{user_id}",
+      "operationId": "remove_relationship",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me/relationships/{user_id}",
+      "operationId": "update_relationship_nickname",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/saved-messages",
+      "operationId": "list_saved_messages",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/saved-messages",
+      "operationId": "save_message",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/saved-messages/{message_id}",
+      "operationId": "unsave_message",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/scheduled-messages",
+      "operationId": "list_scheduled_messages",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/scheduled-messages/{scheduled_message_id}",
+      "operationId": "get_scheduled_message",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/@me/scheduled-messages/{scheduled_message_id}",
+      "operationId": "cancel_scheduled_message",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me/scheduled-messages/{scheduled_message_id}",
+      "operationId": "update_scheduled_message",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/settings",
+      "operationId": "get_current_user_settings",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/@me/settings",
+      "operationId": "update_current_user_settings",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "PUT",
+      "path": "/users/@me/settings/voice-activity-sharing",
+      "operationId": "update_voice_activity_sharing_default",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "GET",
+      "path": "/users/@me/sudo/mfa-methods",
+      "operationId": "list_sudo_mfa_methods",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/sudo/webauthn/authentication-options",
+      "operationId": "get_sudo_webauthn_authentication_options",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/terms-acceptance",
+      "operationId": "accept_updated_terms",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "POST",
+      "path": "/users/@me/themes",
+      "operationId": "create_theme",
+      "auth": "sessionToken",
+      "category": "session",
+      "status": "session_only"
+    },
+    {
+      "method": "GET",
+      "path": "/users/check-tag",
+      "operationId": "check_username_tag_availability",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/users/{target_id}/profile",
+      "operationId": "get_user_profile",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/users/{user_id}",
+      "operationId": "get_user_by_id",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "POST",
+      "path": "/voice/channels/{channel_id}/entrance-sound",
+      "operationId": "play_entrance_sound",
+      "auth": "sessionToken",
+      "category": "voice",
+      "status": "voice_excluded"
+    },
+    {
+      "method": "GET",
+      "path": "/webhooks/{webhook_id}",
+      "operationId": "get_webhook",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "PATCH",
+      "path": "/webhooks/{webhook_id}",
+      "operationId": "update_webhook",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "DELETE",
+      "path": "/webhooks/{webhook_id}",
+      "operationId": "delete_webhook",
+      "auth": "mixed",
+      "category": "bot",
+      "status": "wrapped"
+    },
+    {
+      "method": "GET",
+      "path": "/webhooks/{webhook_id}/{token}",
+      "operationId": "get_webhook_with_token",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "PATCH",
+      "path": "/webhooks/{webhook_id}/{token}",
+      "operationId": "update_webhook_with_token",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "DELETE",
+      "path": "/webhooks/{webhook_id}/{token}",
+      "operationId": "delete_webhook_with_token",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/webhooks/{webhook_id}/{token}",
+      "operationId": "execute_webhook",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/webhooks/{webhook_id}/{token}/github",
+      "operationId": "execute_github_webhook",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/webhooks/{webhook_id}/{token}/instatus",
+      "operationId": "execute_instatus_webhook",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "GET",
+      "path": "/webhooks/{webhook_id}/{token}/messages/{message_id}",
+      "operationId": "get_webhook_message",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "PATCH",
+      "path": "/webhooks/{webhook_id}/{token}/messages/{message_id}",
+      "operationId": "edit_webhook_message",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "DELETE",
+      "path": "/webhooks/{webhook_id}/{token}/messages/{message_id}",
+      "operationId": "delete_webhook_message",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    },
+    {
+      "method": "POST",
+      "path": "/webhooks/{webhook_id}/{token}/slack",
+      "operationId": "execute_slack_webhook",
+      "auth": "none",
+      "category": "public",
+      "status": "public"
+    }
+  ]
+}

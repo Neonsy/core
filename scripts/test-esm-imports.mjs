@@ -23,6 +23,7 @@ const PACKAGES = [
   '@fluxerjs/core/client',
   '@fluxerjs/core/errors',
   '@fluxerjs/core/message',
+  '@fluxerjs/core/cluster',
   '@fluxerjs/voice',
 ];
 

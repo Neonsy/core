@@ -7,10 +7,11 @@ function createMockClient() {
   return {
     rest: { get: vi.fn() },
     getOrCreateUser: (user: { id: string }) => user,
-    _getMessageCache: (channelId: string) => cache.get(channelId),
+    _getMessageCache: (channelId: string) => cache.get(channelId) ?? null,
     _addMessageToCache: (channelId: string, data: { id: string }) => {
       if (!cache.has(channelId)) cache.set(channelId, new Map());
-      cache.get(channelId)!.set(data.id, data);
+      // Mirror MessageCache: store a copy so wrap() can read back coherently.
+      cache.get(channelId)!.set(data.id, { ...data });
     },
   };
 }
@@ -43,6 +44,13 @@ describe('MessageManager', () => {
       expect(client.rest.get).toHaveBeenCalledWith(Routes.channelMessage('ch1', '100'));
       expect(message.id).toBe('100');
     });
+
+    it('writes through cache so get() returns the fetched message', async () => {
+      client.rest.get.mockResolvedValue(sampleMessage);
+      await manager.fetch('100');
+      expect(manager.get('100')?.id).toBe('100');
+      expect(manager.get('100')?.content).toBe('hello');
+    });
   });
 
   describe('fetch(options)', () => {
@@ -63,15 +71,26 @@ describe('MessageManager', () => {
       expect(collection.get('101')?.id).toBe('101');
     });
 
+    it('caches every listed message', async () => {
+      client.rest.get.mockResolvedValue([
+        { ...sampleMessage, id: '101' },
+        { ...sampleMessage, id: '100' },
+      ]);
+      await manager.fetch({ limit: 2 });
+      expect(manager.get('100')?.id).toBe('100');
+      expect(manager.get('101')?.id).toBe('101');
+    });
+
     it('fetches without query string when no options given', async () => {
       client.rest.get.mockResolvedValue([]);
       await manager.fetch({});
       expect(client.rest.get).toHaveBeenCalledWith(Routes.channelMessages('ch1'));
     });
 
-    it('throws RangeError when limit is out of range', async () => {
-      await expect(manager.fetch({ limit: 0 })).rejects.toThrow(RangeError);
-      await expect(manager.fetch({ limit: 101 })).rejects.toThrow(RangeError);
+    it('throws FluxerError when limit is out of range', async () => {
+      const { FluxerError } = await import('../errors/FluxerError.js');
+      await expect(manager.fetch({ limit: 0 })).rejects.toThrow(FluxerError);
+      await expect(manager.fetch({ limit: 101 })).rejects.toThrow(FluxerError);
     });
   });
 });

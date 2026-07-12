@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events';
 import { Collection } from '@fluxerjs/collection';
-import { Client } from '../client/Client.js';
-import { MessageReaction } from '../structures/MessageReaction.js';
-import { User } from '../structures/User.js';
-import { GatewayReactionEmoji } from '@fluxerjs/types';
+import type { Client } from '../client/Client.js';
+import type { MessageReactionPayload } from '../client/eventPayloads.js';
+import type { MessageReaction } from '../structures/MessageReaction.js';
+import type { User } from '../structures/User.js';
 import { Events } from './Events.js';
 
 export interface ReactionCollectorOptions {
@@ -42,14 +42,7 @@ export class ReactionCollector extends EventEmitter {
   readonly collected = new Collection<string, CollectedReaction>();
   private _timeout: ReturnType<typeof setTimeout> | null = null;
   private _ended = false;
-  private _listener: (
-    reaction: MessageReaction,
-    user: User,
-    _msgId: string,
-    channelId: string,
-    _emoji: GatewayReactionEmoji,
-    userId: string,
-  ) => void;
+  private _listener: (payload: MessageReactionPayload) => void;
 
   constructor(
     client: Client,
@@ -66,19 +59,18 @@ export class ReactionCollector extends EventEmitter {
       time: options.time ?? 0,
       max: options.max ?? 0,
     };
-    this._listener = (
-      reaction: MessageReaction,
-      user: User,
-      _msgId: string,
-      chId: string,
-      _emoji: GatewayReactionEmoji,
-      userId: string,
-    ) => {
-      if (this._ended || reaction.messageId !== this.messageId || chId !== this.channelId) return;
-      if (!this.options.filter(reaction, user)) return;
-      const key = `${userId}:${reaction.emoji.id ?? reaction.emoji.name}`;
-      this.collected.set(key, { reaction, user });
-      this.emit('collect', reaction, user);
+    this._listener = (payload: MessageReactionPayload) => {
+      if (
+        this._ended ||
+        payload.reaction.messageId !== this.messageId ||
+        payload.channelId !== this.channelId
+      ) {
+        return;
+      }
+      if (!this.options.filter(payload.reaction, payload.user)) return;
+      const key = `${payload.userId}:${payload.reaction.emoji.id ?? payload.reaction.emoji.name}`;
+      this.collected.set(key, { reaction: payload.reaction, user: payload.user });
+      this.emit('collect', payload.reaction, payload.user);
       if (this.options.max > 0 && this.collected.size >= this.options.max) {
         this.stop('limit');
       }

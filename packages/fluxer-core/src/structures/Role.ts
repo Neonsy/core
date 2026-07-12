@@ -1,33 +1,39 @@
-import { Client } from '../client/Client.js';
-import { Base } from './Base.js';
-import { APIRole, RESTUpdateRoleBody } from '@fluxerjs/types';
+import type { APIRole } from '@fluxerjs/types';
 import { Routes } from '@fluxerjs/types';
-import {
-  PermissionFlags,
-  resolvePermissionsToBitfield,
-  type PermissionResolvable,
-  ALL_PERMISSIONS_BIGINT,
-  PermissionsBitField,
-} from '@fluxerjs/util';
+import { ALL_PERMISSIONS_BIGINT, PermissionFlags, PermissionsBitField } from '@fluxerjs/util';
 
-/** Represents a role in a guild. */
+import type { Client } from '../client/Client.js';
+import { Base } from './Base.js';
+import { toRoleRequestBody, type RoleEditOptions } from './roleOptions.js';
+
+/**
+ * Guild role.
+ * Cached in {@link Guild.roles}; permissions computed via {@link GuildMember.permissions}.
+ */
 export class Role extends Base {
+  /** Parent client instance. */
   readonly client: Client;
+  /** Role snowflake ID. */
   readonly id: string;
+  /** Guild this role belongs to. */
   readonly guildId: string;
+  /** Role name. */
   name: string;
+  /** Role color (24-bit RGB). */
   color: number;
+  /** Role position (higher = above). */
   position: number;
+  /** @internal Raw permissions bitfield string. */
   _permissions: string;
+  /** Whether this role is hoisted (shown separately in member list). */
   hoist: boolean;
+  /** Whether this role is mentionable. */
   mentionable: boolean;
+  /** Unicode emoji for this role (null = none). */
   unicodeEmoji: string | null;
-  /** Separately sorted position for hoisted roles. Null if not set. */
+  /** Hoist position (null = not hoisted). */
   hoistPosition: number | null;
 
-  /** @param client - The client instance */
-  /** @param data - API role from GET /guilds/{id}/roles or gateway role events */
-  /** @param guildId - The guild this role belongs to */
   constructor(client: Client, data: APIRole, guildId: string) {
     super();
     this.client = client;
@@ -43,6 +49,9 @@ export class Role extends Base {
     this.hoistPosition = data.hoist_position ?? null;
   }
 
+  /**
+   * Permissions bitfield (Administrator grants all permissions).
+   */
   get permissions(): PermissionsBitField {
     const bits = BigInt(this._permissions);
     return new PermissionsBitField(
@@ -50,48 +59,55 @@ export class Role extends Base {
     );
   }
 
-  /** Update mutable fields from fresh API data. Used by edit and gateway events. */
-  _patch(data: Partial<APIRole>): void {
-    if (data.name !== undefined) this.name = data.name;
-    if (data.color !== undefined) this.color = data.color;
-    if (data.position !== undefined) this.position = data.position;
-    if (data.permissions !== undefined) this._permissions = data.permissions;
-    if (data.hoist !== undefined) this.hoist = !!data.hoist;
-    if (data.mentionable !== undefined) this.mentionable = !!data.mentionable;
-    if (data.unicode_emoji !== undefined) this.unicodeEmoji = data.unicode_emoji ?? null;
-    if (data.hoist_position !== undefined) this.hoistPosition = data.hoist_position ?? null;
-  }
-
-  /** Returns a mention string (e.g. `<@&123456>`). */
+  /**
+   * Format as a mention string (`<@&id>`).
+   * @returns Mention syntax
+   */
   toString(): string {
     return `<@&${this.id}>`;
   }
 
+  /** @internal */
+  _patch(data: APIRole): void {
+    this.name = data.name;
+    this.color = data.color;
+    this.position = data.position;
+    this._permissions = data.permissions;
+    this.hoist = !!data.hoist;
+    this.mentionable = !!data.mentionable;
+    this.unicodeEmoji = data.unicode_emoji ?? null;
+    this.hoistPosition = data.hoist_position ?? null;
+  }
+
   /**
-   * Edit this role.
-   * Requires Manage Roles permission.
-   * @param options - Role updates (permissions accepts PermissionResolvable for convenience)
-   * @returns This role (updated in place)
-   * @example
-   * await role.edit({ name: 'Moderator', permissions: ['BanMembers', 'KickMembers'] });
+   * Snapshot for role-update events (before in-place patch).
+   * @internal
    */
-  async edit(
-    options: RESTUpdateRoleBody & { permissions?: string | PermissionResolvable },
-  ): Promise<Role> {
-    const body: Record<string, unknown> = {};
-    if (options.name !== undefined) body.name = options.name;
-    if (options.permissions !== undefined) {
-      body.permissions =
-        typeof options.permissions === 'string'
-          ? options.permissions
-          : resolvePermissionsToBitfield(options.permissions);
-    }
-    if (options.color !== undefined) body.color = options.color;
-    if (options.hoist !== undefined) body.hoist = options.hoist;
-    if (options.mentionable !== undefined) body.mentionable = options.mentionable;
-    if (options.unicode_emoji !== undefined) body.unicode_emoji = options.unicode_emoji;
-    if (options.position !== undefined) body.position = options.position;
-    if (options.hoist_position !== undefined) body.hoist_position = options.hoist_position;
+  _clone(): Role {
+    return new Role(
+      this.client,
+      {
+        id: this.id,
+        name: this.name,
+        color: this.color,
+        position: this.position,
+        permissions: this._permissions,
+        hoist: this.hoist,
+        mentionable: this.mentionable,
+        unicode_emoji: this.unicodeEmoji,
+        hoist_position: this.hoistPosition,
+      },
+      this.guildId,
+    );
+  }
+
+  /**
+   * PATCH role. Requires Manage Roles.
+   * @param options - CamelCase fields to update
+   * @returns This role instance (updated in-place)
+   */
+  async edit(options: RoleEditOptions): Promise<Role> {
+    const body = toRoleRequestBody(options);
     const data = await this.client.rest.patch<APIRole>(Routes.guildRole(this.guildId, this.id), {
       body: Object.keys(body).length ? body : undefined,
       auth: true,
@@ -101,12 +117,10 @@ export class Role extends Base {
   }
 
   /**
-   * Delete this role.
-   * Requires Manage Roles permission.
+   * DELETE role. Requires Manage Roles.
    */
   async delete(): Promise<void> {
     await this.client.rest.delete(Routes.guildRole(this.guildId, this.id), { auth: true });
-    const guild = this.client.guilds.get(this.guildId);
-    if (guild) guild.roles.delete(this.id);
+    this.client.guilds.get(this.guildId)?.roles.delete(this.id);
   }
 }

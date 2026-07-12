@@ -1,65 +1,74 @@
-/** Fluxer epoch (2015-01-01 00:00:00 UTC) in milliseconds */
-export const FLUXER_EPOCH = 1420070400000n;
+import type { Snowflake } from '@fluxerjs/types';
+
+/** Fluxer epoch (2015-01-01 00:00:00 UTC) in milliseconds. */
+export const FLUXER_EPOCH = 1_420_070_400_000n;
+
+const SNOWFLAKE_RE = /^(0|[1-9]\d{0,19})$/;
+
+export interface DeconstructedSnowflake {
+  /** Unix timestamp in milliseconds. */
+  timestamp: number;
+  date: Date;
+  workerId: number;
+  processId: number;
+  increment: number;
+}
+
+function invalidSnowflake(value: string): never {
+  throw new TypeError(
+    `Invalid snowflake "${value}": expected a non-negative decimal string (≤20 digits, no leading zeros)`,
+  );
+}
 
 /**
- * Utilities for Fluxer snowflake IDs.
- * Fluxer uses Twitter Snowflakes with a custom epoch.
+ * Fluxer snowflake IDs (Twitter layout, custom epoch).
+ * Public API is string-only — never number — to avoid precision loss above 2^53.
  */
 export class SnowflakeUtil {
   static readonly EPOCH = FLUXER_EPOCH;
 
-  /**
-   * Converts a snowflake to a Unix timestamp in milliseconds.
-   */
-  static timestampFromSnowflake(snowflake: string): number {
-    return Number((BigInt(snowflake) >> 22n) + FLUXER_EPOCH);
+  /** Whether `value` is a non-negative decimal snowflake string (≤ 20 digits). */
+  static isValid(snowflake: string): boolean {
+    return typeof snowflake === 'string' && SNOWFLAKE_RE.test(snowflake);
+  }
+
+  /** Parse a snowflake string to bigint. */
+  static parse(snowflake: Snowflake): bigint {
+    if (!SnowflakeUtil.isValid(snowflake)) invalidSnowflake(snowflake);
+    return BigInt(snowflake);
+  }
+
+  /** Unix timestamp (ms) from a snowflake. */
+  static timestampFromSnowflake(snowflake: Snowflake): number {
+    return Number((SnowflakeUtil.parse(snowflake) >> 22n) + FLUXER_EPOCH);
+  }
+
+  /** Date from a snowflake. */
+  static dateFromSnowflake(snowflake: Snowflake): Date {
+    return new Date(SnowflakeUtil.timestampFromSnowflake(snowflake));
   }
 
   /**
-   * Converts a snowflake to a Date.
+   * Snowflake string from a Unix timestamp (ms).
+   * Useful for pagination (`before` / `after`).
    */
-  static dateFromSnowflake(snowflake: string): Date {
-    return new Date(this.timestampFromSnowflake(snowflake));
-  }
-
-  /**
-   * Converts a Unix timestamp (ms) to a snowflake string.
-   * Useful for pagination (before/after).
-   */
-  static snowflakeFromTimestamp(timestamp: number): string {
-    return ((BigInt(timestamp) - FLUXER_EPOCH) << 22n).toString();
-  }
-
-  /**
-   * Deconstructs a snowflake into its components.
-   * @throws TypeError If snowflake is not a valid numeric string
-   */
-  static deconstruct(snowflake: string): {
-    timestamp: number;
-    date: Date;
-    workerId: number;
-    processId: number;
-    increment: number;
-  } {
-    let big: bigint;
-    try {
-      big = BigInt(snowflake);
-    } catch {
-      throw new TypeError('Invalid snowflake: must be a numeric string');
+  static snowflakeFromTimestamp(timestamp: number): Snowflake {
+    if (!Number.isFinite(timestamp)) {
+      throw new TypeError(`Invalid timestamp ${String(timestamp)}: must be a finite number`);
     }
+    return ((BigInt(Math.trunc(timestamp)) - FLUXER_EPOCH) << 22n).toString();
+  }
+
+  /** Deconstruct a snowflake into timestamp / worker / process / increment. */
+  static deconstruct(snowflake: Snowflake): DeconstructedSnowflake {
+    const big = SnowflakeUtil.parse(snowflake);
+    const timestamp = Number((big >> 22n) + FLUXER_EPOCH);
     return {
-      timestamp: Number((big >> 22n) + FLUXER_EPOCH),
-      date: new Date(Number((big >> 22n) + FLUXER_EPOCH)),
+      timestamp,
+      date: new Date(timestamp),
       workerId: Number((big >> 17n) & 0x1fn),
       processId: Number((big >> 12n) & 0x1fn),
       increment: Number(big & 0xfffn),
     };
-  }
-
-  /**
-   * Checks if a string is a valid snowflake format (numeric string, 0 or positive).
-   */
-  static isValid(snowflake: string): boolean {
-    return /^(0|[1-9]\d*)$/.test(snowflake) && snowflake.length <= 20;
   }
 }

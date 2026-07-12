@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { Guild, Client } from '../';
+import { Guild, type Client } from '../';
+import { DEFAULT_INSTANCE_ENDPOINTS } from '../util/instance.js';
 
 function createMockClient() {
-  return {} as Client;
+  return {
+    instance: { endpoints: DEFAULT_INSTANCE_ENDPOINTS, discovery: null },
+  } as Client;
 }
 
 function createGuild(

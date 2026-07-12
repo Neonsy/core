@@ -1,0 +1,47 @@
+---
+title: Caching
+description: How guilds, channels, members, and messages sit in client caches.
+category: getting-started
+order: 3
+---
+
+The client keeps structures in memory so you do not REST-fetch everything on every event. Managers own the caches. You mostly read them.
+
+## What is cached
+
+| Cache | Access | Notes |
+| ----- | ------ | ----- |
+| Guilds | `client.guilds` | Filled from READY / GUILD_CREATE |
+| Channels | `client.channels` or `guild.channels` | Same channel object, two indexes |
+| Users | `client.users` | Grows as users appear |
+| Members | `guild.members` | Per guild |
+| Messages | `channel.messages` | Bounded; old messages fall out |
+
+Limits come from `Client` cache options. Defaults are fine for small bots. Turn them down if you run many guilds and care about RAM.
+
+## Get vs fetch vs resolve
+
+- **get**: cache only. Returns `undefined` if missing.
+- **fetch**: hits the API, then updates cache.
+- **resolve**: tries cache, then fetch (when the manager supports it).
+
+```javascript
+const cached = client.guilds.get(guildId);
+const guild = cached ?? (await client.guilds.fetch(guildId));
+
+// Members
+const member =
+  guild.members.get(userId) ?? (await guild.fetchMember(userId));
+```
+
+## Updates patch in place
+
+When a member or channel updates and the id/type is unchanged, the SDK patches the existing object. `*Update` events also give you an **old snapshot** (or `null` if nothing was cached). Do not assume old and new are different object identities for every field; compare the snapshot payload.
+
+## Ready timing
+
+By default `Ready` can fire before every guild body arrives. If your Ready handler loops `client.guilds` and needs a full set, use `waitForGuilds: true` (see [Wait for All Guilds](/guides/wait-for-guilds/)).
+
+## When to fetch anyway
+
+Fetch when correctness matters more than a round trip: bans, roles after an outage, or a message older than the channel cache. For “is this user in the server right now,” `fetchMember` beats guessing from a stale cache.

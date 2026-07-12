@@ -1,8 +1,14 @@
 import { EventEmitter } from 'events';
-import { RequestManager } from './RequestManager.js';
 import { Routes } from '@fluxerjs/types';
+import { RequestManager, type RequestOptions } from './RequestManager.js';
+import {
+  DEFAULT_API,
+  DEFAULT_USER_AGENT,
+  DEFAULT_VERSION,
+  MAX_RETRIES,
+  REQUEST_TIMEOUT,
+} from './utils/constants.js';
 
-/** Options for the REST client. */
 export interface RESTOptions {
   api?: string;
   version?: string;
@@ -12,95 +18,55 @@ export interface RESTOptions {
   userAgent?: string;
 }
 
-/** HTTP client for the Fluxer API. Used by Client internally. */
+/** HTTP client for the Fluxer API. */
 export class REST extends EventEmitter {
   private readonly requestManager: RequestManager;
-  private _token: string | null = null;
 
   constructor(options: RESTOptions = {}) {
     super();
     this.setMaxListeners(0);
     this.requestManager = new RequestManager({
-      api: options.api ?? 'https://api.fluxer.app',
-      version: options.version ?? '1',
+      api: options.api ?? DEFAULT_API,
+      version: options.version ?? DEFAULT_VERSION,
       authPrefix: options.authPrefix ?? 'Bot',
-      timeout: options.timeout ?? 15000,
-      retries: options.retries ?? 3,
-      userAgent: options.userAgent ?? 'fluxerjs',
+      timeout: options.timeout ?? REQUEST_TIMEOUT,
+      retries: options.retries ?? MAX_RETRIES,
+      userAgent: options.userAgent ?? DEFAULT_USER_AGENT,
     });
   }
 
-  /** Set the bot token for authenticated requests. */
   setToken(token: string | null): this {
-    this._token = token;
     this.requestManager.setToken(token);
     return this;
   }
 
-  /** Current bot token, or null. */
   get token(): string | null {
-    return this._token;
+    return this.requestManager.getToken();
   }
 
-  /** Send a GET request. */
-  async get<T>(route: string, options?: { auth?: boolean; signal?: AbortSignal }): Promise<T> {
-    return this.requestManager.request<T>('GET', route, {
-      auth: options?.auth,
-      signal: options?.signal,
-    });
-  }
-
-  /** Send a POST request. */
-  async post<T>(
+  async get<T>(
     route: string,
-    options?: {
-      body?: unknown;
-      auth?: boolean;
-      signal?: AbortSignal;
-      files?: Array<{ name: string; data: Blob | ArrayBuffer | Uint8Array; filename?: string }>;
-    },
+    options?: Pick<RequestOptions, 'auth' | 'signal' | 'headers'>,
   ): Promise<T> {
-    return this.requestManager.request<T>('POST', route, {
-      body: options?.body,
-      auth: options?.auth,
-      signal: options?.signal,
-      files: options?.files,
-    });
+    return this.requestManager.request<T>('GET', route, options);
   }
 
-  /** Send a PATCH request. */
-  async patch<T>(
-    route: string,
-    options?: { body?: unknown; auth?: boolean; signal?: AbortSignal },
-  ): Promise<T> {
-    return this.requestManager.request<T>('PATCH', route, {
-      body: options?.body,
-      auth: options?.auth,
-      signal: options?.signal,
-    });
+  async post<T>(route: string, options?: RequestOptions): Promise<T> {
+    return this.requestManager.request<T>('POST', route, options);
   }
 
-  /** Send a PUT request. */
-  async put<T>(
-    route: string,
-    options?: { body?: unknown; auth?: boolean; signal?: AbortSignal },
-  ): Promise<T> {
-    return this.requestManager.request<T>('PUT', route, {
-      body: options?.body,
-      auth: options?.auth,
-      signal: options?.signal,
-    });
+  async patch<T>(route: string, options?: RequestOptions): Promise<T> {
+    return this.requestManager.request<T>('PATCH', route, options);
   }
 
-  /** Send a DELETE request. */
-  async delete<T>(route: string, options?: { auth?: boolean; signal?: AbortSignal }): Promise<T> {
-    return this.requestManager.request<T>('DELETE', route, {
-      auth: options?.auth,
-      signal: options?.signal,
-    });
+  async put<T>(route: string, options?: RequestOptions): Promise<T> {
+    return this.requestManager.request<T>('PUT', route, options);
   }
 
-  /** Route helpers (from @fluxerjs/types) for building paths. */
+  async delete<T>(route: string, options?: RequestOptions): Promise<T> {
+    return this.requestManager.request<T>('DELETE', route, options);
+  }
+
   static get Routes(): typeof Routes {
     return Routes;
   }

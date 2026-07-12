@@ -1,30 +1,74 @@
-import { APIMessage, Routes } from '@fluxerjs/types';
+import type { APIMessage } from '@fluxerjs/types';
+import { Routes } from '@fluxerjs/types';
 import { Collection } from '@fluxerjs/collection';
 import { FluxerAPIError, RateLimitError } from '@fluxerjs/rest';
 import { FluxerError } from '../errors/FluxerError.js';
 import { ErrorCodes } from '../errors/ErrorCodes.js';
-import { Client } from './Client.js';
-import { Message } from '../structures/Message';
+import type { Client } from './Client.js';
+import { Message } from '../structures/Message.js';
+import type { BulkFetchMessagesRequest } from './sdkOptions.js';
 
-/** Options for GET /channels/{id}/messages (list/paginate). */
+/** Options for GET /channels/{id}/messages. */
 export interface FetchMessagesOptions {
-  /** Number of messages to return (1–100, default 50). */
   limit?: number;
-  /** Return messages with IDs before this snowflake. */
   before?: string;
-  /** Return messages with IDs after this snowflake. */
   after?: string;
-  /** Return messages around this snowflake. */
   around?: string;
 }
 
+/** Options for {@link Client.bulkFetchMessages}. */
+export interface BulkFetchMessagesOptions {
+  /** When true (default), hydrate {@link Message}s and update the cache. */
+  hydrate?: boolean;
+}
+
+export interface BulkFetchMessagesChannelResult {
+  channelId: string;
+  messages: Collection<string, Message>;
+}
+
+export interface BulkFetchMessagesResult {
+  channels: BulkFetchMessagesChannelResult[];
+}
+
+const BULK = {
+  requests: { min: 1, max: 25 },
+  limit: { min: 1, max: 25 },
+  totalMax: 250,
+} as const;
+
+/** Validates POST /channels/messages/bulk request entries client-side. */
+export function validateBulkMessageFetchRequests(
+  requests: readonly BulkFetchMessagesRequest[],
+): void {
+  const { requests: req, limit, totalMax } = BULK;
+  if (requests.length < req.min || requests.length > req.max) {
+    throw new FluxerError(`bulkFetchMessages requires between ${req.min} and ${req.max} requests`, {
+      code: ErrorCodes.InvalidFetchLimit,
+    });
+  }
+  let total = 0;
+  for (const request of requests) {
+    if (request.limit < limit.min || request.limit > limit.max) {
+      throw new FluxerError(
+        `limit must be between ${limit.min} and ${limit.max} for channel ${request.channelId}`,
+        { code: ErrorCodes.InvalidFetchLimit },
+      );
+    }
+    total += request.limit;
+  }
+  if (total > totalMax) {
+    throw new FluxerError(`bulkFetchMessages total message limit must not exceed ${totalMax}`, {
+      code: ErrorCodes.InvalidFetchLimit,
+    });
+  }
+}
+
 /**
- * Manages messages for a channel. Access via channel.messages.
- * @example
- * const message = channel.messages.get(messageId);  // from cache (if enabled)
- * const message = await channel.messages.fetch(messageId);  // from API
- * const messages = await channel.messages.fetch({ limit: 50, before: messageId });
- * if (message) await message.edit({ content: 'Updated!' });
+ * Per-channel message cache + fetch. Access via `channel.messages`.
+ *
+ * `fetch` always writes through the client message cache (when enabled) and
+ * constructs {@link Message} from the cached payload so `get` stays coherent.
  */
 export class MessageManager {
   constructor(
@@ -32,48 +76,38 @@ export class MessageManager {
     private readonly channelId: string,
   ) {}
 
-  /**
-   * Get a message from cache. Returns undefined if not cached or caching is disabled.
-   * Requires options.cache.messages > 0.
-   * @param messageId - Snowflake of the message
-   */
+  /** Retrieve a cached message by ID, or `undefined` if missing / caching disabled. */
   get(messageId: string): Message | undefined {
     const data = this.client._getMessageCache(this.channelId)?.get(messageId);
     return data ? new Message(this.client, data) : undefined;
   }
 
-  /**
-   * Fetch a message by ID from this channel.
-   * When message caching is enabled, the fetched message is added to the cache.
-   * @param messageId - Snowflake of the message
-   * @returns The message
-   * @throws FluxerError with MESSAGE_NOT_FOUND if the message does not exist
-   */
+  /** Fetch a single message by ID. */
   async fetch(messageId: string): Promise<Message>;
-  /**
-   * Fetch multiple messages from this channel.
-   * GET /channels/{channel_id}/messages — supports limit, before, after, and around.
-   * Returns messages in reverse chronological order (newest first).
-   * @param options - Pagination options
-   * @returns Collection of messages keyed by message ID
-   */
+  /** Fetch multiple messages with query options (limit, before, after, around). */
   async fetch(options: FetchMessagesOptions): Promise<Collection<string, Message>>;
   async fetch(
-    messageIdOrOptions: string | FetchMessagesOptions,
+    idOrOptions: string | FetchMessagesOptions,
   ): Promise<Message | Collection<string, Message>> {
-    if (typeof messageIdOrOptions === 'string') {
-      return this.fetchOne(messageIdOrOptions);
-    }
-    return this.fetchMany(messageIdOrOptions);
+    return typeof idOrOptions === 'string'
+      ? this.fetchOne(idOrOptions)
+      : this.fetchMany(idOrOptions);
   }
 
+  /** Cache API data and return a {@link Message} built from the cached entry when present. */
+  private wrap(data: APIMessage): Message {
+    this.client._addMessageToCache(this.channelId, data);
+    const cached = this.client._getMessageCache(this.channelId)?.get(data.id) ?? data;
+    return new Message(this.client, cached);
+  }
+
+  /** Fetch a single message from the API. */
   private async fetchOne(messageId: string): Promise<Message> {
     try {
       const data = await this.client.rest.get<APIMessage>(
         Routes.channelMessage(this.channelId, messageId),
       );
-      this.client._addMessageToCache(this.channelId, data);
-      return new Message(this.client, data);
+      return this.wrap(data);
     } catch (err) {
       if (err instanceof RateLimitError) throw err;
       if (err instanceof FluxerAPIError && err.statusCode === 404) {
@@ -88,26 +122,24 @@ export class MessageManager {
     }
   }
 
+  /** Fetch multiple messages from the API with pagination/filtering. */
   private async fetchMany(options: FetchMessagesOptions): Promise<Collection<string, Message>> {
-    const params = new URLSearchParams();
-    if (options.limit != null) {
-      if (options.limit < 1 || options.limit > 100) {
-        throw new RangeError('limit must be between 1 and 100');
-      }
-      params.set('limit', String(options.limit));
+    if (options.limit != null && (options.limit < 1 || options.limit > 100)) {
+      throw new FluxerError('limit must be between 1 and 100', {
+        code: ErrorCodes.InvalidFetchLimit,
+      });
     }
-    if (options.before) params.set('before', options.before);
-    if (options.after) params.set('after', options.after);
-    if (options.around) params.set('around', options.around);
-    const qs = params.toString();
-    const route = Routes.channelMessages(this.channelId) + (qs ? `?${qs}` : '');
 
-    const data = await this.client.rest.get<APIMessage[]>(route);
-    const collection = new Collection<string, Message>();
-    for (const msg of data) {
-      this.client._addMessageToCache(this.channelId, msg);
-      collection.set(msg.id, new Message(this.client, msg));
+    const qs = new URLSearchParams();
+    for (const key of ['limit', 'before', 'after', 'around'] as const) {
+      const value = options[key];
+      if (value != null && value !== '') qs.set(key, String(value));
     }
+    const base = Routes.channelMessages(this.channelId);
+    const data = await this.client.rest.get<APIMessage[]>(qs.size > 0 ? `${base}?${qs}` : base);
+
+    const collection = new Collection<string, Message>();
+    for (const msg of data) collection.set(msg.id, this.wrap(msg));
     return collection;
   }
 }

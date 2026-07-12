@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 224 20% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 20% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 20% 12%;
+    --primary: 235 86% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 224 20% 18%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 10% 42%;
+    --accent: 235 70% 96%;
+    --accent-foreground: 235 60% 40%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 235 86% 65%;
+    --radius: 0.65rem;
+    --sidebar-w: clamp(14.5rem, 18vw, 18rem);
+    --header-h: 3.75rem;
+    --content-pad: clamp(1rem, 2.8vw, 2.5rem);
+    --prose-w: min(100%, 48rem);
+    --code-bg: 220 18% 96%;
+  }
+
+  @media (min-width: 640px) {
+    :root {
+      --prose-w: min(100%, 52rem);
+    }
+  }
+
+  @media (min-width: 1280px) {
+    :root {
+      --prose-w: min(100%, 58rem);
+    }
+  }
+
+  @media (min-width: 1536px) {
+    :root {
+      --prose-w: min(100%, 64rem);
+    }
+  }
+
+  .dark {
+    --background: 230 20% 6%;
+    --foreground: 220 20% 96%;
+    --card: 230 18% 9%;
+    --card-foreground: 220 20% 96%;
+    --popover: 230 16% 10%;
+    --popover-foreground: 220 20% 96%;
+    --primary: 235 78% 70%;
+    --primary-foreground: 230 30% 8%;
+    --secondary: 230 14% 14%;
+    --secondary-foreground: 220 20% 92%;
+    --muted: 230 14% 14%;
+    --muted-foreground: 220 10% 65%;
+    --accent: 235 28% 16%;
+    --accent-foreground: 235 80% 82%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 230 12% 16%;
+    --input: 230 12% 16%;
+    --ring: 235 78% 70%;
+    --code-bg: 230 15% 10%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  html.hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  ::selection {
+    @apply bg-primary/25;
+  }
+}
+
+@layer components {
+  .prose-docs {
+    --tw-prose-body: hsl(var(--foreground));
+    --tw-prose-headings: hsl(var(--foreground));
+    --tw-prose-links: hsl(var(--primary));
+    --tw-prose-bold: hsl(var(--foreground));
+    --tw-prose-code: hsl(var(--foreground));
+    --tw-prose-pre-bg: hsl(var(--code-bg));
+    --tw-prose-pre-code: hsl(var(--foreground));
+    --tw-prose-quotes: hsl(var(--muted-foreground));
+    --tw-prose-hr: hsl(var(--border));
+    --tw-prose-th-borders: hsl(var(--border));
+    --tw-prose-td-borders: hsl(var(--border));
+  }
+
+  .prose-docs :where(code):not(:where(pre *)) {
+    @apply rounded-md px-1.5 py-0.5 font-medium;
+    background: hsl(var(--code-bg));
+    font-size: 0.875em;
+  }
+
+  .prose-docs :where(code):not(:where(pre *))::before,
+  .prose-docs :where(code):not(:where(pre *))::after {
+    content: none;
+  }
+
+  .prose-docs {
+    max-width: var(--prose-w);
+  }
+
+  .prose-docs :where(pre) {
+    @apply rounded-xl border border-border;
+  }
+
+  .prose-docs :where(a) {
+    @apply font-medium no-underline hover:underline;
+  }
+
+  .prose-docs :where(h2) {
+    @apply mt-12 scroll-mt-24 border-b border-border pb-2 text-2xl font-semibold tracking-tight;
+  }
+
+  .prose-docs :where(h3) {
+    @apply mt-8 scroll-mt-24 text-lg font-semibold tracking-tight;
+  }
+
+  .prose-docs :where(h4) {
+    @apply scroll-mt-24;
+  }
+
+  .prose-docs :where(a.anchor-link) {
+    color: inherit;
+    font-weight: inherit;
+    text-decoration: none;
+  }
+
+  .prose-docs :where(a.anchor-link):hover {
+    @apply text-primary underline decoration-primary/40 underline-offset-4;
+  }
+
+  /* Shiki dual-theme: color only — never paint per-token backgrounds */
+  .shiki,
+  .shiki span {
+    color: var(--shiki-light);
+    background: transparent !important;
+  }
+
+  .dark .shiki,
+  .dark .shiki span {
+    color: var(--shiki-dark);
+  }
+
+  .code-frame {
+    background: hsl(var(--code-bg));
+  }
+
+  .code-frame .shiki {
+    background: transparent !important;
+  }
+
+  .docs-content {
+    width: 100%;
+  }
+
+  .docs-measure {
+    width: 100%;
+    max-width: var(--prose-w);
+  }
+
+  .docs-measure-wide {
+    width: 100%;
+    max-width: min(100%, 64rem);
+  }
+
+.docs-grid-bg {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--primary) / 0.14), transparent),
+      linear-gradient(to right, hsl(var(--border) / 0.45) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.45) 1px, transparent 1px);
+    background-size: auto, 48px 48px, 48px 48px;
+  }
+
+  .method-get { @apply text-emerald-600 dark:text-emerald-400; }
+  .method-post { @apply text-primary; }
+  .method-put { @apply text-amber-600 dark:text-amber-400; }
+  .method-patch { @apply text-pink-600 dark:text-pink-400; }
+  .method-delete { @apply text-rose-600 dark:text-rose-400; }
+  .method-class { @apply text-sky-600 dark:text-sky-400; }
+  .method-type { @apply text-violet-600 dark:text-violet-400; }
+  .method-enum { @apply text-amber-600 dark:text-amber-400; }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}

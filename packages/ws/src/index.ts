@@ -5,6 +5,7 @@ export {
 } from './WebSocketManager.js';
 export {
   WebSocketShard,
+  narrowGatewayPayload,
   type WebSocketShardOptions,
   type WebSocketLike,
 } from './WebSocketShard.js';

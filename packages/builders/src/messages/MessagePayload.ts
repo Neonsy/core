@@ -1,11 +1,10 @@
-import { APIAllowedMentions, APIEmbed, APIMessageReference } from '@fluxerjs/types';
-import { EmbedBuilder } from './EmbedBuilder.js';
+import type { APIAllowedMentions, APIMessageReference } from '@fluxerjs/types';
+import { EmbedBuilder, type RESTPostAPIEmbed } from './EmbedBuilder.js';
 import { AttachmentBuilder } from './AttachmentBuilder.js';
 
-/** Data for a message payload (content, embeds, reply reference, etc.). */
 export interface MessagePayloadData {
   content?: string | null;
-  embeds?: APIEmbed[] | null;
+  embeds?: RESTPostAPIEmbed[] | null;
   attachments?: Array<{ id: number; filename: string; description?: string | null }>;
   message_reference?: APIMessageReference | null;
   allowed_mentions?: APIAllowedMentions | null;
@@ -13,25 +12,79 @@ export interface MessagePayloadData {
   flags?: number;
 }
 
+export type MessagePayloadCreateOptions = Omit<MessagePayloadData, 'embeds'> & {
+  embeds?: (RESTPostAPIEmbed | EmbedBuilder)[] | null;
+};
+
 const CONTENT_MAX = 2000;
 const EMBEDS_MAX = 10;
 
-/** Builder for message payloads. Use with `channel.send()` or `message.reply()`. */
-export class MessagePayload {
-  public static readonly ContentMaxLength = CONTENT_MAX;
+type AttachmentInput =
+  | AttachmentBuilder
+  | { id: number; filename: string; description?: string | null };
 
+type ReplyInput =
+  | { channelId: string; messageId: string; guildId?: string | null }
+  | { channel_id: string; message_id: string; guild_id?: string | null }
+  | APIMessageReference;
+
+function toReply(reference: ReplyInput): APIMessageReference {
+  if ('channelId' in reference) {
+    return {
+      channel_id: reference.channelId,
+      message_id: reference.messageId,
+      guild_id: reference.guildId ?? undefined,
+    };
+  }
+  return {
+    channel_id: reference.channel_id,
+    message_id: reference.message_id,
+    guild_id: reference.guild_id ?? undefined,
+  };
+}
+
+/**
+ * Fluent message builder (camelCase setters → snake_case via {@link toJSON}).
+ *
+ * Prefer passing the builder to `channel.send(payload)` / `prepareMessagePostPayload(payload)`
+ * in `@fluxerjs/core` so defaults (allowed mentions, reply ping) apply. Use {@link toJSON}
+ * only for low-level REST bodies.
+ *
+ * @example
+ * ```ts
+ * const payload = new MessagePayload()
+ *   .setContent('Hello!')
+ *   .addEmbed(new EmbedBuilder().setTitle('Title'));
+ * await channel.send(payload);
+ * ```
+ */
+export class MessagePayload {
+  /** Max content length (2000 characters). */
+  public static readonly ContentMaxLength = CONTENT_MAX;
+  /** Partial message data (built incrementally via setters). */
   public readonly data: MessagePayloadData = {};
 
-  /** Set message text. Max 2000 characters. */
+  /**
+   * Set message content (max 2000 characters). Pass null to clear.
+   * @param content - Text content or null
+   * @returns This builder for chaining
+   * @throws {RangeError} If content exceeds 2000 characters
+   */
   setContent(content: string | null): this {
-    if (content !== null && content.length > CONTENT_MAX)
+    if (content !== null && content.length > CONTENT_MAX) {
       throw new RangeError(`Content must be ≤${CONTENT_MAX} characters`);
+    }
     this.data.content = content ?? undefined;
     return this;
   }
 
-  /** Set embeds. Max 10. Replaces existing. */
-  setEmbeds(embeds: (APIEmbed | EmbedBuilder)[] | null): this {
+  /**
+   * Replace all embeds (max 10). Pass null or empty array to clear.
+   * @param embeds - Array of embed objects or {@link EmbedBuilder} instances, or null
+   * @returns This builder for chaining
+   * @throws {RangeError} If embeds array exceeds 10
+   */
+  setEmbeds(embeds: (RESTPostAPIEmbed | EmbedBuilder)[] | null): this {
     if (!embeds?.length) {
       this.data.embeds = undefined;
       return this;
@@ -41,8 +94,13 @@ export class MessagePayload {
     return this;
   }
 
-  /** Add one embed. Max 10 total. */
-  addEmbed(embed: APIEmbed | EmbedBuilder): this {
+  /**
+   * Add an embed (up to 10 total). Existing embeds are preserved.
+   * @param embed - Embed object or {@link EmbedBuilder}
+   * @returns This builder for chaining
+   * @throws {RangeError} If adding would exceed 10 embeds
+   */
+  addEmbed(embed: RESTPostAPIEmbed | EmbedBuilder): this {
     const list = (this.data.embeds ?? []).slice();
     if (list.length >= EMBEDS_MAX) throw new RangeError(`Embeds must be ≤${EMBEDS_MAX}`);
     list.push(embed instanceof EmbedBuilder ? embed.toJSON() : embed);
@@ -50,12 +108,12 @@ export class MessagePayload {
     return this;
   }
 
-  /** Set attachment metadata (for files sent with the request). */
-  setAttachments(
-    attachments: Array<
-      AttachmentBuilder | { id: number; filename: string; description?: string | null }
-    > | null,
-  ): this {
+  /**
+   * Set attachments metadata (file bytes sent separately via multipart). Pass null to clear.
+   * @param attachments - Array of {@link AttachmentBuilder} or attachment metadata, or null
+   * @returns This builder for chaining
+   */
+  setAttachments(attachments: AttachmentInput[] | null): this {
     if (!attachments?.length) {
       this.data.attachments = undefined;
       return this;
@@ -66,66 +124,73 @@ export class MessagePayload {
     return this;
   }
 
-  /** Set reply reference (creates a reply to another message). */
-  setReply(
-    reference:
-      | { channel_id: string; message_id: string; guild_id?: string | null }
-      | APIMessageReference
-      | null,
-  ): this {
-    if (!reference) {
-      this.data.message_reference = undefined;
-      return this;
-    }
-    this.data.message_reference = {
-      channel_id: reference.channel_id,
-      message_id: reference.message_id,
-      guild_id: reference.guild_id ?? undefined,
-    };
+  /**
+   * Set message reference (reply target). Pass null to clear.
+   * @param reference - Reply target (channel/message IDs), or null
+   * @returns This builder for chaining
+   */
+  setReply(reference: ReplyInput | null): this {
+    this.data.message_reference = reference ? toReply(reference) : undefined;
     return this;
   }
 
-  /** Set allowed mentions (e.g. `{ replied_user: false }` to reply without pinging). */
+  /**
+   * Set allowed mentions (controls who can be pinged). Pass null to clear.
+   * @param allowedMentions - Allowed mention rules, or null
+   * @returns This builder for chaining
+   */
   setAllowedMentions(allowedMentions: APIAllowedMentions | null): this {
     this.data.allowed_mentions = allowedMentions ?? undefined;
     return this;
   }
 
-  /** Enable text-to-speech. */
+  /**
+   * Set text-to-speech flag.
+   * @param tts - Whether to use TTS
+   * @returns This builder for chaining
+   */
   setTTS(tts: boolean): this {
     this.data.tts = tts;
     return this;
   }
 
-  /** Set message flags (e.g. ephemeral, suppress embeds). */
+  /**
+   * Set message flags (e.g., suppress embeds).
+   * @param flags - Message flags bitfield
+   * @returns This builder for chaining
+   */
   setFlags(flags: number): this {
     this.data.flags = flags;
     return this;
   }
 
-  /** Get the payload as a plain object. */
+  /**
+   * Serialize to API payload (snake_case keys).
+   * @returns API-ready message data
+   */
   toJSON(): MessagePayloadData {
     return { ...this.data };
   }
 
-  /** Create a MessagePayload from a string or options object. */
-  static create(contentOrOptions?: string | MessagePayloadData): MessagePayload {
+  /**
+   * Create from string content or options object.
+   * @param contentOrOptions - Text content or full payload options
+   * @returns New MessagePayload instance
+   */
+  static create(contentOrOptions?: string | MessagePayloadCreateOptions): MessagePayload {
     const payload = new MessagePayload();
-    if (typeof contentOrOptions === 'string') {
-      payload.setContent(contentOrOptions);
-    } else if (contentOrOptions && typeof contentOrOptions === 'object') {
-      if (contentOrOptions.content !== undefined)
-        payload.setContent(contentOrOptions.content ?? null);
-      if (contentOrOptions.embeds?.length) payload.setEmbeds(contentOrOptions.embeds);
-      if (contentOrOptions.attachments?.length)
-        payload.setAttachments(contentOrOptions.attachments);
-      if (contentOrOptions.message_reference)
-        payload.setReply(contentOrOptions.message_reference as APIMessageReference);
-      if (contentOrOptions.allowed_mentions)
-        payload.setAllowedMentions(contentOrOptions.allowed_mentions);
-      if (contentOrOptions.tts !== undefined) payload.setTTS(contentOrOptions.tts);
-      if (contentOrOptions.flags !== undefined) payload.setFlags(contentOrOptions.flags);
-    }
+    if (typeof contentOrOptions === 'string') return payload.setContent(contentOrOptions);
+    if (!contentOrOptions) return payload;
+
+    const { content, embeds, attachments, message_reference, allowed_mentions, tts, flags } =
+      contentOrOptions;
+    if (content !== undefined) payload.setContent(content ?? null);
+    if (embeds?.length) payload.setEmbeds(embeds);
+    if (attachments?.length) payload.setAttachments(attachments);
+    if (message_reference) payload.setReply(message_reference);
+    if (allowed_mentions) payload.setAllowedMentions(allowed_mentions);
+    if (tts !== undefined) payload.setTTS(tts);
+    if (flags !== undefined) payload.setFlags(flags);
     return payload;
   }
 }

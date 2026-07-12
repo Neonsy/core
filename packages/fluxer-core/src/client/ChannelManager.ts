@@ -1,17 +1,25 @@
 import { Collection } from '@fluxerjs/collection';
-import { APIChannel, APIMessage, Routes } from '@fluxerjs/types';
-import { emitDeprecationWarning } from '@fluxerjs/util';
+import { type APIChannel, type APIMessage, Routes } from '@fluxerjs/types';
 import { FluxerAPIError, RateLimitError } from '@fluxerjs/rest';
 import { FluxerError } from '../errors/FluxerError.js';
 import { ErrorCodes } from '../errors/ErrorCodes.js';
-import { prepareMessagePostPayload, MessageSendOptions } from '../util/messageUtils.js';
-import { Client } from './Client.js';
-import { Channel, GuildChannel } from '../structures/Channel.js';
-import { Message } from '../structures/Message';
+import { prepareMessagePostPayload, type MessagePrepareInput } from '../util/messageUtils.js';
+import type { Client } from './Client.js';
+import { Channel, type GuildChannel } from '../structures/Channel.js';
+import { Message } from '../structures/Message.js';
+import { MessageManager } from './MessageManager.js';
+
+function rethrowNotFound(err: unknown, message: string, code: string): never {
+  if (err instanceof RateLimitError) throw err;
+  if (err instanceof FluxerAPIError && err.statusCode === 404) {
+    throw new FluxerError(message, { code, cause: err });
+  }
+  throw err instanceof FluxerError ? err : new FluxerError(String(err), { cause: err as Error });
+}
 
 /**
- * Manages channels with fetch and send.
- * Extends Collection so you can use .get(), .set(), .filter(), etc.
+ * Channel cache + fetch/send helpers.
+ * Extends {@link Collection} (`.get()`, `.set()`, `.filter()`, …).
  */
 export class ChannelManager extends Collection<string, Channel | GuildChannel> {
   private readonly maxSize: number;
@@ -21,36 +29,23 @@ export class ChannelManager extends Collection<string, Channel | GuildChannel> {
     this.maxSize = client.options?.cache?.channels ?? 0;
   }
 
+  /** Set a channel in the cache (evicts oldest if at capacity). */
   override set(key: string, value: Channel): this {
     if (this.maxSize > 0 && this.size >= this.maxSize && !this.has(key)) {
-      const firstKey = this.keys().next().value;
-      if (firstKey !== undefined) this.delete(firstKey);
+      const oldest = this.keys().next().value;
+      if (oldest !== undefined) this.delete(oldest);
     }
     return super.set(key, value);
   }
 
-  /**
-   * Get a channel from cache or fetch from the API if not present.
-   * Convenience helper to avoid repeating `client.channels.get(id) ?? (await client.channels.fetch(id))`.
-   * @param channelId - Snowflake of the channel
-   * @returns The channel
-   * @throws FluxerError with CHANNEL_NOT_FOUND if the channel does not exist
-   * @example
-   * const channel = await client.channels.resolve(message.channelId);
-   * if (channel?.isTextBased()) await channel.send('Hello!');
-   */
+  /** Retrieve from cache, otherwise {@link fetch}. */
   async resolve(channelId: string): Promise<Channel> {
     return this.get(channelId) ?? this.fetch(channelId);
   }
 
   /**
-   * Fetch a channel by ID from the API (or return from cache if present).
-   * @param channelId - Snowflake of the channel
-   * @returns The channel
-   * @throws FluxerError with CHANNEL_NOT_FOUND if the channel does not exist
-   * @example
-   * const channel = await client.channels.fetch(channelId);
-   * if (channel?.isTextBased()) await channel.send('Hello!');
+   * Fetch a channel by ID (returns cache if present).
+   * @throws {@link FluxerError} with CHANNEL_NOT_FOUND if missing
    */
   async fetch(channelId: string): Promise<Channel> {
     const cached = this.get(channelId);
@@ -66,74 +61,36 @@ export class ChannelManager extends Collection<string, Channel | GuildChannel> {
       }
       this.set(channel.id, channel);
       if ('guildId' in channel) {
-        const guild = this.client.guilds.get(channel.guildId);
-        if (guild) guild.channels.set(channel.id, channel);
+        this.client.guilds.get(channel.guildId)?.channels.set(channel.id, channel);
       }
       return channel;
     } catch (err) {
-      if (err instanceof RateLimitError) throw err;
-      if (err instanceof FluxerAPIError && err.statusCode === 404) {
-        throw new FluxerError(`Channel ${channelId} not found`, {
-          code: ErrorCodes.ChannelNotFound,
-          cause: err,
-        });
-      }
-      throw err instanceof FluxerError
-        ? err
-        : new FluxerError(String(err), { cause: err as Error });
+      rethrowNotFound(err, `Channel ${channelId} not found`, ErrorCodes.ChannelNotFound);
     }
   }
 
   /**
-   * Fetch a message by ID from the API.
-   * @param channelId - Snowflake of the channel
-   * @param messageId - Snowflake of the message
-   * @returns The message
-   * @throws FluxerError with MESSAGE_NOT_FOUND if the message does not exist
-   * @deprecated Use channel.messages.fetch(messageId). Prefer (await client.channels.resolve(channelId))?.messages?.fetch(messageId).
-   * @example
-   * const channel = await client.channels.resolve(channelId);
-   * const message = await channel?.messages?.fetch(messageId);
+   * Fetch a message by channel + message ID (no channel resolve required).
+   * Prefer `channel.messages.fetch(messageId)` when you already have a text channel.
    */
   async fetchMessage(channelId: string, messageId: string): Promise<Message> {
-    emitDeprecationWarning(
-      'ChannelManager.fetchMessage()',
-      'Use channel.messages.fetch(messageId). Prefer (await client.channels.resolve(channelId))?.messages?.fetch(messageId).',
-    );
-    try {
-      const data = await this.client.rest.get<APIMessage>(
-        Routes.channelMessage(channelId, messageId),
-      );
-      return new Message(this.client, data);
-    } catch (err) {
-      if (err instanceof RateLimitError) throw err;
-      if (err instanceof FluxerAPIError && err.statusCode === 404) {
-        throw new FluxerError(`Message ${messageId} not found in channel ${channelId}`, {
-          code: ErrorCodes.MessageNotFound,
-          cause: err,
-        });
-      }
-      throw err instanceof FluxerError
-        ? err
-        : new FluxerError(String(err), { cause: err as Error });
-    }
+    return new MessageManager(this.client, channelId).fetch(messageId);
   }
 
   /**
-   * Send a message to a channel by ID. Works even when the channel is not cached.
-   * Skips the fetch when you only need to send.
-   * @param channelId - Snowflake of the channel (text channel or DM)
-   * @param payload - Text content or object with content, embeds, and/or files
-   * @returns The created message
+   * Send to a channel by ID without resolving it first.
    * @example
    * await client.channels.send(logChannelId, 'User joined!');
-   * await client.channels.send(channelId, { embeds: [embed] });
-   * await client.channels.send(channelId, { content: 'Report', files: [{ name: 'log.txt', data }] });
    */
-  async send(channelId: string, payload: string | MessageSendOptions): Promise<Message> {
-    const postPayload = await prepareMessagePostPayload(payload);
-    const data = await this.client.rest.post(Routes.channelMessages(channelId), postPayload);
-    this.client._addMessageToCache(channelId, data as APIMessage);
-    return new Message(this.client, data as APIMessage);
+  async send(channelId: string, payload: MessagePrepareInput): Promise<Message> {
+    const postPayload = await prepareMessagePostPayload(payload, {
+      defaultAllowedMentions: this.client.options.defaultAllowedMentions,
+    });
+    const data = (await this.client.rest.post(
+      Routes.channelMessages(channelId),
+      postPayload,
+    )) as APIMessage;
+    this.client._addMessageToCache(channelId, data);
+    return new Message(this.client, data);
   }
 }

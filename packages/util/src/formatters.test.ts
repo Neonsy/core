@@ -62,4 +62,9 @@ describe('formatColor edge cases', () => {
   it('pads short hex', () => {
     expect(formatColor(0x000001)).toBe('#000001');
   });
+
+  it('throws for out of range', () => {
+    expect(() => formatColor(-1)).toThrow(RangeError);
+    expect(() => formatColor(0x1000000)).toThrow(RangeError);
+  });
 });
