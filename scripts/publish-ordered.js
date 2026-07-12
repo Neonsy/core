@@ -34,7 +34,10 @@ const PACKAGES = [
 ];
 
 const args = process.argv.slice(2);
-const delaySec = Number.parseInt(args.find((a) => a.startsWith('--delay='))?.split('=')[1] || '1', 10);
+const delaySec = Number.parseInt(
+  args.find((a) => a.startsWith('--delay='))?.split('=')[1] || '1',
+  10,
+);
 const otp = args.find((a) => a.startsWith('--otp='));
 const otpArg = otp ? ` ${otp}` : '';
 const dryRun = args.includes('--dry-run');
@@ -113,7 +116,9 @@ run('pnpm install');
 console.log('Building...');
 run('pnpm run build');
 
-console.log(`\nPublishing ${toPublish.length} package(s) (${skipped.length} skipped) with ${delaySec}s delay.\n`);
+console.log(
+  `\nPublishing ${toPublish.length} package(s) (${skipped.length} skipped) with ${delaySec}s delay.\n`,
+);
 
 for (let i = 0; i < toPublish.length; i++) {
   const pkg = toPublish[i];
