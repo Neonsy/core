@@ -277,8 +277,8 @@ importers:
         specifier: workspace:*
         version: link:../types
       undici:
-        specifier: ^8.7.0
-        version: 8.7.0
+        specifier: ^7.16.0
+        version: 7.22.0
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -3728,10 +3728,6 @@ packages:
   undici@7.22.0:
     resolution: {integrity: sha512-RqslV2Us5BrllB+JeiZnK4peryVTndy9Dnqq62S3yYRRTj0tFQCwEniUy2167skdGOy3vqRzEvl1Dm4sV2ReDg==}
     engines: {node: '>=20.18.1'}
-
-  undici@8.7.0:
-    resolution: {integrity: sha512-N7iQtfyLhIMOFgQubvmLV26svHpO0bqKnAiWotTQCVKCmWrcGbBotPuW1x+xwYZ2VHdSTVUfPQQnlEt1/LouTQ==}
-    engines: {node: '>=22.19.0'}
 
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
@@ -7625,10 +7621,7 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici@7.22.0:
-    optional: true
-
-  undici@8.7.0: {}
+  undici@7.22.0: {}
 
   unified@11.0.5:
     dependencies:

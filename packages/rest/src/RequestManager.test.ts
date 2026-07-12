@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RequestManager } from './RequestManager.js';
 import { HTTPError, FluxerAPIError, RateLimitError } from './errors/index.js';
+import { sharedFetch } from './fetch/sharedFetch.js';
+
+vi.mock('./fetch/sharedFetch.js', () => ({
+  sharedFetch: vi.fn(),
+  closeSharedFetch: vi.fn(),
+}));
+
+const fetchMock = vi.mocked(sharedFetch);
 
 function jsonResponse(
   body: unknown,
@@ -20,15 +28,12 @@ function jsonResponse(
 }
 
 describe('RequestManager', () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
-    fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
+    fetchMock.mockReset();
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    fetchMock.mockReset();
   });
 
   it('constructor uses defaults', () => {
@@ -55,7 +60,7 @@ describe('RequestManager', () => {
       status: 204,
       text: () => Promise.resolve(''),
       headers: new Headers(),
-    });
+    } as unknown as Response);
     const result = await rm.request('DELETE', '/channels/123');
     expect(result).toBeUndefined();
   });
@@ -75,7 +80,7 @@ describe('RequestManager', () => {
       status: 500,
       text: () => Promise.resolve('Internal Server Error'),
       headers: new Headers(),
-    });
+    } as unknown as Response);
     await expect(rm.request('GET', '/channels/1')).rejects.toThrow(HTTPError);
   });
 
@@ -87,7 +92,7 @@ describe('RequestManager', () => {
         status: 503,
         text: () => Promise.resolve('unavailable'),
         headers: new Headers(),
-      })
+      } as unknown as Response)
       .mockResolvedValueOnce(jsonResponse({ ok: true }));
     const result = await rm.request('GET', '/channels/1');
     expect(result).toEqual({ ok: true });
@@ -159,6 +164,18 @@ describe('RequestManager', () => {
       name: 'AbortError',
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces nested fetch cause in retry errors', async () => {
+    const rm = new RequestManager({ retries: 1 });
+    const root = Object.assign(new Error('invalid onRequestStart method'), {
+      code: 'UND_ERR_INVALID_ARG',
+    });
+    const mid = new TypeError('fetch failed', { cause: root });
+    fetchMock.mockRejectedValue(mid);
+    await expect(rm.request('GET', '/gateway/bot')).rejects.toThrow(
+      /Retry 1 failed: fetch failed: invalid onRequestStart method/,
+    );
   });
 
   it('getRouteHash LRU keeps repeatedly used route when cache is full', () => {

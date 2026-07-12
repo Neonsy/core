@@ -1,17 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { REST } from './REST.js';
 import { Routes } from '@fluxerjs/types';
+import { sharedFetch } from './fetch/sharedFetch.js';
+
+vi.mock('./fetch/sharedFetch.js', () => ({
+  sharedFetch: vi.fn(),
+  closeSharedFetch: vi.fn(),
+}));
+
+const fetchMock = vi.mocked(sharedFetch);
 
 describe('REST', () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
-    fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
+    fetchMock.mockReset();
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    fetchMock.mockReset();
   });
 
   it('constructor and setToken', () => {
@@ -35,7 +40,7 @@ describe('REST', () => {
       status: 200,
       text: () => Promise.resolve('{"id":"1"}'),
       headers: new Headers(),
-    });
+    } as unknown as Response);
     const result = await rest.get('/channels/1');
     expect(result).toEqual({ id: '1' });
   });
@@ -47,7 +52,7 @@ describe('REST', () => {
       status: 200,
       text: () => Promise.resolve('{}'),
       headers: new Headers(),
-    });
+    } as unknown as Response);
     await rest.post('/channels', { body: { name: 'test' } });
     expect(fetchMock).toHaveBeenCalledWith(
       expect.any(String),

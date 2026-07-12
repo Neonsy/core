@@ -22,6 +22,16 @@ function isGatewayBotResponse(value: unknown): value is APIGatewayBotResponse {
   );
 }
 
+/** Duck-type REST/HTTP errors that declare themselves non-retryable (e.g. 401/403). */
+function isNonRetryableError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'isRetryable' in err &&
+    (err as { isRetryable: unknown }).isRetryable === false
+  );
+}
+
 async function retryUntil<T>(
   isAborted: () => boolean,
   attempt: () => Promise<T>,
@@ -32,7 +42,10 @@ async function retryUntil<T>(
     try {
       return await attempt();
     } catch (err) {
-      onError(err instanceof Error ? err : new Error(String(err)));
+      const error = err instanceof Error ? err : new Error(String(err));
+      onError(error);
+      // Auth / client errors must fail login — do not spin forever.
+      if (isNonRetryableError(err)) throw error;
       await sleep(delayMs);
       delayMs = Math.min(RETRY_MAX_MS, Math.floor(delayMs * 1.5));
     }
@@ -88,7 +101,9 @@ export class WebSocketManager extends EventEmitter {
       async () => {
         const raw: unknown = await this.options.rest.get('/gateway/bot');
         if (!isGatewayBotResponse(raw)) {
-          throw new TypeError('Invalid /gateway/bot response');
+          throw Object.assign(new TypeError('Invalid /gateway/bot response'), {
+            isRetryable: false,
+          });
         }
         return raw;
       },

@@ -12,6 +12,7 @@
     "test:load": "pnpm run test:esm && pnpm run test:cjs && pnpm run test:exports",
     "test:exports": "node scripts/test-package-exports.mjs",
     "test:smoke": "node scripts/test-smoke.mjs",
+    "test:bot": "node scripts/test-bot-login.mjs",
     "test:all": "pnpm run build && pnpm exec vitest run && pnpm run test:load && pnpm run test:smoke",
     "test:report": "pnpm run build && pnpm exec vitest run --reporter json --outputFile.json=test-results/results.json",
     "format": "biome format --write .",

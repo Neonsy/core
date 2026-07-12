@@ -105,6 +105,17 @@ function backoffMs(attempt: number): number {
   return 500 * (attempt + 1);
 }
 
+/** Flatten Error.cause chain so "fetch failed" surfaces the real undici/network reason. */
+function formatErrorChain(err: Error, maxDepth = 4): string {
+  const parts: string[] = [];
+  let current: unknown = err;
+  for (let depth = 0; depth < maxDepth && current instanceof Error; depth++) {
+    if (current.message && !parts.includes(current.message)) parts.push(current.message);
+    current = current.cause;
+  }
+  return parts.join(': ') || 'Unknown error';
+}
+
 export class RequestManager {
   private token: string | null = null;
   private readonly options: RestOptions;
@@ -308,10 +319,13 @@ export class RequestManager {
         }
 
         const wrapped = err instanceof Error ? err : new Error(String(err));
+        const detail = formatErrorChain(wrapped);
         lastError =
           attempt > 0
-            ? new Error(`Retry ${attempt} failed: ${wrapped.message}`, { cause: wrapped })
-            : wrapped;
+            ? new Error(`Retry ${attempt} failed: ${detail}`, { cause: wrapped })
+            : detail === wrapped.message
+              ? wrapped
+              : new Error(detail, { cause: wrapped });
 
         if (attempt < this.options.retries) {
           await sleep(backoffMs(attempt), userSignal);

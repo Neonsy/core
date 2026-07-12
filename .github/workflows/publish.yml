@@ -9,10 +9,57 @@ on:
 # OIDC for npm trusted publishing (no long-lived NPM_TOKEN).
 permissions:
   contents: read
+  actions: read
   id-token: write
 
 jobs:
+  wait-for-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI to succeed on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.sha }}"
+          echo "Waiting for CI workflow on $SHA…"
+
+          # Up to ~45 minutes (90 * 30s). CI matrix + bot-login can take a while.
+          for i in $(seq 1 90); do
+            # Prefer the newest CI run for this SHA.
+            ROW="$(gh run list --repo "${{ github.repository }}" --workflow CI --commit "$SHA" --limit 5 \
+              --json databaseId,status,conclusion,event,displayTitle \
+              --jq 'sort_by(.databaseId) | reverse | .[0] // empty')"
+
+            if [ -z "$ROW" ] || [ "$ROW" = "null" ]; then
+              echo "[$i] No CI run found yet…"
+              sleep 30
+              continue
+            fi
+
+            STATUS="$(jq -r '.status' <<<"$ROW")"
+            CONCLUSION="$(jq -r '.conclusion // empty' <<<"$ROW")"
+            RUN_ID="$(jq -r '.databaseId' <<<"$ROW")"
+            echo "[$i] CI run $RUN_ID status=$STATUS conclusion=${CONCLUSION:-none}"
+
+            if [ "$STATUS" = "completed" ]; then
+              if [ "$CONCLUSION" = "success" ]; then
+                echo "CI passed."
+                exit 0
+              fi
+              echo "CI finished with conclusion=$CONCLUSION"
+              gh run view "$RUN_ID" --repo "${{ github.repository }}" --exit-status || true
+              exit 1
+            fi
+
+            sleep 30
+          done
+
+          echo "Timed out waiting for CI"
+          exit 1
+
   publish:
+    needs: wait-for-ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,8 +78,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --ignore-scripts
 
+      # Manual dispatch may publish a non-tag SHA — keep a local suite gate.
       - name: Test (all)
+        if: github.event_name == 'workflow_dispatch'
         run: pnpm run test:all
 
       - name: Publish to npm
-        run: pnpm run publish:packages
+        run: pnpm run publish:packages -- --delay=5

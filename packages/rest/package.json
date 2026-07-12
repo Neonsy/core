@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "REST client for the Fluxer API",
   "repository": {
     "type": "git",
@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@fluxerjs/types": "workspace:*",
-    "undici": "^8.7.0"
+    "undici": "^7.16.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
