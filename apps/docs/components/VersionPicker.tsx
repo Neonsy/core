@@ -50,9 +50,9 @@ function parseDocsPath(pathname: string | null): {
 
 function hrefForVersion(
   target: string,
+  onDocs: boolean,
   kind?: string,
   name?: string,
-  onDocs: boolean,
 ): string {
   if (!onDocs) {
     return target === 'latest' ? '/docs/' : `/docs/v/${target}/`;
@@ -111,7 +111,7 @@ export function VersionPicker({
             <div key={o.value}>
               {i === 1 ? <DropdownMenuSeparator /> : null}
               <DropdownMenuItem
-                onSelect={() => router.push(hrefForVersion(o.value, kind, name, onDocs))}
+                onSelect={() => router.push(hrefForVersion(o.value, onDocs, kind, name))}
                 className={cn('cursor-pointer justify-between gap-4 font-mono text-xs', selected && 'bg-accent')}
               >
                 <span className="flex items-center gap-2">
