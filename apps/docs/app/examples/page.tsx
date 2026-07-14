@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { PageShell } from '@/components/PageShell';
+import { HelpCallout } from '@/components/FluxerInvite';
 import {
   EXAMPLES_REPO,
   getExamples,
@@ -158,6 +159,7 @@ export default function ExamplesPage(): React.ReactElement {
         </Link>
         .
       </p>
+      <HelpCallout className="mt-4" />
     </PageShell>
   );
 }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ExternalLink, FileCode2 } from 'lucide-react';
 import { CodeBlock } from '@/components/CodeBlock';
+import { HelpCallout } from '@/components/FluxerInvite';
 import { PageShell } from '@/components/PageShell';
 import {
   EXAMPLES_REPO,
@@ -105,6 +106,7 @@ export default async function ExamplePage({
           </Link>
         ) : null}
       </nav>
+      <HelpCallout className="mt-10" />
     </PageShell>
   );
 }

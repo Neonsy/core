@@ -10,8 +10,10 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { CodeBlock } from '@/components/CodeBlock';
 import { CopyButton } from '@/components/CopyButton';
+import { HelpCallout } from '@/components/FluxerInvite';
 import { FluxerLogo } from '@/components/FluxerLogo';
 import { Button } from '@/components/ui/button';
+import { FLUXER_INVITE_URL } from '@/lib/community';
 
 const INSTALL_CMD = 'pnpm add @fluxerjs/core';
 
@@ -101,6 +103,11 @@ export default async function HomePage(): Promise<React.ReactElement> {
               <Button asChild variant="outline" size="lg">
                 <Link href="/examples/">Browse examples</Link>
               </Button>
+              <Button asChild variant="ghost" size="lg">
+                <a href={FLUXER_INVITE_URL} target="_blank" rel="noreferrer">
+                  Need help? Join Fluxer
+                </a>
+              </Button>
             </div>
 
             <div className="mt-10 max-w-md overflow-hidden rounded-xl border border-border bg-card">
@@ -189,6 +196,10 @@ export default async function HomePage(): Promise<React.ReactElement> {
             );
           })}
         </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-[var(--content-pad)] py-10">
+        <HelpCallout />
       </section>
     </main>
   );

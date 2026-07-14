@@ -29,3 +29,6 @@ Thumbs.db
 *.timestamp-*.mjs
 apps/docs/.next
 apps/docs/out
+
+# SDK API docs JSON (scripts/generate-docs.ts → docs:build / docs predev)
+apps/docs/public/api/

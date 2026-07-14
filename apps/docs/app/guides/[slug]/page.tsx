@@ -5,6 +5,7 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
 import { getGuidesSidebarGroups } from '@/components/GuidesNav';
+import { HelpCallout } from '@/components/FluxerInvite';
 import { CodeTabs, Tip, Warning } from '@/components/mdx';
 import { MdxPre } from '@/components/mdx-pre';
 import { extractToc, OnPageToc } from '@/components/OnPageToc';
@@ -120,6 +121,7 @@ export default async function GuidePage({
           </Link>
         ) : null}
       </nav>
+      <HelpCallout className="mt-10" />
     </PageShell>
   );
 }

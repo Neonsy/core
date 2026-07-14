@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import type { SearchItem, SearchKind } from '@/lib/search-index';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { HelpFab } from './FluxerInvite';
 import { SiteHeader } from './Header';
 import { cn } from '@/lib/utils';
 
@@ -83,6 +84,7 @@ export function AppShell({
     <div className="flex min-h-screen flex-col">
       <SiteHeader onOpenSearch={() => setOpen(true)} latest={latest} versions={versions} />
       <div className="flex-1">{children}</div>
+      <HelpFab />
       <SearchCommand open={open} onOpenChange={setOpen} items={searchItems} />
     </div>
   );

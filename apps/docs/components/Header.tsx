@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { FluxerInviteIcon } from './FluxerInvite';
 import { FluxerLogo } from './FluxerLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { VersionPicker } from './VersionPicker';
@@ -199,6 +200,7 @@ export function SiteHeader({
           >
             <Search />
           </Button>
+          <FluxerInviteIcon />
           <Button variant="ghost" size="icon" asChild>
             <a href="https://github.com/fluxerjs/core" target="_blank" rel="noreferrer" aria-label="GitHub">
               <GitHubIcon className="h-4 w-4" />
