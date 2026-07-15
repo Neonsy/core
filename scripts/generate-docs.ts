@@ -6,6 +6,11 @@
  *   apps/docs/public/api/main.json          — latest (working tree)
  *   apps/docs/public/api/v<version>/main.json — one per v2.* git tag
  *   apps/docs/public/api/versions.json      — manifest
+ *   apps/docs/public/guides/v<version>/     — MDX guide snapshots per tag
+ *
+ * Deploy clones are often shallow (depth 1). Before generating tagged docs we
+ * `git fetch --tags` so older release commits are available for worktrees.
+ * Set DOCS_ALLOW_PARTIAL=1 to warn instead of failing when a tag cannot be built.
  *
  * Tag checkouts have no node_modules; docgen still emits signatures from the
  * TypeScript AST. Cross-package type text may be less precise than a fully
@@ -13,7 +18,16 @@
  */
 
 import { resolve, dirname, join } from 'path';
-import { mkdirSync, writeFileSync, readFileSync, unlinkSync, existsSync, rmSync } from 'fs';
+import {
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  unlinkSync,
+  existsSync,
+  rmSync,
+  cpSync,
+  readdirSync,
+} from 'fs';
 import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
 import { execFileSync } from 'child_process';
@@ -74,6 +88,50 @@ function isV2OrNewer(version: string): boolean {
   return p !== null && p[0] >= 2;
 }
 
+function formatGitError(err: unknown): string {
+  if (err && typeof err === 'object' && 'stderr' in err) {
+    const stderr = (err as { stderr?: Buffer | string }).stderr;
+    if (stderr) return String(stderr).trim();
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * Ensure release tags (and their commits) exist locally.
+ * Shallow deploy clones only have HEAD; without this, older versions are skipped.
+ */
+function ensureReleaseTags(): void {
+  let shallow = false;
+  try {
+    shallow =
+      execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+        cwd: root,
+        encoding: 'utf-8',
+      }).trim() === 'true';
+  } catch {
+    /* not a git repo or git missing — listV2Tags will handle it */
+    return;
+  }
+
+  console.log(
+    shallow
+      ? '[generate-docs] shallow clone detected; fetching release tags…'
+      : '[generate-docs] fetching release tags…',
+  );
+
+  try {
+    execFileSync('git', ['fetch', '--tags', '--force', 'origin'], {
+      cwd: root,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (err) {
+    console.warn(
+      `[generate-docs] could not fetch tags from origin (continuing with local tags): ${formatGitError(err)}`,
+    );
+  }
+}
+
 /** Discover v2.* tags (>= 2.0.0), newest first. */
 function listV2Tags(): string[] {
   try {
@@ -91,6 +149,20 @@ function listV2Tags(): string[] {
   } catch (err) {
     console.warn('[generate-docs] Failed to list git tags:', err);
     return [];
+  }
+}
+
+/** True when `git rev-parse` can resolve the tag to a commit. */
+function tagCommitResolvable(version: string): boolean {
+  try {
+    execFileSync('git', ['rev-parse', '--verify', `v${version}^{commit}`], {
+      cwd: root,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -189,8 +261,27 @@ function writeDocsFile(filePath: string, docs: DocOutput): void {
   );
 }
 
+/** Copy guide MDX from a tag worktree into public/guides/v{version}/. */
+function snapshotGuides(worktreePath: string, version: string): void {
+  const src = resolve(worktreePath, 'apps/docs/content/guides');
+  const dest = resolve(root, 'apps/docs/public/guides', `v${version}`);
+  if (!existsSync(src)) {
+    throw new Error(`missing guides directory at ${src}`);
+  }
+  rmSync(dest, { recursive: true, force: true });
+  mkdirSync(dirname(dest), { recursive: true });
+  cpSync(src, dest, { recursive: true });
+  const count = readdirSync(dest).filter((f) => f.endsWith('.mdx')).length;
+  console.log(`[generate-docs] -> ${dest} (${count} guides)`);
+}
+
 function generateTagDocs(version: string): boolean {
   const tag = `v${version}`;
+  if (!tagCommitResolvable(version)) {
+    console.warn(`[generate-docs] tag ${tag} is not resolvable to a commit`);
+    return false;
+  }
+
   const worktreePath = join(tmpdir(), `fluxer-docs-${version}-${randomBytes(4).toString('hex')}`);
   console.log(`[generate-docs] worktree ${tag} -> ${worktreePath}`);
 
@@ -201,13 +292,14 @@ function generateTagDocs(version: string): boolean {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
   } catch (err) {
-    console.warn(`[generate-docs] failed to add worktree for ${tag}:`, err);
+    console.warn(`[generate-docs] failed to add worktree for ${tag}: ${formatGitError(err)}`);
     return false;
   }
 
   try {
     const docs = buildCombinedDocs(worktreePath, version);
     writeDocsFile(resolve(API_DIR, `v${version}`, 'main.json'), docs);
+    snapshotGuides(worktreePath, version);
     return true;
   } catch (err) {
     console.warn(`[generate-docs] failed to generate docs for ${tag}:`, err);
@@ -237,23 +329,26 @@ async function main(): Promise<void> {
   const latestDocs = buildCombinedDocs(root, latestVersion);
   writeDocsFile(resolve(API_DIR, 'main.json'), latestDocs);
 
+  ensureReleaseTags();
   const tags = listV2Tags();
   console.log(`[generate-docs] found ${tags.length} v2.* tag(s): ${tags.join(', ') || '(none)'}`);
 
   const generatedVersions: string[] = [];
+  const failedVersions: string[] = [];
   for (const version of tags) {
     try {
       if (generateTagDocs(version)) {
         generatedVersions.push(version);
+      } else {
+        failedVersions.push(version);
       }
     } catch (err) {
       console.warn(`[generate-docs] skipping tag v${version}:`, err);
+      failedVersions.push(version);
     }
   }
 
   // Manifest: tagged versions only (latest is always the working-tree build).
-  // Include latestVersion in the list when it isn't already a tag so the picker
-  // can show it, but versioned routes only cover tags that have a JSON file.
   const manifest: VersionsManifest = {
     latest: latestVersion,
     versions: generatedVersions,
@@ -261,6 +356,25 @@ async function main(): Promise<void> {
   const manifestPath = resolve(API_DIR, 'versions.json');
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
   console.log(`[generate-docs] -> ${manifestPath}`);
+  console.log(
+    `[generate-docs] tagged versions: ${generatedVersions.join(', ') || '(none)'}`,
+  );
+
+  if (failedVersions.length > 0) {
+    const list = failedVersions.map((v) => `v${v}`).join(', ');
+    const allowPartial = process.env.DOCS_ALLOW_PARTIAL === '1';
+    const message = `[generate-docs] failed to generate docs for: ${list}`;
+    if (allowPartial) {
+      console.warn(`${message} (DOCS_ALLOW_PARTIAL=1; continuing)`);
+    } else {
+      console.error(message);
+      console.error(
+        '[generate-docs] Fix: ensure git can resolve those tags (fetch --tags), or set DOCS_ALLOW_PARTIAL=1',
+      );
+      process.exit(1);
+    }
+  }
+
   console.log('[generate-docs] Done');
 }
 

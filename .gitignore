@@ -30,5 +30,6 @@ Thumbs.db
 apps/docs/.next
 apps/docs/out
 
-# SDK API docs JSON (scripts/generate-docs.ts → docs:build / docs predev)
+# SDK API docs JSON + tagged guide snapshots (scripts/generate-docs.ts)
 apps/docs/public/api/
+apps/docs/public/guides/

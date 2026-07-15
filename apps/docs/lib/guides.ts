@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
+import { isTaggedVersion } from '@/lib/api-docs';
 
 export interface GuideFrontmatter {
   title: string;
@@ -13,20 +14,51 @@ export interface GuideMeta extends GuideFrontmatter {
   slug: string;
 }
 
-const GUIDES_DIR = path.join(process.cwd(), 'content', 'guides');
+/** Normalize version key used for caching / file lookup. */
+function versionKey(version?: string): string {
+  if (!version || version === 'latest') return 'latest';
+  return version.startsWith('v') ? version.slice(1) : version;
+}
 
-export function getGuideSlugs(): string[] {
-  if (!fs.existsSync(GUIDES_DIR)) return [];
+function resolveGuidesDir(version?: string): string {
+  const key = versionKey(version);
+  if (key === 'latest' || !isTaggedVersion(key)) {
+    return path.join(process.cwd(), 'content', 'guides');
+  }
+  return path.join(process.cwd(), 'public', 'guides', `v${key}`);
+}
+
+/** Guides base path for a version (`/guides` or `/guides/v/2.0.0`). */
+export function guidesBasePath(version?: string): string {
+  const key = versionKey(version);
+  if (key === 'latest' || !isTaggedVersion(key)) return '/guides';
+  return `/guides/v/${key}`;
+}
+
+/**
+ * Rewrite absolute `/guides/...` markdown links to the versioned base path.
+ * Leaves `/guides/v/...` links alone.
+ */
+export function rewriteGuideLinks(content: string, version?: string): string {
+  const base = guidesBasePath(version);
+  if (base === '/guides') return content;
+  return content.replace(/\]\(\/guides\/(?!v\/)/g, `](${base}/`);
+}
+
+export function getGuideSlugs(version?: string): string[] {
+  const dir = resolveGuidesDir(version);
+  if (!fs.existsSync(dir)) return [];
   return fs
-    .readdirSync(GUIDES_DIR)
+    .readdirSync(dir)
     .filter((f) => f.endsWith('.mdx'))
     .map((f) => f.replace(/\.mdx$/, ''));
 }
 
-export function getAllGuides(): GuideMeta[] {
-  return getGuideSlugs()
+export function getAllGuides(version?: string): GuideMeta[] {
+  const dir = resolveGuidesDir(version);
+  return getGuideSlugs(version)
     .map((slug) => {
-      const raw = fs.readFileSync(path.join(GUIDES_DIR, `${slug}.mdx`), 'utf8');
+      const raw = fs.readFileSync(path.join(dir, `${slug}.mdx`), 'utf8');
       const { data } = matter(raw);
       return {
         slug,
@@ -39,8 +71,11 @@ export function getAllGuides(): GuideMeta[] {
     .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
 }
 
-export function getGuideBySlug(slug: string): { meta: GuideMeta; content: string } | null {
-  const file = path.join(GUIDES_DIR, `${slug}.mdx`);
+export function getGuideBySlug(
+  slug: string,
+  version?: string,
+): { meta: GuideMeta; content: string } | null {
+  const file = path.join(resolveGuidesDir(version), `${slug}.mdx`);
   if (!fs.existsSync(file)) return null;
   const raw = fs.readFileSync(file, 'utf8');
   const { data, content } = matter(raw);
@@ -52,13 +87,13 @@ export function getGuideBySlug(slug: string): { meta: GuideMeta; content: string
       category: String(data.category ?? 'other'),
       order: Number(data.order ?? 999),
     },
-    content,
+    content: rewriteGuideLinks(content, version),
   };
 }
 
-export function getGuidesByCategory(): Record<string, GuideMeta[]> {
+export function getGuidesByCategory(version?: string): Record<string, GuideMeta[]> {
   const grouped: Record<string, GuideMeta[]> = {};
-  for (const g of getAllGuides()) {
+  for (const g of getAllGuides(version)) {
     (grouped[g.category] ??= []).push(g);
   }
   return grouped;

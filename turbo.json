@@ -24,7 +24,8 @@
     },
     "//#generate:docs": {
       "dependsOn": ["@fluxerjs/docgen#build"],
-      "outputs": ["apps/docs/public/api/**"],
+      "cache": false,
+      "outputs": ["apps/docs/public/api/**", "apps/docs/public/guides/**"],
       "inputs": [
         "scripts/generate-docs.ts",
         "packages/docgen/src/**",

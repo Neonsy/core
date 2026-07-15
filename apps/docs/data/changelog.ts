@@ -12,6 +12,53 @@ export interface ChangelogEntry {
 /** Hand-authored release notes for the docs site. */
 export const changelogEntries: ChangelogEntry[] = [
   {
+    version: '2.0.2',
+    date: '2026-07-15',
+    sections: [
+      {
+        title: 'Added',
+        items: [
+          'REST retryPolicy for per-request retry budgets (e.g. keep retries on GET, disable on writes)',
+          'Guild.available plus GuildUnavailable / GuildAvailable for temporary gateway outages',
+        ],
+      },
+      {
+        title: 'Fixed',
+        items: [
+          'User.prototype.send argument typing',
+          'Temporary guild unavailability no longer emitted as GuildDelete',
+        ],
+      },
+      {
+        title: 'Docs',
+        items: [
+          'Versioned SDK reference and guides for each tagged release (v2.0.0+)',
+          'Website improvements',
+        ],
+      },
+    ],
+  },
+  {
+    version: '2.0.1',
+    date: '2026-07-13',
+    sections: [
+      {
+        title: 'Changed',
+        items: [
+          'Raised Node.js engine requirement (Node 20 support removed; requires Node ≥ 22.13)',
+          'Updated undici to v7',
+        ],
+      },
+      {
+        title: 'Fixed',
+        items: [
+          'Dependency audit fixes',
+          'Publishing and CI improvements, including bot-login checks',
+        ],
+      },
+    ],
+  },
+  {
     version: '2.0.0',
     date: '2026-07-11',
     sections: [

@@ -49,6 +49,7 @@
     "@fluxerjs/builders": "workspace:*",
     "@fluxerjs/collection": "workspace:*",
     "@fluxerjs/core": "workspace:*",
+    "@fluxerjs/docgen": "workspace:*",
     "@fluxerjs/rest": "workspace:*",
     "@fluxerjs/types": "workspace:*",
     "@fluxerjs/util": "workspace:*",

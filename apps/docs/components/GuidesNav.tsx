@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { DocsSidebar, type SidebarGroup, type SidebarItem } from '@/components/PageShell';
 import { CATEGORY_ORDER, getCategoryLabel } from '@/lib/guide-meta';
-import { getAllGuides, getGuidesByCategory } from '@/lib/guides';
+import { getAllGuides, getGuidesByCategory, guidesBasePath } from '@/lib/guides';
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'getting-started': BookOpen,
@@ -26,16 +26,18 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   other: Wrench,
 };
 
-export function getGuidesSidebarItems(active?: string): SidebarItem[] {
-  return getAllGuides().map((g) => ({
-    href: `/guides/${g.slug}/`,
+export function getGuidesSidebarItems(active?: string, version?: string): SidebarItem[] {
+  const base = guidesBasePath(version);
+  return getAllGuides(version).map((g) => ({
+    href: `${base}/${g.slug}/`,
     label: g.title,
     active: g.slug === active,
   }));
 }
 
-export function getGuidesSidebarGroups(active?: string): SidebarGroup[] {
-  const byCategory = getGuidesByCategory();
+export function getGuidesSidebarGroups(active?: string, version?: string): SidebarGroup[] {
+  const base = guidesBasePath(version);
+  const byCategory = getGuidesByCategory(version);
   return CATEGORY_ORDER.filter((cat) => (byCategory[cat]?.length ?? 0) > 0).map((cat) => {
     const Icon = CATEGORY_ICONS[cat] ?? Wrench;
     const list = byCategory[cat] ?? [];
@@ -46,7 +48,7 @@ export function getGuidesSidebarGroups(active?: string): SidebarGroup[] {
       icon: <Icon className="h-3.5 w-3.5 shrink-0 text-primary/80" aria-hidden />,
       defaultOpen: hasActive || cat === 'getting-started',
       items: list.map((g) => ({
-        href: `/guides/${g.slug}/`,
+        href: `${base}/${g.slug}/`,
         label: g.title,
         active: g.slug === active,
       })),
@@ -54,6 +56,12 @@ export function getGuidesSidebarGroups(active?: string): SidebarGroup[] {
   });
 }
 
-export function GuidesNav({ active }: { active?: string }): React.ReactElement {
-  return <DocsSidebar title="Guides" groups={getGuidesSidebarGroups(active)} />;
+export function GuidesNav({
+  active,
+  version,
+}: {
+  active?: string;
+  version?: string;
+}): React.ReactElement {
+  return <DocsSidebar title="Guides" groups={getGuidesSidebarGroups(active, version)} />;
 }

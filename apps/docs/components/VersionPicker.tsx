@@ -18,48 +18,84 @@ export interface VersionPickerProps {
   className?: string;
 }
 
-function parseDocsPath(pathname: string | null): {
+type DocsSection = 'docs' | 'guides' | 'other';
+
+function parseSitePath(pathname: string | null): {
+  section: DocsSection;
   active: string;
   kind?: string;
   name?: string;
+  guideSlug?: string;
 } {
-  if (!pathname) return { active: 'latest' };
+  if (!pathname) return { section: 'other', active: 'latest' };
 
-  const versioned = pathname.match(
+  const versionedGuides = pathname.match(/^\/guides\/v\/([^/]+)(?:\/([^/]+))?/);
+  if (versionedGuides) {
+    return {
+      section: 'guides',
+      active: versionedGuides[1]!,
+      guideSlug: versionedGuides[2] ? decodeURIComponent(versionedGuides[2]) : undefined,
+    };
+  }
+
+  if (pathname === '/guides' || pathname === '/guides/' || pathname.startsWith('/guides/')) {
+    const latestGuide = pathname.match(/^\/guides\/([^/]+)\/?$/);
+    return {
+      section: 'guides',
+      active: 'latest',
+      guideSlug: latestGuide?.[1] ? decodeURIComponent(latestGuide[1]) : undefined,
+    };
+  }
+
+  const versionedDocs = pathname.match(
     /^\/docs\/v\/([^/]+)(?:\/(class|interface|enum)\/([^/]+))?/,
   );
-  if (versioned) {
+  if (versionedDocs) {
     return {
-      active: versioned[1]!,
-      kind: versioned[2],
-      name: versioned[3] ? decodeURIComponent(versioned[3]) : undefined,
+      section: 'docs',
+      active: versionedDocs[1]!,
+      kind: versionedDocs[2],
+      name: versionedDocs[3] ? decodeURIComponent(versionedDocs[3]) : undefined,
     };
   }
 
   const latestSymbol = pathname.match(/^\/docs\/(class|interface|enum)\/([^/]+)/);
   if (latestSymbol) {
     return {
+      section: 'docs',
       active: 'latest',
       kind: latestSymbol[1],
       name: decodeURIComponent(latestSymbol[2]!),
     };
   }
 
-  return { active: 'latest' };
+  if (pathname === '/docs' || pathname === '/docs/' || pathname.startsWith('/docs/')) {
+    return { section: 'docs', active: 'latest' };
+  }
+
+  return { section: 'other', active: 'latest' };
 }
 
 function hrefForVersion(
   target: string,
-  onDocs: boolean,
+  section: DocsSection,
   kind?: string,
   name?: string,
+  guideSlug?: string,
 ): string {
-  if (!onDocs) {
-    return target === 'latest' ? '/docs/' : `/docs/v/${target}/`;
+  if (section === 'guides') {
+    const base = target === 'latest' ? '/guides' : `/guides/v/${target}`;
+    if (guideSlug) return `${base}/${guideSlug}/`;
+    return `${base}/`;
   }
-  const base = target === 'latest' ? '/docs' : `/docs/v/${target}`;
-  if (kind && name) return `${base}/${kind}/${name}/`;
-  return `${base}/`;
+
+  if (section === 'docs') {
+    const base = target === 'latest' ? '/docs' : `/docs/v/${target}`;
+    if (kind && name) return `${base}/${kind}/${name}/`;
+    return `${base}/`;
+  }
+
+  return target === 'latest' ? '/docs/' : `/docs/v/${target}/`;
 }
 
 export function VersionPicker({
@@ -69,8 +105,7 @@ export function VersionPicker({
 }: VersionPickerProps): React.ReactElement {
   const router = useRouter();
   const pathname = usePathname();
-  const onDocs = Boolean(pathname?.startsWith('/docs'));
-  const { active, kind, name } = parseDocsPath(pathname);
+  const { section, active, kind, name, guideSlug } = parseSitePath(pathname);
 
   const options: { value: string; label: string; isLatest: boolean }[] = [
     { value: 'latest', label: latest, isLatest: true },
@@ -79,11 +114,7 @@ export function VersionPicker({
       .map((v) => ({ value: v, label: v, isLatest: false })),
   ];
 
-  // If active is a tagged version that equals latest string, still show as tagged path value
-  const display =
-    active === 'latest'
-      ? latest
-      : active;
+  const display = active === 'latest' ? latest : active;
 
   return (
     <DropdownMenu>
@@ -111,8 +142,13 @@ export function VersionPicker({
             <div key={o.value}>
               {i === 1 ? <DropdownMenuSeparator /> : null}
               <DropdownMenuItem
-                onSelect={() => router.push(hrefForVersion(o.value, onDocs, kind, name))}
-                className={cn('cursor-pointer justify-between gap-4 font-mono text-xs', selected && 'bg-accent')}
+                onSelect={() =>
+                  router.push(hrefForVersion(o.value, section, kind, name, guideSlug))
+                }
+                className={cn(
+                  'cursor-pointer justify-between gap-4 font-mono text-xs',
+                  selected && 'bg-accent',
+                )}
               >
                 <span className="flex items-center gap-2">
                   <span>v{o.label}</span>
