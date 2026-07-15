@@ -84,7 +84,7 @@ pnpm run docs:preview
 **What each command does:**
 
 - `docs:dev` — Next.js on port 3333
-- `docs:build` — Builds packages, runs `generate:docs`, then `next build`
+- `docs:build` — Generates API docs JSON, then builds the Next.js docs site (via turbo)
 - `docs:preview` — `next start` on port 3333
 
 ## License

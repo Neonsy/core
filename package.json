@@ -35,9 +35,9 @@
     "gate:pre-merge": "pnpm run format:check && pnpm run lint && pnpm run openapi:verify && pnpm run check:boundaries && pnpm run generate:types && pnpm run test:all",
     "generate:emoji": "pnpm exec tsx scripts/generate-emoji-shortcodes.ts",
     "generate:docs": "pnpm exec tsx scripts/generate-docs.ts",
-    "docs:generate": "pnpm run build && pnpm run generate:docs",
+    "docs:generate": "turbo run generate:docs",
     "docs:dev": "pnpm --filter @fluxerjs/docs dev",
-    "docs:build": "pnpm run build && pnpm run generate:docs && pnpm --filter @fluxerjs/docs build",
+    "docs:build": "turbo run build --filter=@fluxerjs/docs",
     "docs:preview": "pnpm --filter @fluxerjs/docs start",
     "publish:packages": "node scripts/publish-ordered.js",
     "publish:packages:all": "pnpm run build && pnpm -r publish --no-git-checks --filter '!./examples'"

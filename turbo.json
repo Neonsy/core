@@ -22,9 +22,17 @@
     "clean": {
       "cache": false
     },
-    "generate:docs": {
-      "dependsOn": ["build"],
-      "outputs": ["apps/docs/public/api/**"]
+    "//#generate:docs": {
+      "dependsOn": ["@fluxerjs/docgen#build"],
+      "outputs": ["apps/docs/public/api/**"],
+      "inputs": [
+        "scripts/generate-docs.ts",
+        "packages/docgen/src/**",
+        "packages/*/src/**",
+        "packages/*/tsconfig.json",
+        "packages/fluxer-core/src/**",
+        "packages/fluxer-core/tsconfig.json"
+      ]
     },
     "openapi:verify": {
       "dependsOn": [],
