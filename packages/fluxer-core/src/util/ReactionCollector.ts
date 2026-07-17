@@ -80,7 +80,11 @@ export class ReactionCollector extends EventEmitter {
     };
 
     this._onAddMany = (payload: MessageReactionAddManyPayload) => {
-      if (this._ended || payload.messageId !== this.messageId || payload.channelId !== this.channelId) {
+      if (
+        this._ended ||
+        payload.messageId !== this.messageId ||
+        payload.channelId !== this.channelId
+      ) {
         return;
       }
       for (const entry of payload.reactions) {

@@ -356,9 +356,7 @@ async function main(): Promise<void> {
   const manifestPath = resolve(API_DIR, 'versions.json');
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
   console.log(`[generate-docs] -> ${manifestPath}`);
-  console.log(
-    `[generate-docs] tagged versions: ${generatedVersions.join(', ') || '(none)'}`,
-  );
+  console.log(`[generate-docs] tagged versions: ${generatedVersions.join(', ') || '(none)'}`);
 
   if (failedVersions.length > 0) {
     const list = failedVersions.map((v) => `v${v}`).join(', ');
