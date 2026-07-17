@@ -12,6 +12,18 @@ export interface ChangelogEntry {
 /** Hand-authored release notes for the docs site. */
 export const changelogEntries: ChangelogEntry[] = [
   {
+    version: '2.0.3',
+    date: '2026-07-17',
+    sections: [
+      {
+        title: 'Fixed',
+        items: [
+          'ReactionCollector now handles messageReactionAddMany (gateway-batched reactions), not only messageReactionAdd',
+        ],
+      },
+    ],
+  },
+  {
     version: '2.0.2',
     date: '2026-07-15',
     sections: [

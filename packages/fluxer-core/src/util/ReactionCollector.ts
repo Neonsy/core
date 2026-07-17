@@ -1,8 +1,11 @@
 import { EventEmitter } from 'events';
 import { Collection } from '@fluxerjs/collection';
 import type { Client } from '../client/Client.js';
-import type { MessageReactionPayload } from '../client/eventPayloads.js';
-import type { MessageReaction } from '../structures/MessageReaction.js';
+import type {
+  MessageReactionAddManyPayload,
+  MessageReactionPayload,
+} from '../client/eventPayloads.js';
+import { MessageReaction } from '../structures/MessageReaction.js';
 import type { User } from '../structures/User.js';
 import { Events } from './Events.js';
 
@@ -29,6 +32,10 @@ export interface ReactionCollectorEvents {
 
 /**
  * Collects reactions on a message. Use message.createReactionCollector().
+ *
+ * Listens to both {@link Events.MessageReactionAdd} and {@link Events.MessageReactionAddMany}
+ * (gateway may batch rapid reactions into ADD_MANY instead of individual ADD events).
+ *
  * @example
  * const collector = message.createReactionCollector({ filter: (r, u) => u.id === userId, time: 10000 });
  * collector.on('collect', (reaction, user) => console.log(user.username, 'reacted', reaction.emoji.name));
@@ -42,7 +49,8 @@ export class ReactionCollector extends EventEmitter {
   readonly collected = new Collection<string, CollectedReaction>();
   private _timeout: ReturnType<typeof setTimeout> | null = null;
   private _ended = false;
-  private _listener: (payload: MessageReactionPayload) => void;
+  private readonly _onAdd: (payload: MessageReactionPayload) => void;
+  private readonly _onAddMany: (payload: MessageReactionAddManyPayload) => void;
 
   constructor(
     client: Client,
@@ -59,7 +67,8 @@ export class ReactionCollector extends EventEmitter {
       time: options.time ?? 0,
       max: options.max ?? 0,
     };
-    this._listener = (payload: MessageReactionPayload) => {
+
+    this._onAdd = (payload: MessageReactionPayload) => {
       if (
         this._ended ||
         payload.reaction.messageId !== this.messageId ||
@@ -67,24 +76,61 @@ export class ReactionCollector extends EventEmitter {
       ) {
         return;
       }
-      if (!this.options.filter(payload.reaction, payload.user)) return;
-      const key = `${payload.userId}:${payload.reaction.emoji.id ?? payload.reaction.emoji.name}`;
-      this.collected.set(key, { reaction: payload.reaction, user: payload.user });
-      this.emit('collect', payload.reaction, payload.user);
-      if (this.options.max > 0 && this.collected.size >= this.options.max) {
-        this.stop('limit');
+      this._collect(payload.reaction, payload.user, payload.userId);
+    };
+
+    this._onAddMany = (payload: MessageReactionAddManyPayload) => {
+      if (this._ended || payload.messageId !== this.messageId || payload.channelId !== this.channelId) {
+        return;
+      }
+      for (const entry of payload.reactions) {
+        if (this._ended) return;
+        const reaction = new MessageReaction(this.client, {
+          message_id: payload.messageId,
+          channel_id: payload.channelId,
+          guild_id: payload.guildId ?? undefined,
+          user_id: entry.userId,
+          emoji: {
+            name: entry.emoji.name,
+            ...(entry.emoji.id !== undefined ? { id: entry.emoji.id } : {}),
+            ...(entry.emoji.animated !== undefined ? { animated: entry.emoji.animated } : {}),
+          },
+        });
+        const user =
+          entry.member?.user ??
+          this.client.users.get(entry.userId) ??
+          this.client.getOrCreateUser({
+            id: entry.userId,
+            username: 'Unknown',
+            discriminator: '0',
+          });
+        this._collect(reaction, user, entry.userId);
       }
     };
-    this.client.on(Events.MessageReactionAdd, this._listener);
+
+    this.client.on(Events.MessageReactionAdd, this._onAdd);
+    this.client.on(Events.MessageReactionAddMany, this._onAddMany);
     if (this.options.time > 0) {
       this._timeout = setTimeout(() => this.stop('time'), this.options.time);
+    }
+  }
+
+  private _collect(reaction: MessageReaction, user: User, userId: string): void {
+    if (this._ended) return;
+    if (!this.options.filter(reaction, user)) return;
+    const key = `${userId}:${reaction.emoji.id ?? reaction.emoji.name}`;
+    this.collected.set(key, { reaction, user });
+    this.emit('collect', reaction, user);
+    if (this.options.max > 0 && this.collected.size >= this.options.max) {
+      this.stop('limit');
     }
   }
 
   stop(reason: ReactionCollectorEndReason = 'user'): void {
     if (this._ended) return;
     this._ended = true;
-    this.client.off(Events.MessageReactionAdd, this._listener);
+    this.client.off(Events.MessageReactionAdd, this._onAdd);
+    this.client.off(Events.MessageReactionAddMany, this._onAddMany);
     if (this._timeout) {
       clearTimeout(this._timeout);
       this._timeout = null;
