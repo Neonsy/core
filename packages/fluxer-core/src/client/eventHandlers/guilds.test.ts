@@ -62,11 +62,48 @@ function message(id: string, channelId: string): APIMessage {
   };
 }
 
-async function dispatch(client: Client, event: 'GUILD_CREATE' | 'GUILD_DELETE', data: unknown) {
+async function dispatch(
+  client: Client,
+  event: 'GUILD_CREATE' | 'GUILD_UPDATE' | 'GUILD_DELETE',
+  data: unknown,
+) {
   await guildHandlers[event](client, data);
 }
 
 describe('guild availability lifecycle', () => {
+  it('hydrates nested GUILD_CREATE properties', async () => {
+    const client = new Client({ gatewayDeferHandlers: false });
+
+    await dispatch(client, 'GUILD_CREATE', {
+      id: 'g1',
+      properties: guildPayload('Nested Guild'),
+      roles: [],
+      channels: [],
+      members: [],
+      emojis: [],
+    });
+
+    expect(client.guilds.get('g1')).toMatchObject({
+      id: 'g1',
+      name: 'Nested Guild',
+      ownerId: 'owner1',
+    });
+  });
+
+  it('treats GUILD_UPDATE as flat when it contains a properties field', async () => {
+    const client = new Client({ gatewayDeferHandlers: false });
+    const guild = new Guild(client, guildPayload('Before update'));
+    client.guilds.set(guild.id, guild);
+
+    await dispatch(client, 'GUILD_UPDATE', {
+      id: 'g1',
+      name: 'Outer update',
+      properties: guildPayload('Nested collision'),
+    });
+
+    expect(guild.name).toBe('Outer update');
+  });
+
   it('retains a temporarily unavailable guild and emits GuildUnavailable', async () => {
     const client = new Client({ gatewayDeferHandlers: false });
     const guild = new Guild(client, guildPayload('Before outage'));
@@ -97,7 +134,8 @@ describe('guild availability lifecycle', () => {
     await dispatch(client, 'GUILD_DELETE', { id: 'g1', unavailable: true });
     emit.mockClear();
     await dispatch(client, 'GUILD_CREATE', {
-      ...guildPayload('After outage'),
+      id: 'g1',
+      properties: guildPayload('After outage'),
       roles: [role('new-role')],
       channels: [channel('new-channel')],
       members: [member('new-member')],
