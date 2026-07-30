@@ -23,6 +23,23 @@ client.on(Events.MessageCreate, async (m) => {
 await client.login(process.env.FLUXER_BOT_TOKEN);
 ```
 
+## Diagnostics
+
+Structured diagnostics are opt-in, bounded, and kept in memory. The SDK does
+not write or upload reports:
+
+```javascript
+const client = new Client({ diagnostics: true });
+
+// After an error:
+const report = client.createDiagnosticReport();
+console.log(JSON.stringify(report, null, 2));
+```
+
+Configure severity, components, history size, and application-owned sinks with
+`ClientOptions.diagnostics`. Inspect reports before sharing them. See the
+[diagnostics guide](https://fluxerjs.blstmo.com/guides/diagnostics/).
+
 Self-hosted / multi-instance: use `Client.fromDiscovery(origin)` or `ClientOptions.instance`.
 **Beta:** `ClientCluster` (also `@fluxerjs/core/cluster`) can add/remove/restart independently-tokened
 runtimes without process restart — see `examples/multi-instance-bot.js`. API may change.

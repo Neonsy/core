@@ -40,3 +40,7 @@ voiceManager.leave(guildId);
 ```
 
 Use yt-dlp to get stream URLs from YouTube. For LiveKit, listen for `serverLeave` to reconnect.
+
+Voice lifecycle and bounded media-pipeline diagnostics use the controller on
+the client. Enable them with `new Client({ diagnostics: true })`; no separate
+voice logger is required.

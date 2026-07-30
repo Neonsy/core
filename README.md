@@ -29,6 +29,14 @@ client.on(Events.MessageCreate, async (m) => {
 await client.login(process.env.FLUXER_BOT_TOKEN);
 ```
 
+### Troubleshooting
+
+Diagnostics are disabled by default. Enable a bounded in-memory history with
+`new Client({ diagnostics: true })`, then call
+`client.createDiagnosticReport()` when you need a JSON-safe support snapshot.
+The SDK never writes or uploads it. Inspect the report before sharing it; see
+the [diagnostics guide](https://fluxerjs.blstmo.com/guides/diagnostics/).
+
 ### Self-hosted / multiple instances
 
 One `Client` = one Fluxer instance (token, REST, gateway, caches, CDN/invite URLs).

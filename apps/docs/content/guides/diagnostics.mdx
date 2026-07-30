@@ -1,0 +1,219 @@
+---
+title: Diagnostics
+description: Capture a bounded, sanitized troubleshooting report without sending data anywhere.
+category: getting-started
+order: 3
+---
+
+Diagnostics record what the SDK is doing around REST requests, gateway connections, and voice.
+They are off by default and never write or send anything on their own.
+
+## Enable diagnostics
+
+Pass `diagnostics: true` when you create the client:
+
+```javascript
+import { Client } from '@fluxerjs/core';
+
+const client = new Client({
+  diagnostics: true,
+});
+```
+
+When you need help, create a report:
+
+```javascript
+const report = client.createDiagnosticReport();
+console.log(JSON.stringify(report, null, 2));
+```
+
+The report is an immutable, JSON-safe object containing package versions, basic runtime and client
+state, sanitized component snapshots, and the retained diagnostic events.
+
+<Warning>
+Sanitization is a safety net, not a security boundary. Inspect a report before sharing it. This is
+especially important if your own code or another package adds custom diagnostic data.
+</Warning>
+
+## Save a report
+
+The SDK returns the report to your application. Your application decides whether to display, log,
+or save it:
+
+```javascript
+import { writeFile } from 'node:fs/promises';
+
+const report = client.createDiagnosticReport();
+await writeFile(
+  'fluxer-diagnostics.json',
+  `${JSON.stringify(report, null, 2)}\n`,
+  'utf8',
+);
+```
+
+Nothing is uploaded automatically. Remove the file when you no longer need it.
+
+## Choose what to capture
+
+For a long-running production bot, set an explicit severity, component list, and history size:
+
+```javascript
+const client = new Client({
+  diagnostics: {
+    level: 'info',
+    components: ['rest', 'gateway', 'voice'],
+    maxEvents: 500,
+  },
+});
+```
+
+Available levels are `debug`, `info`, `warn`, and `error`. The selected level is the minimum
+severity retained. The default history is 250 events, and the default per-event data limit is 16
+KiB. Old events are discarded when the history is full.
+
+Stack traces are excluded by default because they can expose error text, local usernames, and
+filesystem paths. Enable them only when needed:
+
+```javascript
+const client = new Client({
+  diagnostics: {
+    captureStacks: true,
+  },
+});
+```
+
+This also adds sanitized stacks to built-in REST, gateway, and voice error events. Inspect those
+reports especially carefully before sharing them.
+
+## Read events while the bot runs
+
+Use `snapshot()` for the current in-memory history:
+
+```javascript
+for (const event of client.diagnostics.snapshot()) {
+  console.log(event.level, event.code, event.data);
+}
+```
+
+Use `subscribe()` when your application owns a log or telemetry destination:
+
+```javascript
+const unsubscribe = client.diagnostics.subscribe((event) => {
+  applicationLogger.info({ sdkDiagnostic: event });
+});
+
+// Later
+unsubscribe();
+```
+
+Subscribers do not replace the bounded in-memory history. A subscriber failure is isolated from bot
+behavior and counted in `client.diagnostics.stats.sinkFailures`.
+
+The synchronous part of a sink runs inline with the SDK operation. Returned promises are monitored
+for rejection but are not awaited. Keep sinks lightweight and let the application own any queueing,
+delivery, or shutdown flushing.
+
+Call `client.diagnostics.clear()` after collecting a report if you want to reset the history and
+counters.
+
+## What built-in packages record
+
+Built-in event codes are stable identifiers intended for filtering and support tooling:
+
+| Component | Examples | Deliberately omitted |
+| --------- | -------- | -------------------- |
+| `rest` | request outcome, method, route key, status, attempts, wait and duration | URLs, query strings, headers, request/response bodies, server error text by default |
+| `gateway` | connect, shard, heartbeat, reconnect, session lifecycle | gateway URL, token, session id, sequence, raw payloads |
+| `voice` | join, transport, playback, migration, disconnect lifecycle | endpoint, token, guild/channel/user ids, media paths, raw pipeline errors by default |
+
+Sanitized stacks are the explicit exception to those error-text omissions when `captureStacks` is
+enabled.
+
+The core report also includes cache sizes, readiness, shard count, selected configuration booleans,
+Node version, platform, architecture, and installed Fluxer package versions. It does not include
+instance endpoints.
+
+The shared sanitizer redacts sensitive property names, Bot/Bearer credentials, JWTs, webhook
+tokens, URL queries, and 17–19 digit identifiers. It bounds strings, arrays, object depth, and event
+size. Arbitrary short identifiers or personal data in custom strings cannot be recognized
+reliably, which is why built-in packages avoid recording raw objects in the first place.
+
+## ClientCluster
+
+Enable the same diagnostics policy for every client constructed by a cluster:
+
+```javascript
+import { ClientCluster } from '@fluxerjs/core';
+
+const cluster = new ClientCluster({
+  diagnostics: {
+    level: 'info',
+    maxEvents: 500,
+  },
+});
+
+const report = cluster.createDiagnosticReport();
+```
+
+The cluster report contains one client report per runtime. Caller-defined runtime ids and
+`lastError` values are omitted; each entry has only its report-local index and lifecycle status.
+An explicitly supplied `clientOptions.diagnostics` overrides the cluster default. Prebuilt clients
+keep their own diagnostics configuration.
+
+## Standalone REST and gateway packages
+
+`@fluxerjs/core` creates one diagnostics controller and passes scoped sources to its REST and
+gateway dependencies. Consumers using those packages directly can do the same:
+
+```javascript
+import { DiagnosticsController } from '@fluxerjs/diagnostics';
+import { REST } from '@fluxerjs/rest';
+
+const diagnostics = new DiagnosticsController({
+  level: 'info',
+});
+
+const rest = new REST({
+  diagnostics: diagnostics.createSource('rest'),
+});
+```
+
+`WebSocketManagerOptions.diagnostics` accepts the same `DiagnosticSource`. Voice uses the
+controller on its `Client`, so no second controller is needed.
+
+When using `Client`, configure diagnostics only through `ClientOptions.diagnostics`; the client
+owns the scoped sources passed to its REST and gateway dependencies.
+
+## Extending diagnostics
+
+Packages should depend on `DiagnosticSource`, not the controller. This keeps storage, filtering,
+and destinations owned by the application:
+
+```typescript
+import type { DiagnosticSource } from '@fluxerjs/diagnostics';
+
+export interface WorkerOptions {
+  diagnostics?: DiagnosticSource;
+}
+
+function recordQueueDepth(source: DiagnosticSource | undefined, depth: number): void {
+  try {
+    if (!source?.isEnabled('debug')) return;
+    source.emit('debug', 'queue.depth', 'Worker queue sampled', () => ({
+      depth,
+    }));
+  } catch {
+    // Diagnostics must not change worker behavior.
+  }
+}
+```
+
+Use fixed event codes and short generic summaries. Prefer counts, durations, statuses, retry
+decisions, and booleans. Do not pass request objects, payloads, headers, URLs, tokens, session data,
+resource IDs, or arbitrary error text. Keep expensive data behind a lazy factory, bound noisy
+events at their source, and never let diagnostic failure change the primary operation. Component
+names are limited to 64 characters and source-local event codes to 128 characters.
+
+Packages can use `registerComponent()` to contribute a package version and a small snapshot to
+`createDiagnosticReport()`. Registrations and events still pass through the same sanitizer and
+bounds.

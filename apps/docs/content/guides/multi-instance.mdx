@@ -95,6 +95,9 @@ await cluster.remove('school'); // hosted keeps running
 await cluster.destroy(); // shutdown all + clear cluster listeners
 ```
 
+To enable one diagnostics policy for every cluster-created client and collect one report, see
+[Diagnostics](/guides/diagnostics/#clientcluster).
+
 ## Legacy rest.api
 
 new Client(&#123; rest: &#123; api &#125; &#125;) still works and overrides only the API host (CDN/invite stay on hosted defaults unless you set instance). If both instance.api and rest.api are set and disagree, construction throws CONFLICTING_INSTANCE_CONFIG.
