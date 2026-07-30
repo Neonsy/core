@@ -97,7 +97,7 @@ export function serializeDiagnosticError(
     }
     if (statusCode !== undefined) result.statusCode = statusCode;
     if (typeof retryable === 'boolean') result.retryable = retryable;
-    if (options.captureStack !== false && typeof rawStack === 'string') {
+    if (options.captureStack === true && typeof rawStack === 'string') {
       result.stack = sanitizeDiagnosticString(rawStack.slice(0, MAX_STACK_LENGTH));
     }
     if (cause !== undefined) result.cause = visit(cause, depth + 1);

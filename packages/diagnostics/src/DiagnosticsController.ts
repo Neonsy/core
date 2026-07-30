@@ -143,7 +143,7 @@ export class DiagnosticsController {
       'maxEventBytes',
       1,
     );
-    this.captureStacks = validateBoolean(options.captureStacks, true, 'captureStacks');
+    this.captureStacks = validateBoolean(options.captureStacks, false, 'captureStacks');
     this.configuredSinks = toSinkArray(options.sink);
   }
 

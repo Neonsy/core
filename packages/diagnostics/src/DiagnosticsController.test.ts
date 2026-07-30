@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DiagnosticsController } from './DiagnosticsController.js';
+import { serializeDiagnosticError } from './errors.js';
 import { sanitizeDiagnosticData } from './sanitize.js';
 
 describe('DiagnosticsController', () => {
@@ -98,6 +99,21 @@ describe('DiagnosticsController', () => {
     expect(serialized).toContain('[REDACTED]');
     expect(serialized).toContain('REQUEST_FAILED');
     expect(serialized).toContain('503');
+  });
+
+  it('captures error stacks only when explicitly enabled', () => {
+    const defaultSource = new DiagnosticsController().createSource('core');
+    const stackSource = new DiagnosticsController({
+      captureStacks: true,
+    }).createSource('core');
+    const error = new Error('failed');
+
+    expect(defaultSource.error(error).stack).toBeUndefined();
+    expect(stackSource.error(error).stack).toContain('Error: failed');
+    expect(serializeDiagnosticError(error).stack).toBeUndefined();
+    expect(serializeDiagnosticError(error, { captureStack: true }).stack).toContain(
+      'Error: failed',
+    );
   });
 
   it('handles circular data and accessor properties without invoking them', () => {

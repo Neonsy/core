@@ -52,7 +52,7 @@ export interface DiagnosticsOptions {
   maxEvents?: number;
   /** Maximum serialized data size per event. Defaults to 16 KiB. */
   maxEventBytes?: number;
-  /** Include sanitized error stacks. Defaults to `true`. */
+  /** Include sanitized error stacks. Defaults to `false`. */
   captureStacks?: boolean;
   /** Optional application-owned event destination. */
   sink?: DiagnosticSink | readonly DiagnosticSink[];
