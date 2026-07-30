@@ -6,6 +6,7 @@
   "description": "@fluxerjs SDK monorepo",
   "scripts": {
     "build": "turbo run build",
+    "build:packages": "turbo run build --filter=./packages/*",
     "test": "turbo run test",
     "test:esm": "node scripts/test-esm-imports.mjs",
     "test:cjs": "node scripts/test-cjs-require.mjs",
@@ -38,7 +39,7 @@
     "check:exports": "pnpm exec tsx scripts/api-surface/check.ts",
     "snapshot:exports": "pnpm exec tsx scripts/api-surface/snapshot.ts",
     "typecheck:packages": "pnpm exec tsc -b packages/types packages/util packages/collection packages/rest packages/ws packages/builders packages/fluxer-core packages/voice --pretty false",
-    "typecheck:tests": "pnpm exec tsc -p tsconfig.tests.json --pretty false",
+    "typecheck:tests": "pnpm run build:packages && pnpm exec tsc -p tsconfig.tests.json --pretty false",
     "typecheck": "pnpm run typecheck:packages && pnpm run typecheck:tests",
     "gate:pre-merge": "pnpm run format:check && pnpm run lint && pnpm run check:casing && pnpm run openapi:check && pnpm run check:boundaries && pnpm run check:generated && pnpm run typecheck && pnpm run test:all",
     "generate:emoji": "pnpm exec tsx scripts/generate-emoji-shortcodes.ts",
