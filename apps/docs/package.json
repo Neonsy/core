@@ -5,8 +5,9 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "predev": "pnpm --dir ../.. run generate:docs",
+    "predev": "pnpm --dir ../.. run docs:generate",
     "dev": "next dev --port 3333",
+    "prebuild": "pnpm --dir ../.. run docs:generate",
     "build": "next build",
     "start": "next start --port 3333",
     "lint": "next lint"

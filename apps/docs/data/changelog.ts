@@ -12,6 +12,31 @@ export interface ChangelogEntry {
 /** Hand-authored release notes for the docs site. */
 export const changelogEntries: ChangelogEntry[] = [
   {
+    version: '2.1.0',
+    date: '2026-07-30',
+    sections: [
+      {
+        title: 'Changed',
+        items: [
+          'Require Node.js ≥ 22.13 across all published packages',
+          'REST no longer sends the configured token to cross-origin absolute URLs unless auth: true is set explicitly',
+          'Automatic retries now apply only to safe methods (GET/HEAD/OPTIONS) by default; opt mutations in per-request via retryPolicy',
+          'Client now honors configured cache limits (managers are constructed after resolving DEFAULT_CACHE_LIMITS with your options)',
+        ],
+      },
+      {
+        title: 'Fixed',
+        items: [
+          'Reactions with external custom emojis are now allowed when permitted by Fluxer',
+          'Preserve cached reaction users across gateway events',
+          'Correct REST rate-limit bucket identification',
+          'Clean up timed-out voice connections',
+          'Hydrate and harden normalization of nested gateway guild properties',
+        ],
+      },
+    ],
+  },
+  {
     version: '2.0.3',
     date: '2026-07-17',
     sections: [
