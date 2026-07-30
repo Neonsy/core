@@ -1,5 +1,5 @@
-import type { APIErrorBody, RateLimitErrorBody } from '@fluxerjs/types';
 import type { DiagnosticSource } from '@fluxerjs/diagnostics';
+import type { APIErrorBody, RateLimitErrorBody } from '@fluxerjs/types';
 import { FormData } from 'undici';
 import restPackage from '../package.json';
 import { FluxerAPIError, HTTPError, RateLimitError } from './errors/index.js';

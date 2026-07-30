@@ -1,3 +1,4 @@
+import diagnosticsPackage from '../package.json';
 import { serializeDiagnosticError } from './errors.js';
 import {
   deepFreezeDiagnosticValue,
@@ -13,11 +14,10 @@ import type {
   DiagnosticReport,
   DiagnosticReportContext,
   DiagnosticSink,
+  DiagnosticSource,
   DiagnosticsOptions,
   DiagnosticsStats,
-  DiagnosticSource,
 } from './types.js';
-import diagnosticsPackage from '../package.json';
 
 const DEFAULT_MAX_EVENTS = 250;
 const DEFAULT_MAX_EVENT_BYTES = 16 * 1_024;

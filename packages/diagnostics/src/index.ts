@@ -12,8 +12,8 @@ export type {
   DiagnosticReport,
   DiagnosticReportContext,
   DiagnosticSink,
+  DiagnosticSource,
   DiagnosticsOptions,
   DiagnosticsStats,
-  DiagnosticSource,
   DiagnosticValue,
 } from './types.js';
