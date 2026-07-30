@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import type { DiagnosticSource } from '@fluxerjs/diagnostics';
 import { Routes } from '@fluxerjs/types';
 import { RequestManager, type RequestOptions, type RetryPolicy } from './RequestManager.js';
 import {
@@ -10,6 +11,8 @@ import {
 } from './utils/constants.js';
 
 export interface RESTOptions {
+  /** Optional structured diagnostic destination. */
+  diagnostics?: DiagnosticSource;
   api?: string;
   version?: string;
   authPrefix?: 'Bot' | 'Bearer';
@@ -34,6 +37,7 @@ export class REST extends EventEmitter {
       timeout: options.timeout ?? REQUEST_TIMEOUT,
       retries: options.retries ?? MAX_RETRIES,
       ...(options.retryPolicy ? { retryPolicy: options.retryPolicy } : {}),
+      ...(options.diagnostics ? { diagnostics: options.diagnostics } : {}),
       userAgent: options.userAgent ?? DEFAULT_USER_AGENT,
     });
   }

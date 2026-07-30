@@ -1,4 +1,5 @@
 import type { APIErrorBody, RateLimitErrorBody } from '@fluxerjs/types';
+import type { DiagnosticSource } from '@fluxerjs/diagnostics';
 import { FormData } from 'undici';
 import { FluxerAPIError, HTTPError, RateLimitError } from './errors/index.js';
 import { sharedFetch } from './fetch/sharedFetch.js';
@@ -39,6 +40,8 @@ export interface RetryPolicyContext {
 export type RetryPolicy = (context: RetryPolicyContext) => number | undefined;
 
 export interface RestOptions {
+  /** Optional structured diagnostic destination. */
+  diagnostics?: DiagnosticSource;
   api: string;
   version: string;
   authPrefix: 'Bot' | 'Bearer';
@@ -54,7 +57,19 @@ const ROUTE_HASH_CACHE_MAX = 1000;
 const SNOWFLAKE_RE = /\d{17,19}/g;
 const MAJOR_PARAMETER_RE = /\/(channels|guilds|webhooks)\/(\d{17,19})(?:\/|$)/;
 const WEBHOOK_TOKEN_RE = /(\/webhooks\/(?::id|\d{17,19})\/)[^/]+/;
+const INVITE_CODE_RE = /^(\/invites\/)[^/]+/i;
+const STREAM_PREVIEW_KEY_RE = /^(\/streams\/)[^/]+(\/preview)$/i;
 const DEFAULT_RETRY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+interface RequestDiagnosticContext {
+  readonly method: string;
+  readonly routeKey: string;
+  readonly startedAt: number;
+  attempts: number;
+  statusCode?: number;
+  rateLimitWaitMs: number;
+  retryWaitMs: number;
+}
 
 function abortError(): Error {
   const err = new Error('The operation was aborted');
@@ -160,6 +175,13 @@ function getRetryPolicyRouteKey(route: string): string {
     .replace(WEBHOOK_TOKEN_RE, '$1:token');
 }
 
+function getDiagnosticRouteKey(route: string): string {
+  if (route.startsWith('http')) return ':external';
+  return getRetryPolicyRouteKey(route)
+    .replace(INVITE_CODE_RE, '$1:code')
+    .replace(STREAM_PREVIEW_KEY_RE, '$1:key$2');
+}
+
 function getErrorPath(route: string, baseUrl: string): string {
   let path = stripQueryAndFragment(route);
   if (route.startsWith('http')) {
@@ -185,6 +207,88 @@ function formatErrorChain(err: Error, maxDepth = 4): string {
   return parts.join(': ') || 'Unknown error';
 }
 
+function safeErrorProperty(error: unknown, key: string): unknown {
+  if (typeof error !== 'object' || error === null) return undefined;
+  try {
+    return Reflect.get(error, key);
+  } catch {
+    return undefined;
+  }
+}
+
+function diagnosticStack(source: DiagnosticSource | undefined, error: unknown): string | undefined {
+  try {
+    const stack = source?.error(error).stack;
+    return typeof stack === 'string' ? stack : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function requestErrorMetadata(
+  error: unknown,
+  source: DiagnosticSource | undefined,
+): Record<string, unknown> {
+  const rawName = safeErrorProperty(error, 'name');
+  const rawCode = safeErrorProperty(error, 'code');
+  const rawStatus = safeErrorProperty(error, 'statusCode') ?? safeErrorProperty(error, 'status');
+  const stack = diagnosticStack(source, error);
+  const name =
+    typeof rawName === 'string' && /^[a-z][a-z0-9]*$/i.test(rawName)
+      ? rawName.slice(0, 64)
+      : 'Error';
+  const code =
+    typeof rawCode === 'number' ||
+    (typeof rawCode === 'string' && rawCode.length <= 128 && /^[a-z0-9_.-]+$/i.test(rawCode))
+      ? rawCode
+      : undefined;
+  return {
+    name,
+    message: isAbortError(error) ? 'REST request aborted' : 'REST request failed',
+    ...(code !== undefined ? { code } : {}),
+    ...(typeof rawStatus === 'number' &&
+    Number.isInteger(rawStatus) &&
+    rawStatus >= 100 &&
+    rawStatus <= 599
+      ? { statusCode: rawStatus }
+      : {}),
+    ...(error instanceof FluxerAPIError ||
+    error instanceof HTTPError ||
+    error instanceof RateLimitError
+      ? { retryable: error.isRetryable }
+      : {}),
+    ...(stack ? { stack } : {}),
+  };
+}
+
+function emitDiagnostic(
+  source: DiagnosticSource | undefined,
+  level: 'debug' | 'error',
+  code: string,
+  summary: string,
+  data: () => Record<string, unknown>,
+): void {
+  try {
+    source?.emit(level, code, summary, data);
+  } catch {
+    // Diagnostics must not affect request behavior.
+  }
+}
+
+async function trackedSleep(
+  ms: number,
+  signal: AbortSignal | undefined,
+  context: RequestDiagnosticContext,
+  kind: 'rateLimitWaitMs' | 'retryWaitMs',
+): Promise<void> {
+  const startedAt = Date.now();
+  try {
+    await sleep(ms, signal);
+  } finally {
+    context[kind] += Math.max(0, Date.now() - startedAt);
+  }
+}
+
 export class RequestManager {
   private token: string | null = null;
   private readonly options: RestOptions;
@@ -200,6 +304,7 @@ export class RequestManager {
       timeout: options.timeout ?? REQUEST_TIMEOUT,
       retries,
       ...(options.retryPolicy ? { retryPolicy: options.retryPolicy } : {}),
+      ...(options.diagnostics ? { diagnostics: options.diagnostics } : {}),
       userAgent: options.userAgent ?? DEFAULT_USER_AGENT,
     };
   }
@@ -322,6 +427,60 @@ export class RequestManager {
   }
 
   async request<T>(method: string, route: string, options: RequestOptions = {}): Promise<T> {
+    const context: RequestDiagnosticContext = {
+      method: method.toUpperCase(),
+      routeKey: getDiagnosticRouteKey(route),
+      startedAt: Date.now(),
+      attempts: 0,
+      rateLimitWaitMs: 0,
+      retryWaitMs: 0,
+    };
+
+    try {
+      const result = await this.executeRequest<T>(method, route, options, context);
+      emitDiagnostic(
+        this.options.diagnostics,
+        'debug',
+        'request.completed',
+        'REST request completed',
+        () => ({
+          method: context.method,
+          routeKey: context.routeKey,
+          statusCode: context.statusCode ?? null,
+          attempts: context.attempts,
+          durationMs: Math.max(0, Date.now() - context.startedAt),
+          rateLimitWaitMs: context.rateLimitWaitMs,
+          retryWaitMs: context.retryWaitMs,
+        }),
+      );
+      return result;
+    } catch (error) {
+      emitDiagnostic(
+        this.options.diagnostics,
+        'error',
+        'request.failed',
+        'REST request failed',
+        () => ({
+          method: context.method,
+          routeKey: context.routeKey,
+          statusCode: context.statusCode ?? null,
+          attempts: context.attempts,
+          durationMs: Math.max(0, Date.now() - context.startedAt),
+          rateLimitWaitMs: context.rateLimitWaitMs,
+          retryWaitMs: context.retryWaitMs,
+          error: requestErrorMetadata(error, this.options.diagnostics),
+        }),
+      );
+      throw error;
+    }
+  }
+
+  private async executeRequest<T>(
+    method: string,
+    route: string,
+    options: RequestOptions,
+    diagnostics: RequestDiagnosticContext,
+  ): Promise<T> {
     const routeHash = this.getRouteHash(method, route);
     const retries = this.resolveRetries(method, getRetryPolicyRouteKey(route));
     const errorPath = getErrorPath(route, this.baseUrl);
@@ -332,10 +491,13 @@ export class RequestManager {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
+      diagnostics.statusCode = undefined;
       if (userSignal?.aborted) throw abortError();
 
       const wait = this.rateLimiter.getWaitTime(routeHash);
-      if (wait > 0) await sleep(wait, userSignal);
+      if (wait > 0) {
+        await trackedSleep(wait, userSignal, diagnostics, 'rateLimitWaitMs');
+      }
 
       const controller = new AbortController();
       let timedOut = false;
@@ -356,12 +518,14 @@ export class RequestManager {
       }
 
       try {
+        diagnostics.attempts = attempt + 1;
         const response = await sharedFetch(url, {
           method,
           headers,
           body,
           signal: controller.signal,
         });
+        diagnostics.statusCode = response.status;
 
         this.rateLimiter.updateFromHeaders(routeHash, response.headers);
 
@@ -379,7 +543,7 @@ export class RequestManager {
           );
           if (attempt < retries) {
             lastError = err;
-            await sleep(retryMs, userSignal);
+            await trackedSleep(retryMs, userSignal, diagnostics, 'rateLimitWaitMs');
             continue;
           }
           throw err;
@@ -389,7 +553,7 @@ export class RequestManager {
           const err = await this.parseError(response, method, errorPath);
           if (err.isRetryable && attempt < retries) {
             lastError = err;
-            await sleep(backoffMs(attempt), userSignal);
+            await trackedSleep(backoffMs(attempt), userSignal, diagnostics, 'retryWaitMs');
             continue;
           }
           throw err;
@@ -401,7 +565,7 @@ export class RequestManager {
           if (userSignal?.aborted) throw err;
           if (timedOut && attempt < retries) {
             lastError = err instanceof Error ? err : new Error(String(err));
-            await sleep(backoffMs(attempt), userSignal);
+            await trackedSleep(backoffMs(attempt), userSignal, diagnostics, 'retryWaitMs');
             continue;
           }
           throw err;
@@ -425,7 +589,7 @@ export class RequestManager {
               : new Error(detail, { cause: wrapped });
 
         if (attempt < retries) {
-          await sleep(backoffMs(attempt), userSignal);
+          await trackedSleep(backoffMs(attempt), userSignal, diagnostics, 'retryWaitMs');
           continue;
         }
         throw lastError;

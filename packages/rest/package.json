@@ -47,6 +47,7 @@
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
+    "@fluxerjs/diagnostics": "workspace:*",
     "@fluxerjs/types": "workspace:*",
     "undici": "^7.28.0"
   },

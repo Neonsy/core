@@ -1,5 +1,6 @@
 import { FormData } from 'undici';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DiagnosticsController } from '@fluxerjs/diagnostics';
 import { FluxerAPIError, HTTPError, RateLimitError } from './errors/index.js';
 import { sharedFetch } from './fetch/sharedFetch.js';
 import { RequestManager } from './RequestManager.js';
@@ -52,6 +53,158 @@ describe('RequestManager', () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: '123' }));
     const result = await rm.request('GET', '/channels/123');
     expect(result).toEqual({ id: '123' });
+  });
+
+  it('records one sanitized event for a logical request with retries', async () => {
+    const diagnostics = new DiagnosticsController();
+    const rm = new RequestManager({
+      retries: 1,
+      diagnostics: diagnostics.createSource('rest'),
+    });
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            code: 'RATE_LIMITED',
+            message: 'slow down',
+            retry_after: 0,
+          },
+          { status: 429 },
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse({ id: '1' }));
+
+    await rm.request('GET', '/channels/123456789012345678/messages?token=query-secret');
+
+    expect(diagnostics.snapshot()).toMatchObject([
+      {
+        code: 'rest.request.completed',
+        data: {
+          method: 'GET',
+          routeKey: '/channels/:id/messages',
+          statusCode: 200,
+          attempts: 2,
+        },
+      },
+    ]);
+    expect(JSON.stringify(diagnostics.snapshot())).not.toContain('query-secret');
+  });
+
+  it('omits response bodies and external origins from failed request events', async () => {
+    const diagnostics = new DiagnosticsController();
+    const rm = new RequestManager({
+      retries: 0,
+      diagnostics: diagnostics.createSource('rest'),
+    });
+    fetchMock.mockResolvedValueOnce(jsonResponse('private response token', { status: 500 }));
+
+    await expect(
+      rm.request('GET', 'https://user:password@private.example/path?signature=private-query'),
+    ).rejects.toThrow(HTTPError);
+
+    expect(diagnostics.snapshot()).toMatchObject([
+      {
+        code: 'rest.request.failed',
+        data: {
+          routeKey: ':external',
+          statusCode: 500,
+          error: {
+            name: 'HTTPError',
+            message: 'REST request failed',
+            statusCode: 500,
+          },
+        },
+      },
+    ]);
+    const serialized = JSON.stringify(diagnostics.snapshot());
+    expect(serialized).not.toMatch(
+      /private response token|private-query|private\.example|password/,
+    );
+  });
+
+  it('omits invite codes from request events', async () => {
+    const diagnostics = new DiagnosticsController();
+    const rm = new RequestManager({
+      retries: 0,
+      diagnostics: diagnostics.createSource('rest'),
+    });
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    await rm.request('GET', '/invites/private-invite-code');
+
+    expect(diagnostics.snapshot()).toMatchObject([
+      {
+        code: 'rest.request.completed',
+        data: {
+          routeKey: '/invites/:code',
+        },
+      },
+    ]);
+    expect(JSON.stringify(diagnostics.snapshot())).not.toContain('private-invite-code');
+  });
+
+  it('omits voice stream keys from request events', async () => {
+    const diagnostics = new DiagnosticsController();
+    const rm = new RequestManager({
+      retries: 0,
+      diagnostics: diagnostics.createSource('rest'),
+    });
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    await rm.request(
+      'POST',
+      '/streams/123456789012345678%3A234567890123456789%3Aprivate-connection/preview',
+    );
+
+    expect(diagnostics.snapshot()).toMatchObject([
+      {
+        code: 'rest.request.completed',
+        data: {
+          routeKey: '/streams/:key/preview',
+        },
+      },
+    ]);
+    expect(JSON.stringify(diagnostics.snapshot())).not.toContain('private-connection');
+  });
+
+  it('includes sanitized error stacks only when explicitly enabled', async () => {
+    const diagnostics = new DiagnosticsController({ captureStacks: true });
+    const rm = new RequestManager({
+      retries: 0,
+      diagnostics: diagnostics.createSource('rest'),
+    });
+    fetchMock.mockRejectedValueOnce(new Error('Bearer private-stack-token'));
+
+    await expect(rm.request('GET', '/gateway')).rejects.toThrow();
+
+    expect(diagnostics.snapshot()).toMatchObject([
+      {
+        code: 'rest.request.failed',
+        data: {
+          error: {
+            stack: expect.stringContaining('Bearer [REDACTED]'),
+          },
+        },
+      },
+    ]);
+    expect(JSON.stringify(diagnostics.snapshot())).not.toContain('private-stack-token');
+  });
+
+  it('isolates custom diagnostic source failures from requests', async () => {
+    const rm = new RequestManager({
+      retries: 0,
+      diagnostics: {
+        component: 'rest',
+        isEnabled: () => true,
+        emit: () => {
+          throw new Error('sink failed');
+        },
+        error: () => ({ name: 'Error', message: 'failed' }),
+      },
+    });
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    await expect(rm.request('GET', '/gateway')).resolves.toEqual({ ok: true });
   });
 
   it('request returns undefined for 204', async () => {

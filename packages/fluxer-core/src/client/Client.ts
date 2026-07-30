@@ -164,6 +164,7 @@ export class Client extends EventEmitter {
       ...this.options.rest,
       api: this.instance.endpoints.api,
       version: this.options.rest?.version ?? '1',
+      diagnostics: this.diagnostics.createSource('rest'),
     });
   }
 

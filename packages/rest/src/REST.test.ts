@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { DiagnosticsController } from '@fluxerjs/diagnostics';
 import { REST } from './REST.js';
 import { Routes } from '@fluxerjs/types';
 import { sharedFetch } from './fetch/sharedFetch.js';
@@ -43,6 +44,24 @@ describe('REST', () => {
     } as unknown as Response);
     const result = await rest.get('/channels/1');
     expect(result).toEqual({ id: '1' });
+  });
+
+  it('passes diagnostics to the request manager', async () => {
+    const diagnostics = new DiagnosticsController();
+    const rest = new REST({
+      diagnostics: diagnostics.createSource('rest'),
+      retries: 0,
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      text: () => Promise.resolve(''),
+      headers: new Headers(),
+    } as unknown as Response);
+
+    await rest.get('/gateway');
+
+    expect(diagnostics.snapshot()).toMatchObject([{ code: 'rest.request.completed' }]);
   });
 
   it('post sends body', async () => {
