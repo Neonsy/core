@@ -41,7 +41,7 @@ export function hydrateReadyGuilds(
   const pending = waitForGuilds ? new Set<string>() : null;
   for (const g of guilds ?? []) {
     if (g.unavailable === true) {
-      if (typeof g.id === 'string') {
+      if (typeof g.id === 'string' && g.id.length > 0) {
         const existing = client.guilds.get(g.id);
         if (existing && existing.available !== false) {
           existing.available = false;

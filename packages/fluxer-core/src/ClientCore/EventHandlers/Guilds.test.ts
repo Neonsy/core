@@ -347,4 +347,15 @@ describe('guild availability lifecycle', () => {
     expect(client.guilds.has('g1')).toBe(false);
     expect(emit).not.toHaveBeenCalled();
   });
+
+  it('ignores unavailable stubs without a valid guild id', async () => {
+    const client = new Client({ gatewayDeferHandlers: false });
+    const received = vi.spyOn(client, '_onGuildReceived');
+
+    await dispatch(client, 'GUILD_CREATE', { unavailable: true });
+    await dispatch(client, 'GUILD_CREATE', { id: 42, unavailable: true });
+    await dispatch(client, 'GUILD_CREATE', { id: '', unavailable: true });
+
+    expect(received).not.toHaveBeenCalled();
+  });
 });
