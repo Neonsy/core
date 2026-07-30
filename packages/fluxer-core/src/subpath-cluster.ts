@@ -4,6 +4,8 @@ export {
   resetClientClusterBetaWarningForTests,
   type ClientRuntime,
   type ClientRuntimeStatus,
+  type ClientClusterDiagnosticRuntime,
+  type ClientClusterDiagnosticReport,
   type ClientClusterOptions,
   type AddClientRuntimeOptions,
   type RestartClientRuntimeOptions,

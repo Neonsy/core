@@ -1,3 +1,4 @@
+import type { DiagnosticReport } from '@fluxerjs/diagnostics';
 import { EventEmitter } from 'events';
 import { ErrorCodes } from '../errors/ErrorCodes.js';
 import { FluxerError } from '../errors/FluxerError.js';
@@ -5,9 +6,9 @@ import { Events } from '../util/Events.js';
 import type { ClientOptions } from '../util/Options.js';
 import { Client, type DiscoveryOrigin } from './Client.js';
 import {
-  ClientClusterEvents,
   type ClientClusterEventListener,
   type ClientClusterEventMap,
+  ClientClusterEvents,
 } from './ClientClusterEvents.js';
 
 /** @beta Warning emitted once per process when a ClientCluster is constructed. */
@@ -47,10 +48,39 @@ export interface ClientClusterOptions {
    */
   configure?: (runtime: ClientRuntime) => void | Promise<void>;
   /**
+   * Default diagnostics configuration for clients constructed by the cluster.
+   * Prebuilt clients retain their own configuration.
+   */
+  diagnostics?: ClientOptions['diagnostics'];
+  /**
    * Suppress the process-level beta warning (tests / controlled deployments only).
    * Default: `false`.
    */
   suppressBetaWarning?: boolean;
+}
+
+/** @beta A single runtime entry in a cluster diagnostic report. */
+export interface ClientClusterDiagnosticRuntime {
+  /**
+   * Stable only within this report. Runtime ids are deliberately omitted because
+   * they are caller-defined and may contain deployment details.
+   */
+  readonly index: number;
+  readonly status: ClientRuntimeStatus;
+  readonly report: DiagnosticReport;
+}
+
+/** @beta Immutable, JSON-safe troubleshooting snapshot for a ClientCluster. */
+export interface ClientClusterDiagnosticReport {
+  readonly format: 'fluxerjs-cluster-diagnostics';
+  readonly schemaVersion: 1;
+  readonly generatedAt: string;
+  readonly state: {
+    readonly runtimes: number;
+    readonly pendingRuntimes: number;
+    readonly destroyed: boolean;
+  };
+  readonly runtimes: readonly ClientClusterDiagnosticRuntime[];
 }
 
 /**
@@ -151,12 +181,14 @@ export class ClientCluster extends EventEmitter {
   private readonly runtimes = new Map<string, InternalRuntime>();
   private readonly pending = new Map<string, Promise<void>>();
   private readonly configure?: ClientClusterOptions['configure'];
+  private readonly diagnostics?: ClientOptions['diagnostics'];
   private destroyed = false;
 
   constructor(options: ClientClusterOptions = {}) {
     super();
     this.setMaxListeners(0);
     this.configure = options.configure;
+    this.diagnostics = options.diagnostics;
     if (!options.suppressBetaWarning && !betaWarningEmitted) {
       betaWarningEmitted = true;
       if (typeof process !== 'undefined' && typeof process.emitWarning === 'function') {
@@ -233,6 +265,37 @@ export class ClientCluster extends EventEmitter {
     for (const rt of this.runtimes.values()) {
       yield this.toPublic(rt);
     }
+  }
+
+  /**
+   * @beta Create an immutable, JSON-safe report for every managed runtime.
+   *
+   * Runtime ids and last errors are omitted. Each client applies its own
+   * diagnostics filters, bounds, and sanitization.
+   */
+  createDiagnosticReport(): ClientClusterDiagnosticReport {
+    const runtimes = Object.freeze(
+      [...this.runtimes.values()].map((runtime, index) =>
+        Object.freeze({
+          index,
+          status: runtime.status,
+          report: runtime.client.createDiagnosticReport(),
+        }),
+      ),
+    );
+    const state = Object.freeze({
+      runtimes: this.runtimes.size,
+      pendingRuntimes: this.pending.size,
+      destroyed: this.destroyed,
+    });
+
+    return Object.freeze({
+      format: 'fluxerjs-cluster-diagnostics' as const,
+      schemaVersion: 1 as const,
+      generatedAt: new Date().toISOString(),
+      state,
+      runtimes,
+    });
   }
 
   /**
@@ -435,9 +498,16 @@ export class ClientCluster extends EventEmitter {
       if (input.client) {
         client = input.client;
       } else if (input.discovery !== undefined) {
-        client = await Client.fromDiscovery(input.discovery, {}, { signal: abort.signal });
+        client = await Client.fromDiscovery(
+          input.discovery,
+          { diagnostics: this.diagnostics },
+          { signal: abort.signal },
+        );
       } else {
-        client = new Client(input.clientOptions ?? {});
+        client = new Client({
+          diagnostics: this.diagnostics,
+          ...input.clientOptions,
+        });
       }
 
       throwIfAborted(abort.signal);

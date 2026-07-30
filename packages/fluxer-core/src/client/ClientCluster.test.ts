@@ -84,6 +84,65 @@ describe('ClientCluster (beta)', () => {
     expect(cluster.values()).toEqual([]);
   });
 
+  it('creates an immutable report without runtime ids or tokens', async () => {
+    mockSuccessfulLogin();
+    const cluster = new ClientCluster({
+      suppressBetaWarning: true,
+      diagnostics: true,
+    });
+    const runtime = await cluster.add({
+      id: 'private-production-name',
+      token: 'private-runtime-token',
+    });
+    runtime.client.diagnostics
+      .createSource('test')
+      .emit('info', 'checked', 'Runtime check completed');
+
+    const report = cluster.createDiagnosticReport();
+
+    expect(report).toMatchObject({
+      format: 'fluxerjs-cluster-diagnostics',
+      schemaVersion: 1,
+      state: {
+        runtimes: 1,
+        pendingRuntimes: 0,
+        destroyed: false,
+      },
+      runtimes: [
+        {
+          index: 0,
+          status: 'ready',
+          report: {
+            format: 'fluxerjs-diagnostics',
+            events: [{ code: 'test.checked' }],
+          },
+        },
+      ],
+    });
+    expect(Object.isFrozen(report)).toBe(true);
+    expect(Object.isFrozen(report.runtimes)).toBe(true);
+    expect(JSON.stringify(report)).not.toMatch(/private-production-name|private-runtime-token/);
+  });
+
+  it('allows runtime client options to override the cluster diagnostic default', async () => {
+    mockSuccessfulLogin();
+    const cluster = new ClientCluster({
+      suppressBetaWarning: true,
+      diagnostics: true,
+    });
+    const runtime = await cluster.add({
+      id: 'quiet',
+      token: 'token',
+      clientOptions: { diagnostics: false },
+    });
+
+    runtime.client.diagnostics
+      .createSource('test')
+      .emit('info', 'ignored', 'This event is disabled');
+
+    expect(runtime.client.createDiagnosticReport().events).toEqual([]);
+  });
+
   it('adds a hosted runtime with a required token', async () => {
     mockSuccessfulLogin();
     const cluster = new ClientCluster({ suppressBetaWarning: true });

@@ -247,6 +247,8 @@ export {
   BETA_CLIENT_CLUSTER_WARNING,
   type ClientRuntime,
   type ClientRuntimeStatus,
+  type ClientClusterDiagnosticRuntime,
+  type ClientClusterDiagnosticReport,
   type ClientClusterOptions,
   type AddClientRuntimeOptions,
   type RestartClientRuntimeOptions,
