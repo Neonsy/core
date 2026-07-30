@@ -8,9 +8,10 @@
  *   apps/docs/public/api/versions.json      — manifest
  *   apps/docs/public/guides/v<version>/     — MDX guide snapshots per tag
  *
- * Deploy clones are often shallow (depth 1). Before generating tagged docs we
- * `git fetch --tags` so older release commits are available for worktrees.
- * Set DOCS_ALLOW_PARTIAL=1 to warn instead of failing when a tag cannot be built.
+ * Deploy clones are often shallow and may lack an `origin` remote (e.g. Vercel).
+ * Before generating tagged docs we fetch v2.* tags from the GitHub HTTPS URL
+ * (override with DOCS_GIT_REMOTE). Set DOCS_ALLOW_PARTIAL=1 to warn instead of
+ * failing when a tag cannot be built.
  *
  * Tag checkouts have no node_modules; docgen still emits signatures from the
  * TypeScript AST. Cross-package type text may be less precise than a fully
@@ -37,6 +38,10 @@ import type { DocOutput } from '@fluxerjs/docgen';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
+
+/** Public repo used when `origin` is missing (common on Vercel). */
+const DEFAULT_DOCS_GIT_REMOTE = 'https://github.com/fluxerjs/core.git';
+const DEFAULT_GITHUB_REPO = 'fluxerjs/core';
 
 const PACKAGES: { id: string; name: string; pkgPath: string }[] = [
   { id: 'core', name: '@fluxerjs/core', pkgPath: 'packages/fluxer-core' },
@@ -96,11 +101,95 @@ function formatGitError(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+/** HTTPS git URL to fetch release tags from (does not require a named remote). */
+function getDocsGitRemote(): string {
+  const fromEnv = process.env.DOCS_GIT_REMOTE?.trim();
+  if (fromEnv) return fromEnv;
+
+  // Vercel deploy clones often omit or break `origin`; use the public HTTPS URL.
+  if (process.env.VERCEL) return DEFAULT_DOCS_GIT_REMOTE;
+
+  try {
+    const origin = execFileSync('git', ['remote', 'get-url', 'origin'], {
+      cwd: root,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+    if (origin) return origin;
+  } catch {
+    /* no origin — use public GitHub URL */
+  }
+
+  return DEFAULT_DOCS_GIT_REMOTE;
+}
+
+/** owner/repo for GitHub API, derived from a git remote URL when possible. */
+function getGithubRepoSlug(remote: string): string {
+  const fromEnv = process.env.DOCS_GITHUB_REPO?.trim();
+  if (fromEnv) return fromEnv;
+
+  const m =
+    /github\.com[/:]([^/]+)\/([^/.]+?)(?:\.git)?$/i.exec(remote.trim()) ??
+    /github\.com\/([^/]+)\/([^/.]+)/i.exec(remote);
+  if (m) return `${m[1]}/${m[2]}`;
+  return DEFAULT_GITHUB_REPO;
+}
+
+function githubAuthHeaders(): Record<string, string> {
+  const token =
+    process.env.GITHUB_TOKEN?.trim() ||
+    process.env.GH_TOKEN?.trim() ||
+    process.env.VERCEL_GIT_PROVIDER_TOKEN?.trim();
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': 'fluxerjs-generate-docs',
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
+/**
+ * List v2.* release tag names via the GitHub Tags API.
+ * Returns versions without the leading `v`, newest first.
+ */
+async function listV2TagsFromGithub(repo: string): Promise<string[]> {
+  const headers = githubAuthHeaders();
+  const versions: string[] = [];
+  let page = 1;
+
+  // Tags API is simpler than matching-refs and returns newest-first.
+  for (;;) {
+    const url = `https://api.github.com/repos/${repo}/tags?per_page=100&page=${page}`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`GitHub tags API ${res.status}: ${body.slice(0, 200) || res.statusText}`);
+    }
+    const batch = (await res.json()) as { name?: string }[];
+    if (!Array.isArray(batch) || batch.length === 0) break;
+
+    for (const tag of batch) {
+      const name = tag.name?.trim();
+      if (!name) continue;
+      const version = name.startsWith('v') ? name.slice(1) : name;
+      if (isV2OrNewer(version)) versions.push(version);
+    }
+
+    if (batch.length < 100) break;
+    page += 1;
+    if (page > 20) break; // safety cap
+  }
+
+  return [...new Set(versions)].sort(compareSemverDesc);
+}
+
 /**
  * Ensure release tags (and their commits) exist locally.
- * Shallow deploy clones only have HEAD; without this, older versions are skipped.
+ * Shallow deploy clones only have HEAD and often lack `origin`; fetch from the
+ * GitHub HTTPS URL (or DOCS_GIT_REMOTE) so older versions can be worktree'd.
  */
-function ensureReleaseTags(): void {
+async function ensureReleaseTags(): Promise<void> {
+  let inGitRepo = true;
   let shallow = false;
   try {
     shallow =
@@ -109,25 +198,55 @@ function ensureReleaseTags(): void {
         encoding: 'utf-8',
       }).trim() === 'true';
   } catch {
-    /* not a git repo or git missing — listV2Tags will handle it */
+    inGitRepo = false;
+  }
+
+  if (!inGitRepo) {
+    console.warn('[generate-docs] not a git repository; cannot fetch tagged versions');
     return;
   }
 
+  const remote = getDocsGitRemote();
   console.log(
     shallow
-      ? '[generate-docs] shallow clone detected; fetching release tags…'
-      : '[generate-docs] fetching release tags…',
+      ? `[generate-docs] shallow clone detected; fetching release tags from ${remote}…`
+      : `[generate-docs] fetching release tags from ${remote}…`,
   );
 
+  const repo = getGithubRepoSlug(remote);
+  let remoteVersions: string[] = [];
   try {
-    execFileSync('git', ['fetch', '--tags', '--force', 'origin'], {
-      cwd: root,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    remoteVersions = await listV2TagsFromGithub(repo);
+    console.log(
+      `[generate-docs] GitHub ${repo}: ${remoteVersions.length} v2.* tag(s): ${remoteVersions.join(', ') || '(none)'}`,
+    );
   } catch (err) {
     console.warn(
-      `[generate-docs] could not fetch tags from origin (continuing with local tags): ${formatGitError(err)}`,
+      `[generate-docs] could not list tags via GitHub API (will try git fetch --tags): ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  try {
+    if (remoteVersions.length > 0) {
+      // Fetch only the tags we need (works without a named remote; deepens shallow clones).
+      const refspecs = remoteVersions.map((v) => `+refs/tags/v${v}:refs/tags/v${v}`);
+      execFileSync('git', ['fetch', '--force', '--no-tags', remote, ...refspecs], {
+        cwd: root,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        maxBuffer: 32 * 1024 * 1024,
+      });
+    } else {
+      execFileSync('git', ['fetch', '--tags', '--force', remote], {
+        cwd: root,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        maxBuffer: 32 * 1024 * 1024,
+      });
+    }
+  } catch (err) {
+    console.warn(
+      `[generate-docs] could not fetch tags from ${remote} (continuing with local tags): ${formatGitError(err)}`,
     );
   }
 }
@@ -329,7 +448,7 @@ async function main(): Promise<void> {
   const latestDocs = buildCombinedDocs(root, latestVersion);
   writeDocsFile(resolve(API_DIR, 'main.json'), latestDocs);
 
-  ensureReleaseTags();
+  await ensureReleaseTags();
   const tags = listV2Tags();
   console.log(`[generate-docs] found ${tags.length} v2.* tag(s): ${tags.join(', ') || '(none)'}`);
 
@@ -367,7 +486,7 @@ async function main(): Promise<void> {
     } else {
       console.error(message);
       console.error(
-        '[generate-docs] Fix: ensure git can resolve those tags (fetch --tags), or set DOCS_ALLOW_PARTIAL=1',
+        '[generate-docs] Fix: ensure tags can be fetched from GitHub (network / DOCS_GIT_REMOTE), or set DOCS_ALLOW_PARTIAL=1',
       );
       process.exit(1);
     }
