@@ -45,6 +45,11 @@ const DEFAULT_GITHUB_REPO = 'fluxerjs/core';
 
 const PACKAGES: { id: string; name: string; pkgPath: string }[] = [
   { id: 'core', name: '@fluxerjs/core', pkgPath: 'packages/fluxer-core' },
+  {
+    id: 'diagnostics',
+    name: '@fluxerjs/diagnostics',
+    pkgPath: 'packages/diagnostics',
+  },
   { id: 'builders', name: '@fluxerjs/builders', pkgPath: 'packages/builders' },
   { id: 'rest', name: '@fluxerjs/rest', pkgPath: 'packages/rest' },
   { id: 'ws', name: '@fluxerjs/ws', pkgPath: 'packages/ws' },

@@ -11,6 +11,15 @@ const require = createRequire(import.meta.url);
 
 const iterations = 5;
 
+async function exerciseDiagnostics() {
+  const m = await import('@fluxerjs/diagnostics');
+  const diagnostics = new m.DiagnosticsController({ maxEvents: 1 });
+  diagnostics.createSource('smoke').emit('info', 'ready', 'Ready');
+  if (diagnostics.snapshot()[0]?.code !== 'smoke.ready') {
+    throw new Error('DiagnosticsController failed');
+  }
+}
+
 async function exerciseTypes() {
   const m = await import('@fluxerjs/types');
   const Routes = m.Routes;
@@ -74,6 +83,7 @@ async function exerciseVoice() {
 }
 
 const suites = [
+  exerciseDiagnostics,
   exerciseTypes,
   exerciseUtil,
   exerciseCollection,

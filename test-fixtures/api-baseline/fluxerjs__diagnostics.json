@@ -1,0 +1,29 @@
+{
+  "package": "@fluxerjs/diagnostics",
+  "generatedAt": "2026-07-30T09:16:34.890Z",
+  "entries": [
+    {
+      "subpath": ".",
+      "exports": [
+        "DiagnosticComponentRegistration",
+        "DiagnosticData",
+        "DiagnosticError",
+        "DiagnosticEvent",
+        "DiagnosticInputData",
+        "DiagnosticLevel",
+        "DiagnosticPrimitive",
+        "DiagnosticReport",
+        "DiagnosticReportContext",
+        "DiagnosticSink",
+        "DiagnosticSource",
+        "DiagnosticValue",
+        "DiagnosticsController",
+        "DiagnosticsOptions",
+        "DiagnosticsStats",
+        "sanitizeDiagnosticData",
+        "sanitizeDiagnosticString",
+        "serializeDiagnosticError"
+      ]
+    }
+  ]
+}

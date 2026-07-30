@@ -1,6 +1,6 @@
 /**
  * Enforce acyclic package dependency layers.
- * types(0), collection(0) → util(1) → rest|ws|builders(2) → core(3) → voice(4)
+ * diagnostics(0), types(0), collection(0) → util(1) → rest|ws|builders(2) → core(3) → voice(4)
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const LAYER: Record<string, number> = {
+  '@fluxerjs/diagnostics': 0,
   '@fluxerjs/types': 0,
   '@fluxerjs/collection': 0,
   '@fluxerjs/util': 1,
@@ -20,6 +21,7 @@ const LAYER: Record<string, number> = {
 };
 
 const PKG_DIRS: Record<string, string> = {
+  '@fluxerjs/diagnostics': 'packages/diagnostics',
   '@fluxerjs/types': 'packages/types',
   '@fluxerjs/collection': 'packages/collection',
   '@fluxerjs/util': 'packages/util',

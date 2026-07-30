@@ -9,6 +9,16 @@
 
 const TESTS = [
   {
+    pkg: '@fluxerjs/diagnostics',
+    exercise: async (m) => {
+      const diagnostics = new m.DiagnosticsController({ maxEvents: 1 });
+      diagnostics.createSource('smoke').emit('info', 'ready', 'Ready');
+      if (diagnostics.snapshot()[0]?.code !== 'smoke.ready') {
+        throw new Error('DiagnosticsController failed');
+      }
+    },
+  },
+  {
     pkg: '@fluxerjs/types',
     exercise: async (m) => {
       if (typeof m.Routes?.channel !== 'function') throw new Error('Routes.channel missing');

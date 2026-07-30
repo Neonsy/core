@@ -1,0 +1,57 @@
+{
+  "name": "@fluxerjs/diagnostics",
+  "publishConfig": {
+    "access": "public"
+  },
+  "version": "1.0.0",
+  "description": "Structured diagnostics primitives for Fluxer SDK packages",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fluxerjs/core.git",
+    "directory": "packages/diagnostics"
+  },
+  "bugs": "https://github.com/fluxerjs/core/issues",
+  "homepage": "https://fluxerjs.blstmo.com",
+  "keywords": [
+    "fluxer",
+    "diagnostics",
+    "debugging",
+    "observability",
+    "sdk"
+  ],
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

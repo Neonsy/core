@@ -23,6 +23,7 @@ const ROOT = path.resolve(__dirname, '..');
 
 /** Dependency order: no internal deps first, then dependents */
 const PACKAGES = [
+  { name: '@fluxerjs/diagnostics', dir: 'packages/diagnostics' },
   { name: '@fluxerjs/types', dir: 'packages/types' },
   { name: '@fluxerjs/util', dir: 'packages/util' },
   { name: '@fluxerjs/collection', dir: 'packages/collection' },

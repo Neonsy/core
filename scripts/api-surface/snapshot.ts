@@ -16,6 +16,11 @@ const PACKAGES: Array<{
   entries: Array<{ subpath: string; file: string }>;
 }> = [
   {
+    name: '@fluxerjs/diagnostics',
+    dir: 'packages/diagnostics',
+    entries: [{ subpath: '.', file: 'src/index.ts' }],
+  },
+  {
     name: '@fluxerjs/types',
     dir: 'packages/types',
     entries: [

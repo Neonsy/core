@@ -11,6 +11,7 @@
  */
 
 const PACKAGES = [
+  '@fluxerjs/diagnostics',
   '@fluxerjs/types',
   '@fluxerjs/types/routes',
   '@fluxerjs/util',
