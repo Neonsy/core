@@ -15,11 +15,7 @@ import { ErrorCodes } from '../LibErrors/ErrorCodes.js';
 import { FluxerError } from '../LibErrors/FluxerError.js';
 import type { Client } from './Client.js';
 import { ClientUser } from './ClientUser.js';
-import {
-  emitClientError,
-  flushDeferredGatewayDispatches,
-  handleGatewayDispatch,
-} from './GatewayDispatch.js';
+import { emitClientError, flushDeferredGatewayDispatches } from './GatewayDispatch.js';
 
 export type ReadyPayload = GatewayReadyDispatchData;
 
@@ -126,9 +122,7 @@ export async function connectClientGateway(
   });
 
   ws.on('dispatch', ({ payload }: { payload: GatewayReceivePayload }) => {
-    handleGatewayDispatch(client, payload, client._deferredGatewayDispatches).catch(
-      (err: unknown) => emitClientError(client, err),
-    );
+    client._handleDispatch(payload).catch((err: unknown) => emitClientError(client, err));
   });
   ws.on('ready', ({ data }: { data: ReadyPayload }) => {
     handleReadyPayload(client, data);
