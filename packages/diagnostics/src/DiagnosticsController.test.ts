@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DiagnosticsController } from './DiagnosticsController.js';
 import { serializeDiagnosticError } from './errors.js';
-import { sanitizeDiagnosticData } from './sanitize.js';
+import { sanitizeDiagnosticData, sanitizeDiagnosticString } from './sanitize.js';
 
 describe('DiagnosticsController', () => {
   it('does not evaluate event data when disabled', () => {
@@ -86,8 +86,10 @@ describe('DiagnosticsController', () => {
     source.emit('error', 'request.failed', 'Request failed', () => ({
       token: 'secret',
       nested: {
+        auth: 'private-auth',
         authorization: 'Bot abcdefghijklmnop',
         guildId: '123456789012345678',
+        passphrase: 'private-passphrase',
       },
       error: source.error(error),
     }));
@@ -95,10 +97,20 @@ describe('DiagnosticsController', () => {
     const serialized = JSON.stringify(diagnostics.snapshot()[0]);
     expect(serialized).not.toContain('secret-token-value');
     expect(serialized).not.toContain('private response');
+    expect(serialized).not.toContain('private-auth');
+    expect(serialized).not.toContain('private-passphrase');
     expect(serialized).not.toContain('123456789012345678');
     expect(serialized).toContain('[REDACTED]');
     expect(serialized).toContain('REQUEST_FAILED');
     expect(serialized).toContain('503');
+  });
+
+  it('redacts credentials that cross the string limit', () => {
+    const sanitized = sanitizeDiagnosticString(`${'x'.repeat(2_038)} Bearer super-secret-token`);
+
+    expect(sanitized).not.toContain('super-secret-token');
+    expect(sanitized).not.toContain('Bearer su');
+    expect(sanitized.length).toBeLessThanOrEqual(2_049);
   });
 
   it('captures error stacks only when explicitly enabled', () => {

@@ -1,13 +1,17 @@
 import type { DiagnosticData, DiagnosticValue } from './types.js';
 
 const SENSITIVE_KEY_PARTS = new Set([
+  'auth',
+  'authentication',
   'authorization',
   'cookie',
   'credential',
   'headers',
+  'passphrase',
   'password',
   'secret',
   'session',
+  'signature',
   'token',
   'body',
   'content',
@@ -15,8 +19,9 @@ const SENSITIVE_KEY_PARTS = new Set([
   'url',
   'endpoint',
 ]);
-const AUTH_VALUE = /\b(?:Bot|Bearer)\s+[A-Za-z0-9._~+/-]{8,}=*/gi;
+const AUTH_VALUE = /\b(?:Bot|Bearer)\s+[A-Za-z0-9._~+/-]+=*/gi;
 const JWT_VALUE = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\b/g;
+const TRAILING_JWT_VALUE = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*(?:\.[A-Za-z0-9_-]*)?$/g;
 const WEBHOOK_VALUE = /(\/webhooks\/(?:\d{17,19}|:id)\/)[^/\s]+/gi;
 const URL_QUERY = /(\b[a-z][a-z0-9+.-]*:\/\/[^\s?#]+)[?#][^\s]*/gi;
 const SNOWFLAKE = /\b\d{17,19}\b/g;
@@ -27,6 +32,7 @@ const MAX_DEPTH = 8;
 const MAX_KEYS = 64;
 const MAX_ARRAY_LENGTH = 64;
 const MAX_STRING_LENGTH = 2_048;
+const REDACTION_LOOKAHEAD = 64;
 
 export interface SanitizedDiagnosticData {
   readonly data: DiagnosticData;
@@ -46,14 +52,20 @@ function isSensitiveKey(key: string): boolean {
 }
 
 export function sanitizeDiagnosticString(value: string): string {
-  const bounded =
-    value.length > MAX_STRING_LENGTH ? `${value.slice(0, MAX_STRING_LENGTH)}…` : value;
-  return bounded
+  const inspected =
+    value.length > MAX_STRING_LENGTH
+      ? value.slice(0, MAX_STRING_LENGTH + REDACTION_LOOKAHEAD)
+      : value;
+  const redacted = inspected
     .replace(AUTH_VALUE, (match) => `${match.split(/\s/, 1)[0]} ${REDACTED}`)
     .replace(JWT_VALUE, REDACTED)
+    .replace(TRAILING_JWT_VALUE, REDACTED)
     .replace(WEBHOOK_VALUE, `$1${REDACTED}`)
     .replace(URL_QUERY, `$1?${REDACTED}`)
     .replace(SNOWFLAKE, ':id');
+  return redacted.length > MAX_STRING_LENGTH
+    ? `${redacted.slice(0, MAX_STRING_LENGTH)}…`
+    : redacted;
 }
 
 export function sanitizeDiagnosticData(value: unknown): SanitizedDiagnosticData {
