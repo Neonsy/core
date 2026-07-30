@@ -147,6 +147,7 @@ export async function connectClientGateway(
     },
     version: client.options.rest?.version ?? '1',
     debug: client.options.gatewayDebug !== false,
+    diagnostics: client.diagnostics.createSource('gateway'),
     WebSocket: client.options.WebSocket,
   });
 

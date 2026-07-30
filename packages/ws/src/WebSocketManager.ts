@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import type { DiagnosticSource } from '@fluxerjs/diagnostics';
 import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import type { APIGatewayBotResponse, GatewayPresenceUpdateData } from '@fluxerjs/types';
 import { WebSocketShard, type WebSocketConstructor } from './WebSocketShard.js';
@@ -35,17 +36,22 @@ function isNonRetryableError(err: unknown): boolean {
 async function retryUntil<T>(
   isAborted: () => boolean,
   attempt: () => Promise<T>,
-  onError: (error: Error) => void,
+  onError: (error: Error, attempt: number, retryInMs: number | null) => void,
 ): Promise<T | null> {
   let delayMs = RETRY_INITIAL_MS;
+  let attemptNumber = 0;
   while (!isAborted()) {
+    attemptNumber++;
     try {
       return await attempt();
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      onError(error);
       // Auth / client errors must fail login — do not spin forever.
-      if (isNonRetryableError(err)) throw error;
+      if (isNonRetryableError(err)) {
+        onError(error, attemptNumber, null);
+        throw error;
+      }
+      onError(error, attemptNumber, delayMs);
       await sleep(delayMs);
       delayMs = Math.min(RETRY_MAX_MS, Math.floor(delayMs * 1.5));
     }
@@ -54,6 +60,8 @@ async function retryUntil<T>(
 }
 
 export interface WebSocketManagerOptions {
+  /** Optional structured diagnostic destination. */
+  diagnostics?: DiagnosticSource;
   token: string;
   intents: number;
   rest: { get: (route: string) => Promise<unknown> };
@@ -79,15 +87,53 @@ export class WebSocketManager extends EventEmitter {
   }
 
   async connect(): Promise<void> {
+    const startedAt = Date.now();
+    this.diagnostic('debug', 'connect.started', 'Gateway connection started');
+    try {
+      await this.executeConnect();
+      this.diagnostic('info', 'connect.initialized', 'Gateway shards initialized', () => ({
+        shardCount: this.shardCount,
+        initializedShards: this.shards.size,
+        durationMs: Math.max(0, Date.now() - startedAt),
+      }));
+    } catch (error) {
+      this.diagnostic('error', 'connect.failed', 'Gateway connection failed', () => ({
+        durationMs: Math.max(0, Date.now() - startedAt),
+        error: diagnosticErrorMetadata(error, this.options.diagnostics),
+      }));
+      throw error;
+    }
+  }
+
+  private async executeConnect(): Promise<void> {
     this.aborted = false;
-    const emitManagerError = (error: Error): void => {
+    const emitManagerError = (
+      stage: 'websocket' | 'gateway',
+      error: Error,
+      attempt: number,
+      retryInMs: number | null,
+    ): void => {
       this.emit('error', { shardId: -1, error });
+      this.diagnostic(
+        retryInMs === null ? 'error' : 'warn',
+        'connect.attempt_failed',
+        'Gateway connection attempt failed',
+        () => ({
+          stage,
+          attempt,
+          retryInMs,
+          error: diagnosticErrorMetadata(error, this.options.diagnostics),
+        }),
+      );
     };
     const isAborted = (): boolean => this.aborted;
 
     let WS = this.options.WebSocket;
     if (!WS) {
-      WS = (await retryUntil(isAborted, getDefaultWebSocket, emitManagerError)) ?? undefined;
+      WS =
+        (await retryUntil(isAborted, getDefaultWebSocket, (error, attempt, retryInMs) =>
+          emitManagerError('websocket', error, attempt, retryInMs),
+        )) ?? undefined;
       if (this.aborted) {
         throw new FluxerError('Connection aborted', { code: ErrorCodes.GatewayConnectionAborted });
       }
@@ -107,7 +153,7 @@ export class WebSocketManager extends EventEmitter {
         }
         return raw;
       },
-      emitManagerError,
+      (error, attempt, retryInMs) => emitManagerError('gateway', error, attempt, retryInMs),
     );
 
     if (this.aborted) {
@@ -135,6 +181,7 @@ export class WebSocketManager extends EventEmitter {
         numShards: this.shardCount,
         version,
         debug: this.options.debug,
+        diagnostics: this.options.diagnostics,
         WebSocket: WS,
       });
 
@@ -166,9 +213,74 @@ export class WebSocketManager extends EventEmitter {
     for (const shard of this.shards.values()) shard.destroy();
     this.shards.clear();
     this.gatewayUrl = null;
+    this.diagnostic('debug', 'manager.destroyed', 'Gateway manager destroyed');
   }
 
   getShardCount(): number {
     return this.shardCount;
   }
+
+  private diagnostic(
+    level: 'debug' | 'info' | 'warn' | 'error',
+    code: string,
+    summary: string,
+    data?: () => Record<string, unknown>,
+  ): void {
+    try {
+      this.options.diagnostics?.emit(level, code, summary, data);
+    } catch {
+      // Diagnostics must not affect gateway behavior.
+    }
+  }
+}
+
+function safeErrorProperty(error: unknown, key: string): unknown {
+  if (typeof error !== 'object' || error === null) return undefined;
+  try {
+    return Reflect.get(error, key);
+  } catch {
+    return undefined;
+  }
+}
+
+function diagnosticStack(source: DiagnosticSource | undefined, error: unknown): string | undefined {
+  try {
+    const stack = source?.error(error).stack;
+    return typeof stack === 'string' ? stack : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function diagnosticErrorMetadata(
+  error: unknown,
+  source: DiagnosticSource | undefined,
+): Record<string, unknown> {
+  const rawName = safeErrorProperty(error, 'name');
+  const rawCode = safeErrorProperty(error, 'code');
+  const rawStatus = safeErrorProperty(error, 'statusCode') ?? safeErrorProperty(error, 'status');
+  const retryable = safeErrorProperty(error, 'isRetryable');
+  const stack = diagnosticStack(source, error);
+  const name =
+    typeof rawName === 'string' && /^[a-z][a-z0-9]*$/i.test(rawName)
+      ? rawName.slice(0, 64)
+      : 'Error';
+  const code =
+    typeof rawCode === 'number' ||
+    (typeof rawCode === 'string' && rawCode.length <= 128 && /^[a-z0-9_.-]+$/i.test(rawCode))
+      ? rawCode
+      : undefined;
+  return {
+    name,
+    message: 'Gateway operation failed',
+    ...(code !== undefined ? { code } : {}),
+    ...(typeof rawStatus === 'number' &&
+    Number.isInteger(rawStatus) &&
+    rawStatus >= 100 &&
+    rawStatus <= 599
+      ? { statusCode: rawStatus }
+      : {}),
+    ...(typeof retryable === 'boolean' ? { retryable } : {}),
+    ...(stack ? { stack } : {}),
+  };
 }

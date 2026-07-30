@@ -7,6 +7,7 @@ import type {
   GatewayPresenceUpdateData,
   GatewayDispatchEventName,
 } from '@fluxerjs/types';
+import type { DiagnosticSource } from '@fluxerjs/diagnostics';
 import { GatewayOpcodes } from '@fluxerjs/types';
 import { EventEmitter } from 'events';
 import { getDefaultWebSocketSync } from './utils/getWebSocket.js';
@@ -22,6 +23,8 @@ export type WebSocketLike = {
 export type WebSocketConstructor = new (url: string) => WebSocketLike;
 
 export interface WebSocketShardOptions {
+  /** Optional structured diagnostic destination. */
+  diagnostics?: DiagnosticSource;
   url: string;
   token: string;
   intents: number;
@@ -172,12 +175,14 @@ export class WebSocketShard extends EventEmitter {
     this.clearReconnectTimer();
     this.phase = Phase.Connecting;
     this.debug('Connecting');
+    this.diagnostic('debug', 'shard.connecting', 'Gateway shard connecting');
 
     try {
       this.ws = new this.WS(this.url);
     } catch (err) {
       this.phase = Phase.Idle;
       this.emit('error', asError(err));
+      this.diagnostic('error', 'shard.connection_failed', 'Gateway shard connection failed');
       this.scheduleReconnect();
       return;
     }
@@ -186,6 +191,11 @@ export class WebSocketShard extends EventEmitter {
       this.phase = Phase.Idle;
       this.ws = null;
       this.emit('error', new Error('WebSocket implementation missing event API'));
+      this.diagnostic(
+        'error',
+        'shard.connection_failed',
+        'Gateway WebSocket implementation is invalid',
+      );
       this.scheduleReconnect();
     }
   }
@@ -203,6 +213,7 @@ export class WebSocketShard extends EventEmitter {
     this.ws = null;
     this.sessionId = null;
     this.seq = null;
+    this.diagnostic('debug', 'shard.destroyed', 'Gateway shard destroyed');
   }
 
   /** @internal — exposed for tests */
@@ -220,6 +231,9 @@ export class WebSocketShard extends EventEmitter {
       case GatewayOpcodes.InvalidSession: {
         const resumable = Boolean(payload.d);
         this.debug(`Invalid session (resumable=${resumable}), reconnecting`);
+        this.diagnostic('warn', 'session.invalid', 'Gateway session invalidated', () => ({
+          resumable,
+        }));
         if (!resumable) {
           this.sessionId = null;
           this.seq = null;
@@ -229,6 +243,7 @@ export class WebSocketShard extends EventEmitter {
       }
       case GatewayOpcodes.Reconnect:
         this.debug('Reconnect requested');
+        this.diagnostic('info', 'reconnect.requested', 'Gateway requested a reconnect');
         this.ws?.close(1000);
         break;
       case GatewayOpcodes.Heartbeat:
@@ -237,6 +252,7 @@ export class WebSocketShard extends EventEmitter {
       case GatewayOpcodes.GatewayError: {
         const detail = formatGatewayErrorDetail(payload.d);
         this.debug(`Gateway error: ${detail}`);
+        this.diagnostic('error', 'gateway.error', 'Gateway reported an error');
         this.emit('error', new Error(`Gateway error: ${detail}`));
         break;
       }
@@ -268,6 +284,7 @@ export class WebSocketShard extends EventEmitter {
     this.phase = Phase.Open;
     this.reconnectDelayMs = RECONNECT_INITIAL_MS;
     this.debug('Socket open');
+    this.diagnostic('info', 'shard.opened', 'Gateway shard socket opened');
   }
 
   private onMessage(raw: unknown): void {
@@ -276,11 +293,13 @@ export class WebSocketShard extends EventEmitter {
       const payload = narrowGatewayPayload(JSON.parse(messageDataToString(raw)) as unknown);
       if (!payload) {
         this.emit('error', new TypeError('Invalid gateway payload'));
+        this.diagnostic('warn', 'payload.invalid', 'Invalid gateway payload received');
         return;
       }
       this.handlePayload(payload);
     } catch (err) {
       this.emit('error', asError(err));
+      this.diagnostic('warn', 'payload.invalid', 'Gateway payload could not be decoded');
     }
   }
 
@@ -291,11 +310,19 @@ export class WebSocketShard extends EventEmitter {
     this.stopHeartbeat();
     this.emit('close', code);
     this.debug(`Closed: ${code}`);
-    if (shouldReconnectOnClose(code)) this.scheduleReconnect();
+    const reconnect = shouldReconnectOnClose(code);
+    this.diagnostic(
+      reconnect ? 'warn' : 'error',
+      'shard.closed',
+      'Gateway shard socket closed',
+      () => ({ closeCode: code, reconnect }),
+    );
+    if (reconnect) this.scheduleReconnect();
   }
 
   private onSocketError(err?: unknown): void {
     this.emit('error', asError(err));
+    this.diagnostic('error', 'shard.socket_error', 'Gateway shard socket failed');
     if (this.phase === Phase.Destroyed || !this.ws) return;
     this.phase = Phase.Idle;
     try {
@@ -315,9 +342,11 @@ export class WebSocketShard extends EventEmitter {
       const sessionId = narrowSessionId(payload.d);
       if (sessionId) this.sessionId = sessionId;
       this.reconnectDelayMs = RECONNECT_INITIAL_MS;
+      this.diagnostic('info', 'session.ready', 'Gateway session became ready');
       this.emit('ready', payload.d);
     } else if (payload.t === 'RESUMED') {
       this.reconnectDelayMs = RECONNECT_INITIAL_MS;
+      this.diagnostic('info', 'session.resumed', 'Gateway session resumed');
       this.emit('resumed');
     }
     this.emit('dispatch', payload);
@@ -327,6 +356,7 @@ export class WebSocketShard extends EventEmitter {
     const data = narrowHelloData(value);
     if (!data || data.heartbeat_interval <= 0) {
       this.emit('error', new TypeError('Invalid HELLO heartbeat_interval'));
+      this.diagnostic('error', 'hello.invalid', 'Gateway HELLO payload was invalid');
       return;
     }
 
@@ -371,6 +401,7 @@ export class WebSocketShard extends EventEmitter {
   private sendHeartbeat(): void {
     if (!this.lastHeartbeatAck && this.seq !== null) {
       this.debug('Heartbeat ack missed; reconnecting');
+      this.diagnostic('warn', 'heartbeat.missed', 'Gateway heartbeat acknowledgement missed');
       this.ws?.close(1000);
       return;
     }
@@ -394,6 +425,10 @@ export class WebSocketShard extends EventEmitter {
     const delay = Math.min(RECONNECT_MAX_MS, this.reconnectDelayMs * (0.75 + Math.random() * 0.5));
     this.reconnectDelayMs = Math.min(RECONNECT_MAX_MS, this.reconnectDelayMs * 1.5);
     this.debug(`Reconnecting in ${Math.round(delay)}ms…`);
+    this.diagnostic('info', 'reconnect.scheduled', 'Gateway shard reconnect scheduled', () => ({
+      delayMs: Math.round(delay),
+      resumable: this.sessionId !== null && this.seq !== null,
+    }));
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
       this.connect();
@@ -408,5 +443,21 @@ export class WebSocketShard extends EventEmitter {
 
   private debug(message: string): void {
     if (this.debugEnabled) this.emit('debug', `[Shard ${this.id}] ${message}`);
+  }
+
+  private diagnostic(
+    level: 'debug' | 'info' | 'warn' | 'error',
+    code: string,
+    summary: string,
+    data?: () => Record<string, unknown>,
+  ): void {
+    try {
+      this.options.diagnostics?.emit(level, code, summary, () => ({
+        shardId: this.id,
+        ...(data?.() ?? {}),
+      }));
+    } catch {
+      // Diagnostics must not affect gateway behavior.
+    }
   }
 }

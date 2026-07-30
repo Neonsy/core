@@ -398,6 +398,9 @@ importers:
 
   packages/ws:
     dependencies:
+      '@fluxerjs/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
       '@fluxerjs/types':
         specifier: workspace:*
         version: link:../types

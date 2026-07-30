@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { DiagnosticsController } from '@fluxerjs/diagnostics';
 import { GatewayOpcodes } from '@fluxerjs/types';
 import { WebSocketShard, narrowGatewayPayload, shouldReconnectOnClose } from './WebSocketShard.js';
 import { GatewayCloseCodes } from './utils/constants.js';
@@ -54,6 +55,88 @@ describe('shouldReconnectOnClose', () => {
 });
 
 describe('WebSocketShard', () => {
+  it('records sanitized lifecycle metadata without session data', () => {
+    const diagnostics = new DiagnosticsController();
+    const shard = new WebSocketShard({
+      url: 'wss://private.example',
+      token: 'private-token',
+      intents: 0,
+      shardId: 2,
+      numShards: 3,
+      diagnostics: diagnostics.createSource('gateway'),
+      WebSocket: MockWebSocket,
+    });
+    shard.on('error', () => {});
+
+    (
+      shard as unknown as {
+        onOpen: () => void;
+      }
+    ).onOpen();
+    shard.handlePayload({
+      op: GatewayOpcodes.Dispatch,
+      t: 'READY',
+      s: 1,
+      d: { session_id: 'private-session' },
+    });
+    (
+      shard as unknown as {
+        onClose: (code: number) => void;
+      }
+    ).onClose(GatewayCloseCodes.AuthenticationFailed);
+
+    expect(diagnostics.snapshot()).toMatchObject([
+      {
+        code: 'gateway.shard.opened',
+        data: { shardId: 2 },
+      },
+      {
+        code: 'gateway.session.ready',
+        data: { shardId: 2 },
+      },
+      {
+        code: 'gateway.shard.closed',
+        data: {
+          shardId: 2,
+          closeCode: GatewayCloseCodes.AuthenticationFailed,
+          reconnect: false,
+        },
+      },
+    ]);
+    expect(JSON.stringify(diagnostics.snapshot())).not.toMatch(
+      /private-token|private-session|private\.example/,
+    );
+  });
+
+  it('isolates custom diagnostic source failures from shard events', () => {
+    const shard = new WebSocketShard({
+      url: 'wss://gateway.fluxer.app',
+      token: 'test-token',
+      intents: 0,
+      shardId: 0,
+      numShards: 1,
+      diagnostics: {
+        component: 'gateway',
+        isEnabled: () => true,
+        emit: () => {
+          throw new Error('sink failed');
+        },
+        error: () => ({ name: 'Error', message: 'failed' }),
+      },
+      WebSocket: MockWebSocket,
+    });
+    const ready = vi.fn();
+    shard.on('ready', ready);
+
+    shard.handlePayload({
+      op: GatewayOpcodes.Dispatch,
+      t: 'READY',
+      d: { session_id: 'session' },
+    });
+
+    expect(ready).toHaveBeenCalledOnce();
+  });
+
   it('emits error and debug when gateway sends GatewayError with string payload', () => {
     const shard = new WebSocketShard({
       url: 'wss://gateway.fluxer.app',
