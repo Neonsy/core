@@ -1,4 +1,9 @@
 import { EventEmitter } from 'events';
+import {
+  DiagnosticsController,
+  type DiagnosticReport,
+  type DiagnosticsOptions,
+} from '@fluxerjs/diagnostics';
 import { REST } from '@fluxerjs/rest';
 import type { WebSocketManager } from '@fluxerjs/ws';
 import { Routes } from '@fluxerjs/types';
@@ -64,6 +69,7 @@ import {
   finalizeClientReady,
   onClientGuildReceived,
 } from './GatewayReady.js';
+import corePackage from '../../package.json';
 
 export type { ClientEvents, ClientEventMethods } from './ClientEvents.js';
 export type { ResolvedInstance } from '../util/instance.js';
@@ -71,8 +77,30 @@ export type { ResolvedInstance } from '../util/instance.js';
 /** Bootstrap origin for {@link Client.fromDiscovery}. */
 export type DiscoveryOrigin = string | { api: string; version?: string };
 
+function resolveDiagnosticsOptions(options: ClientOptions['diagnostics']): DiagnosticsOptions {
+  if (options === true) return { enabled: true };
+  if (!options) return { enabled: false };
+  return { ...options, enabled: options.enabled ?? true };
+}
+
+function runtimeSnapshot(): Record<string, string> {
+  if (typeof process === 'undefined') return { name: 'unknown' };
+  return {
+    name: 'node',
+    version: process.versions.node,
+    platform: process.platform,
+    arch: process.arch,
+  };
+}
+
 /** Main Fluxer bot client. Connects to the gateway, emits events, and provides REST access. */
 export class Client extends EventEmitter {
+  /**
+   * Per-client structured diagnostics controller.
+   *
+   * Capture is disabled unless {@link ClientOptions.diagnostics} opts in.
+   */
+  readonly diagnostics: DiagnosticsController;
   /** REST client for making API requests. */
   readonly rest: REST;
   /**
@@ -108,6 +136,7 @@ export class Client extends EventEmitter {
 
   constructor(options: ClientOptions = {}) {
     super();
+    this.diagnostics = new DiagnosticsController(resolveDiagnosticsOptions(options.diagnostics));
     this.options = {
       ...options,
       cache: { ...DEFAULT_CACHE_LIMITS, ...options.cache },
@@ -135,6 +164,45 @@ export class Client extends EventEmitter {
       ...this.options.rest,
       api: this.instance.endpoints.api,
       version: this.options.rest?.version ?? '1',
+    });
+  }
+
+  /**
+   * Create an immutable, JSON-safe snapshot for troubleshooting.
+   *
+   * The report contains sanitized diagnostic events and non-sensitive runtime
+   * state. It is returned to the caller and is never sent or written by the SDK.
+   */
+  createDiagnosticReport(): DiagnosticReport {
+    let shardCount = 0;
+    try {
+      shardCount = this._ws?.getShardCount() ?? 0;
+    } catch {
+      // A report must remain available while the gateway is failing.
+    }
+
+    return this.diagnostics.createReport({
+      packages: {
+        [corePackage.name]: corePackage.version,
+      },
+      runtime: runtimeSnapshot(),
+      state: {
+        ready: this.isReady(),
+        readyAt: this.readyAt?.toISOString() ?? null,
+        connected: this._ws !== null,
+        shardCount,
+        pendingGuilds: this._pendingGuildIds?.size ?? 0,
+        deferredGatewayDispatches: this._deferredGatewayDispatches.length,
+        caches: {
+          guilds: this.guilds.size,
+          channels: this.channels.size,
+          users: this.users.size,
+        },
+        configuration: {
+          waitForGuilds: this.options.waitForGuilds === true,
+          gatewayDeferHandlers: this.options.gatewayDeferHandlers !== false,
+        },
+      },
     });
   }
 

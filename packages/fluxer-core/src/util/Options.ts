@@ -1,4 +1,5 @@
-import type { REST } from '@fluxerjs/rest';
+import type { RESTOptions } from '@fluxerjs/rest';
+import type { DiagnosticsOptions } from '@fluxerjs/diagnostics';
 import type { APIInstance, APIInstanceEndpoints, GatewayPresenceUpdateData } from '@fluxerjs/types';
 
 /**
@@ -44,6 +45,14 @@ export const DEFAULT_CACHE_LIMITS: Required<CacheSizeLimits> = {
  */
 export interface ClientOptions {
   /**
+   * Structured diagnostic capture. Disabled by default.
+   *
+   * Pass `true` for safe defaults, or an options object to select levels,
+   * components, retention, and an application-owned sink.
+   * Diagnostics never perform filesystem or network I/O.
+   */
+  diagnostics?: boolean | DiagnosticsOptions;
+  /**
    * Instance endpoints for this client (API, CDN, invite, etc.).
    * Pass a partial map to override hosted defaults, or a full discovery document.
    * Prefer this over `rest.api` for multi-instance / self-hosted bots.
@@ -53,8 +62,9 @@ export interface ClientOptions {
   /**
    * REST options. Prefer {@link ClientOptions.instance} for the API host.
    * If both `instance.api` (or resolved default) and `rest.api` are set and differ, construction throws.
+   * Diagnostics are configured through {@link ClientOptions.diagnostics}.
    */
-  rest?: Partial<ConstructorParameters<typeof REST>[0]>;
+  rest?: Omit<RESTOptions, 'diagnostics'>;
   /**
    * Gateway intents (Fluxer currently always sends `0`).
    * Reserved for future use.

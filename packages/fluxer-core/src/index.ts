@@ -1,4 +1,20 @@
 export { Client, type ClientEvents, type ClientEventMethods } from './client/Client.js';
+export {
+  DiagnosticsController,
+  type DiagnosticComponentRegistration,
+  type DiagnosticData,
+  type DiagnosticError,
+  type DiagnosticEvent,
+  type DiagnosticInputData,
+  type DiagnosticLevel,
+  type DiagnosticReport,
+  type DiagnosticReportContext,
+  type DiagnosticSink,
+  type DiagnosticsOptions,
+  type DiagnosticsStats,
+  type DiagnosticSource,
+  type DiagnosticValue,
+} from '@fluxerjs/diagnostics';
 export type {
   MessageDeleteBulkPayload,
   InviteDeletePayload,

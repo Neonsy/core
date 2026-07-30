@@ -270,6 +270,9 @@ importers:
       '@fluxerjs/collection':
         specifier: workspace:*
         version: link:../collection
+      '@fluxerjs/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
       '@fluxerjs/rest':
         specifier: workspace:*
         version: link:../rest
