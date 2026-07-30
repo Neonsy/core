@@ -61,6 +61,11 @@ export interface DiagnosticsOptions {
 export interface DiagnosticSource {
   readonly component: string;
   isEnabled(level: DiagnosticLevel): boolean;
+  /**
+   * Register package metadata and an optional report snapshot for this source.
+   * Custom source adapters may omit registration support.
+   */
+  registerComponent?(registration: DiagnosticComponentRegistration): () => void;
   emit(
     level: DiagnosticLevel,
     code: string,

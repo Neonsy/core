@@ -201,6 +201,7 @@ describe('DiagnosticsController', () => {
       format: 'fluxerjs-diagnostics',
       schemaVersion: 1,
       packages: {
+        '@fluxerjs/diagnostics': expect.stringMatching(/^\d+\.\d+\.\d+/),
         '@fluxerjs/core': '2.1.0',
         '@fluxerjs/ws': '2.1.0',
       },
@@ -218,6 +219,26 @@ describe('DiagnosticsController', () => {
     });
     expect(Object.isFrozen(report)).toBe(true);
     expect(Object.isFrozen(report.components.gateway)).toBe(true);
+  });
+
+  it('allows a scoped source to register its component', () => {
+    const diagnostics = new DiagnosticsController();
+    const source = diagnostics.createSource('worker');
+    const unregister = source.registerComponent?.({
+      package: {
+        name: '@fluxerjs/worker',
+        version: '1.2.3',
+      },
+      snapshot: () => ({ pending: 2 }),
+    });
+
+    expect(diagnostics.createReport()).toMatchObject({
+      packages: { '@fluxerjs/worker': '1.2.3' },
+      components: { worker: { pending: 2 } },
+    });
+
+    unregister?.();
+    expect(diagnostics.createReport().components.worker).toBeUndefined();
   });
 
   it('replaces oversized event data with bounded metadata', () => {

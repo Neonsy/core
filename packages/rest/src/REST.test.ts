@@ -62,6 +62,9 @@ describe('REST', () => {
     await rest.get('/gateway');
 
     expect(diagnostics.snapshot()).toMatchObject([{ code: 'rest.request.completed' }]);
+    expect(diagnostics.createReport().packages).toMatchObject({
+      '@fluxerjs/rest': expect.stringMatching(/^\d+\.\d+\.\d+/),
+    });
   });
 
   it('post sends body', async () => {

@@ -67,18 +67,22 @@ export class VoiceManager extends EventEmitter {
     this.shardId = options.shardId ?? 0;
     this.diagnostics =
       client.diagnostics?.createSource('voice') ?? NOOP_VOICE_DIAGNOSTICS;
-    client.diagnostics?.registerComponent('voice', {
-      package: {
-        name: voicePackage.name,
-        version: voicePackage.version,
-      },
-      snapshot: () => ({
-        activeConnections: this.connections.size,
-        pendingJoins: this.pending.size,
-        trackedGuilds: this.voiceStates.size,
-        shardId: this.shardId,
-      }),
-    });
+    try {
+      this.diagnostics.registerComponent?.({
+        package: {
+          name: voicePackage.name,
+          version: voicePackage.version,
+        },
+        snapshot: () => ({
+          activeConnections: this.connections.size,
+          pendingJoins: this.pending.size,
+          trackedGuilds: this.voiceStates.size,
+          shardId: this.shardId,
+        }),
+      });
+    } catch {
+      // Diagnostics must not affect voice construction.
+    }
     this.diagnostic('debug', 'manager.created', 'Voice manager created');
     this.client.on(Events.VoiceStateUpdate, (data: GatewayVoiceStateUpdateDispatchData) =>
       this.handleVoiceStateUpdate(data),

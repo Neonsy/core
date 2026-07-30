@@ -130,7 +130,7 @@ Sanitized stacks are the explicit exception to those error-text omissions when `
 enabled.
 
 The core report also includes cache sizes, readiness, shard count, selected configuration booleans,
-Node version, platform, architecture, and installed Fluxer package versions. It does not include
+Node version, platform, architecture, and active Fluxer package versions. It does not include
 instance endpoints.
 
 The shared sanitizer redacts sensitive property names, Bot/Bearer credentials, JWTs, webhook
@@ -214,6 +214,6 @@ resource IDs, or arbitrary error text. Keep expensive data behind a lazy factory
 events at their source, and never let diagnostic failure change the primary operation. Component
 names are limited to 64 characters and source-local event codes to 128 characters.
 
-Packages can use `registerComponent()` to contribute a package version and a small snapshot to
-`createDiagnosticReport()`. Registrations and events still pass through the same sanitizer and
-bounds.
+Packages can use `source.registerComponent?.()` to contribute a package version and a small
+snapshot to `createDiagnosticReport()`. Registrations and events still pass through the same
+sanitizer and bounds.

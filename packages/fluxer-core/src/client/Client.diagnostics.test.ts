@@ -57,6 +57,8 @@ describe('Client diagnostics', () => {
       format: 'fluxerjs-diagnostics',
       packages: {
         '@fluxerjs/core': expect.stringMatching(/^\d+\.\d+\.\d+/),
+        '@fluxerjs/diagnostics': expect.stringMatching(/^\d+\.\d+\.\d+/),
+        '@fluxerjs/rest': expect.stringMatching(/^\d+\.\d+\.\d+/),
       },
       state: {
         ready: false,

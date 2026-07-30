@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import type { DiagnosticSource } from '@fluxerjs/diagnostics';
 import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import type { APIGatewayBotResponse, GatewayPresenceUpdateData } from '@fluxerjs/types';
+import wsPackage from '../package.json';
 import { WebSocketShard, type WebSocketConstructor } from './WebSocketShard.js';
 import { getDefaultWebSocket } from './utils/getWebSocket.js';
 
@@ -84,6 +85,22 @@ export class WebSocketManager extends EventEmitter {
   constructor(options: WebSocketManagerOptions) {
     super();
     this.options = options;
+    try {
+      options.diagnostics?.registerComponent?.({
+        package: {
+          name: wsPackage.name,
+          version: wsPackage.version,
+        },
+        snapshot: () => ({
+          shardCount: this.shardCount,
+          initializedShards: this.shards.size,
+          connectedShards: [...this.shards.values()].filter((shard) => shard.status === 2).length,
+          destroyed: this.aborted,
+        }),
+      });
+    } catch {
+      // Diagnostics must not affect gateway construction.
+    }
   }
 
   async connect(): Promise<void> {

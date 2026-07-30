@@ -1,6 +1,7 @@
 import type { APIErrorBody, RateLimitErrorBody } from '@fluxerjs/types';
 import type { DiagnosticSource } from '@fluxerjs/diagnostics';
 import { FormData } from 'undici';
+import restPackage from '../package.json';
 import { FluxerAPIError, HTTPError, RateLimitError } from './errors/index.js';
 import { sharedFetch } from './fetch/sharedFetch.js';
 import { RateLimitManager } from './RateLimitManager.js';
@@ -307,6 +308,16 @@ export class RequestManager {
       ...(options.diagnostics ? { diagnostics: options.diagnostics } : {}),
       userAgent: options.userAgent ?? DEFAULT_USER_AGENT,
     };
+    try {
+      this.options.diagnostics?.registerComponent?.({
+        package: {
+          name: restPackage.name,
+          version: restPackage.version,
+        },
+      });
+    } catch {
+      // Diagnostics must not affect request manager construction.
+    }
   }
 
   setToken(token: string | null): void {

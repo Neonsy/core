@@ -91,6 +91,19 @@ describe('WebSocketManager.connect', () => {
     ]);
     const serialized = JSON.stringify(diagnostics.snapshot());
     expect(serialized).not.toMatch(/private-token|private\.example/);
+    expect(diagnostics.createReport()).toMatchObject({
+      packages: {
+        '@fluxerjs/ws': expect.stringMatching(/^\d+\.\d+\.\d+/),
+      },
+      components: {
+        gateway: {
+          shardCount: 1,
+          initializedShards: 1,
+          connectedShards: 0,
+          destroyed: false,
+        },
+      },
+    });
   });
 
   it('includes sanitized error stacks only when explicitly enabled', async () => {

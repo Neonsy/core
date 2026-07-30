@@ -17,6 +17,7 @@ import type {
   DiagnosticsStats,
   DiagnosticSource,
 } from './types.js';
+import diagnosticsPackage from '../package.json';
 
 const DEFAULT_MAX_EVENTS = 250;
 const DEFAULT_MAX_EVENT_BYTES = 16 * 1_024;
@@ -173,6 +174,8 @@ export class DiagnosticsController {
     return Object.freeze({
       component: normalizedComponent,
       isEnabled: (level: DiagnosticLevel) => this.isEnabled(normalizedComponent, level),
+      registerComponent: (registration: DiagnosticComponentRegistration) =>
+        this.registerComponent(normalizedComponent, registration),
       emit: (
         level: DiagnosticLevel,
         code: string,
@@ -219,6 +222,7 @@ export class DiagnosticsController {
   createReport(context: DiagnosticReportContext = {}): DiagnosticReport {
     const components: Record<string, DiagnosticData> = {};
     const packages: Record<string, string> = {};
+    addPackageVersion(packages, diagnosticsPackage.name, diagnosticsPackage.version);
     for (const [name, version] of Object.entries(context.packages ?? {})) {
       addPackageVersion(packages, name, version);
     }
