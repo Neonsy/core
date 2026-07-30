@@ -12,10 +12,11 @@
     "test:cjs": "node scripts/test-cjs-require.mjs",
     "test:load": "pnpm run test:esm && pnpm run test:cjs && pnpm run test:exports",
     "test:exports": "node scripts/test-package-exports.mjs",
+    "test:packages": "node scripts/test-packed-packages.mjs",
     "test:smoke": "node scripts/test-smoke.mjs",
     "test:bot": "node scripts/test-bot-login.mjs",
     "test:features": "node local/feature-suite/run.mjs",
-    "test:all": "pnpm run build && pnpm exec vitest run && pnpm run test:load && pnpm run test:smoke",
+    "test:all": "pnpm run build && pnpm run test:packages && pnpm exec vitest run && pnpm run test:load && pnpm run test:smoke",
     "test:report": "pnpm run build && pnpm exec vitest run --reporter json --outputFile.json=test-results/results.json",
     "format": "biome format --write .",
     "format:check": "node scripts/check-format.mjs",
@@ -53,6 +54,7 @@
     "check:casing": "pnpm exec tsx scripts/check-import-casing.ts"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "2.5.3",
     "@changesets/changelog-github": "^0.5.2",
     "@changesets/cli": "^2.29.8",
@@ -67,6 +69,7 @@
     "@fluxerjs/ws": "workspace:*",
     "@vitest/coverage-v8": "^4.1.0",
     "lint-staged": "^16.2.7",
+    "publint": "^0.3.22",
     "tsx": "^4.19.0",
     "turbo": "^2.9.14",
     "typescript": "^5.6.0",
