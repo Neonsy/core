@@ -57,7 +57,8 @@ async function dispatch(
   event: 'GUILD_CREATE' | 'GUILD_UPDATE' | 'GUILD_DELETE' | 'GUILD_COUNTS_UPDATE',
   data: unknown,
 ) {
-  await guildHandlers[event](client, data);
+  const handler = guildHandlers[event] as (client: Client, data: unknown) => void | Promise<void>;
+  await handler(client, data);
 }
 
 describe('guild availability lifecycle', () => {
