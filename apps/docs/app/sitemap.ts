@@ -5,6 +5,8 @@ import { getGuideSlugs } from '@/lib/guides';
 import { loadOpenApi } from '@/lib/openapi';
 import { absoluteUrl } from '@/lib/site';
 
+export const dynamic = 'force-static';
+
 function entry(
   pathname: string,
   opts?: Pick<MetadataRoute.Sitemap[number], 'changeFrequency' | 'priority'>,
