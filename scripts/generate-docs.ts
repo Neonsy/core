@@ -61,15 +61,22 @@ export interface VersionsManifest {
   versions: string[];
 }
 
+/** Working-tree SDK version — prefer `@fluxerjs/core`, then monorepo root. */
 function getVersion(repoRoot: string): string {
-  try {
-    const pkg = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf-8')) as {
-      version?: string;
-    };
-    return pkg.version ?? '2.0.0';
-  } catch {
-    return '2.0.0';
+  const candidates = [
+    resolve(repoRoot, 'packages/fluxer-core/package.json'),
+    resolve(repoRoot, 'package.json'),
+  ];
+  for (const file of candidates) {
+    try {
+      if (!existsSync(file)) continue;
+      const pkg = JSON.parse(readFileSync(file, 'utf-8')) as { version?: string };
+      if (pkg.version) return pkg.version;
+    } catch {
+      /* try next */
+    }
   }
+  return '2.0.0';
 }
 
 function parseSemver(version: string): [number, number, number] | null {

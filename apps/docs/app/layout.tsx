@@ -4,6 +4,7 @@ import { AppShell } from '@/components/AppShell';
 import { Providers } from '@/components/Providers';
 import { loadVersions } from '@/lib/api-docs';
 import { buildSearchIndex } from '@/lib/search-index';
+import { SITE_URL } from '@/lib/site';
 import './globals.css';
 
 const display = Figtree({ subsets: ['latin'], variable: '--font-display' });
@@ -11,6 +12,7 @@ const sans = Source_Sans_3({ subsets: ['latin'], variable: '--font-sans' });
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'Fluxer.js — Discord-like bot library for Fluxer',
     template: '%s · Fluxer.js',

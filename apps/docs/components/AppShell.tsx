@@ -9,6 +9,7 @@ import type { SearchItem, SearchKind } from '@/lib/search-index';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { HelpFab } from './FluxerInvite';
 import { SiteHeader } from './Header';
+import { DocsVersionProvider } from '@/lib/docs-version';
 import { cn } from '@/lib/utils';
 
 const KIND_META: Record<
@@ -81,12 +82,14 @@ export function AppShell({
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader onOpenSearch={() => setOpen(true)} latest={latest} versions={versions} />
-      <div className="flex-1">{children}</div>
-      <HelpFab />
-      <SearchCommand open={open} onOpenChange={setOpen} items={searchItems} />
-    </div>
+    <DocsVersionProvider latest={latest} versions={versions}>
+      <div className="flex min-h-screen flex-col">
+        <SiteHeader onOpenSearch={() => setOpen(true)} />
+        <div className="flex-1">{children}</div>
+        <HelpFab />
+        <SearchCommand open={open} onOpenChange={setOpen} items={searchItems} />
+      </div>
+    </DocsVersionProvider>
   );
 }
 

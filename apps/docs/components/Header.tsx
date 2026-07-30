@@ -19,6 +19,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { VersionPicker } from './VersionPicker';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { sectionIndexHref, useDocsVersion } from '@/lib/docs-version';
 import { cn } from '@/lib/utils';
 
 function GitHubIcon({ className }: { className?: string }): React.ReactElement {
@@ -31,7 +32,10 @@ function GitHubIcon({ className }: { className?: string }): React.ReactElement {
 
 const NAV: {
   label: string;
+  /** Static path used for sections that are not versioned. */
   href: string;
+  /** When set, top-bar link follows the preferred docs version. */
+  versioned?: 'guides' | 'docs';
   icon: LucideIcon;
   accent: string;
   accentHover: string;
@@ -39,6 +43,7 @@ const NAV: {
   {
     label: 'Guides',
     href: '/guides/',
+    versioned: 'guides',
     icon: BookOpen,
     accent: 'text-primary',
     accentHover: 'group-hover:text-primary',
@@ -46,6 +51,7 @@ const NAV: {
   {
     label: 'SDK',
     href: '/docs/',
+    versioned: 'docs',
     icon: Braces,
     accent: 'text-sky-500',
     accentHover: 'group-hover:text-sky-500',
@@ -73,16 +79,27 @@ const NAV: {
   },
 ];
 
+function navHref(
+  item: (typeof NAV)[number],
+  preferred: string,
+): string {
+  if (item.versioned) return sectionIndexHref(item.versioned, preferred);
+  return item.href;
+}
+
+function navActive(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
+  const base = href.replace(/\/$/, '');
+  return pathname === href || pathname === `${base}/` || pathname.startsWith(`${base}/`);
+}
+
 export function SiteHeader({
   onOpenSearch,
-  latest,
-  versions,
 }: {
   onOpenSearch?: () => void;
-  latest: string;
-  versions: string[];
 }): React.ReactElement {
   const pathname = usePathname();
+  const { preferred } = useDocsVersion();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [shortcut, setShortcut] = useState<string | null>(null);
 
@@ -113,12 +130,12 @@ export function SiteHeader({
             <nav className="flex flex-1 flex-col gap-1 p-3">
               {NAV.map((item) => {
                 const Icon = item.icon;
-                const active =
-                  pathname?.startsWith(item.href.replace(/\/$/, '')) || pathname === item.href;
+                const href = navHref(item, preferred);
+                const active = navActive(pathname, item.versioned ? `/${item.versioned}` : item.href);
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={href}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
                       'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
@@ -148,17 +165,18 @@ export function SiteHeader({
           <span className="truncate font-display text-base sm:text-lg">Fluxer.js</span>
         </Link>
 
-        <VersionPicker latest={latest} versions={versions} />
+        <VersionPicker />
 
         <nav className="ml-1 hidden items-center gap-0.5 rounded-full border border-border/70 bg-card/50 p-1 lg:flex">
           {NAV.map((item) => {
             const Icon = item.icon;
-            const active =
-              pathname === item.href || pathname?.startsWith(item.href.replace(/\/$/, ''));
+            const href = navHref(item, preferred);
+            // Highlight by section prefix so versioned + latest URLs both light up.
+            const active = navActive(pathname, item.versioned ? `/${item.versioned}` : item.href);
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={href}
                 className={cn(
                   'group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors',
                   active
