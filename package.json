@@ -36,7 +36,7 @@
     "openapi:compare-fluxer": "pnpm exec tsx scripts/openapi/compare-fluxer.ts",
     "openapi:check": "pnpm run openapi:verify && pnpm run openapi:assert && pnpm run openapi:coverage && pnpm exec tsx scripts/openapi/gateway-coverage.ts --strict && pnpm exec tsx scripts/openapi/compare-fluxer.ts --strict",
     "check:boundaries": "pnpm exec tsx scripts/check-package-boundaries.ts",
-    "check:generated": "pnpm run generate:types && git diff --exit-code -- packages/types/src/_generated vendor/openapi/coverage-report.json",
+    "check:generated": "pnpm run generate:types && node scripts/check-generated.mjs",
     "check:exports": "pnpm exec tsx scripts/api-surface/check.ts",
     "snapshot:exports": "pnpm exec tsx scripts/api-surface/snapshot.ts",
     "typecheck:packages": "pnpm exec tsc -b packages/types packages/util packages/collection packages/rest packages/ws packages/builders packages/fluxer-core packages/voice --pretty false",
