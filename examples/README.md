@@ -55,7 +55,7 @@ Docs site mirrors these under `/examples/`.
 | `FLUXER_BOT_TOKEN` | Required for gateway bots |
 | `FLUXER_API_URL` | Optional custom API host |
 | `SELFHOST_API` / `SELFHOST_BOT_TOKEN` | Multi-instance (distinct tokens) |
-| `VOICE_DEBUG` | Voice logs |
+| `VOICE_DEBUG` | Structured voice diagnostics |
 | `REACTION_ROLES_*` / `ROLE_*` | Reaction roles example |
 
 Full docs: https://fluxerjs.blstmo.com

@@ -1,7 +1,10 @@
 import { EventEmitter } from 'events';
-import { Client } from '@fluxerjs/core';
-import { VoiceChannel } from '@fluxerjs/core';
-import { Events } from '@fluxerjs/core';
+import {
+  Client,
+  type DiagnosticSource,
+  Events,
+  VoiceChannel,
+} from '@fluxerjs/core';
 import { GatewayOpcodes, Routes } from '@fluxerjs/types';
 import { thumbnail } from './streamPreviewPlaceholder.js';
 import {
@@ -12,6 +15,13 @@ import { VoiceConnection } from './VoiceConnection.js';
 import { LiveKitRtcConnection, type LiveKitReceiveSubscription } from './LiveKitRtcConnection.js';
 import { isLiveKitEndpoint } from './livekit.js';
 import { Collection } from '@fluxerjs/collection';
+import voicePackage from '../package.json';
+import {
+  emitVoiceDiagnostic,
+  NOOP_VOICE_DIAGNOSTICS,
+  voiceErrorMetadata,
+  type VoiceDiagnosticLevel,
+} from './diagnostics.js';
 
 /** Maps guild_id -> user_id -> channel_id (null if not in voice). */
 export type VoiceStateMap = Map<string, Map<string, string | null>>;
@@ -23,6 +33,7 @@ type PendingVoiceJoin = {
   server?: GatewayVoiceServerUpdateDispatchData;
   state?: GatewayVoiceStateUpdateDispatchData;
   connection?: VoiceConnection | LiveKitRtcConnection;
+  startedAt: number;
 };
 
 /**
@@ -48,11 +59,27 @@ export class VoiceManager extends EventEmitter {
   /** channel_id -> pending join */
   private readonly pending = new Map<string, PendingVoiceJoin>();
   private readonly shardId: number;
+  private readonly diagnostics: DiagnosticSource;
 
   constructor(client: Client, options: VoiceManagerOptions = {}) {
     super();
     this.client = client;
     this.shardId = options.shardId ?? 0;
+    this.diagnostics =
+      client.diagnostics?.createSource('voice') ?? NOOP_VOICE_DIAGNOSTICS;
+    client.diagnostics?.registerComponent('voice', {
+      package: {
+        name: voicePackage.name,
+        version: voicePackage.version,
+      },
+      snapshot: () => ({
+        activeConnections: this.connections.size,
+        pendingJoins: this.pending.size,
+        trackedGuilds: this.voiceStates.size,
+        shardId: this.shardId,
+      }),
+    });
+    this.diagnostic('debug', 'manager.created', 'Voice manager created');
     this.client.on(Events.VoiceStateUpdate, (data: GatewayVoiceStateUpdateDispatchData) =>
       this.handleVoiceStateUpdate(data),
     );
@@ -226,6 +253,10 @@ export class VoiceManager extends EventEmitter {
     const ConnClass = LiveKitRtcConnection;
     const newConn = new ConnClass(this.client, channel, userId);
     this.registerConnection(channel.id, newConn);
+    const migrationStartedAt = Date.now();
+    this.diagnostic('info', 'migration.started', 'Voice server migration started', () => ({
+      transport: 'livekit',
+    }));
 
     const state: GatewayVoiceStateUpdateDispatchData = {
       guild_id: guildId,
@@ -234,10 +265,28 @@ export class VoiceManager extends EventEmitter {
       session_id: '',
     };
 
-    newConn.connect(data, state).catch((e) => {
-      this.connections.delete(channel.id);
-      newConn.emit('error', e instanceof Error ? e : new Error(String(e)));
-    });
+    newConn.connect(data, state).then(
+      () => {
+        this.diagnostic(
+          'info',
+          'migration.completed',
+          'Voice server migration completed',
+          () => ({
+            transport: 'livekit',
+            durationMs: Math.max(0, Date.now() - migrationStartedAt),
+          }),
+        );
+      },
+      (e) => {
+        this.connections.delete(channel.id);
+        this.diagnostic('error', 'migration.failed', 'Voice server migration failed', () => ({
+          transport: 'livekit',
+          durationMs: Math.max(0, Date.now() - migrationStartedAt),
+          error: voiceErrorMetadata(e, this.diagnostics),
+        }));
+        newConn.emit('error', e instanceof Error ? e : new Error(String(e)));
+      },
+    );
   }
 
   private storeConnectionId(channelId: string, connectionId: string | null | undefined): void {
@@ -256,13 +305,25 @@ export class VoiceManager extends EventEmitter {
       if (this.connections.get(cid) !== conn) return;
       this.connections.delete(cid);
       this.connectionIds.delete(cid);
+      this.diagnostic('info', 'connection.disconnected', 'Voice connection disconnected', () => ({
+        transport: connectionTransport(conn),
+        activeConnections: this.connections.size,
+      }));
     });
     conn.on('requestVoiceStateSync', (p: { self_stream?: boolean; self_video?: boolean }) => {
       this.updateVoiceState(cid, p);
       if (p.self_stream) {
-        this.uploadStreamPreview(cid, conn).catch((e) =>
-          this.client.emit?.('debug', `[VoiceManager] Stream preview upload failed: ${String(e)}`),
-        );
+        this.uploadStreamPreview(cid, conn).catch((e) => {
+          this.client.emit?.(
+            'debug',
+            `[VoiceManager] Stream preview upload failed: ${String(e)}`,
+          );
+          this.diagnostic(
+            'warn',
+            'preview.upload_failed',
+            'Voice stream preview upload failed',
+          );
+        });
       }
     });
   }
@@ -282,6 +343,7 @@ export class VoiceManager extends EventEmitter {
 
     await this.client.rest.post(route, { body, auth: true });
     this.client.emit?.('debug', `[VoiceManager] Uploaded stream preview for ${streamKey}`);
+    this.diagnostic('debug', 'preview.uploaded', 'Voice stream preview uploaded');
   }
 
   private tryCompletePending(channelId: string, pending: PendingVoiceJoin): void {
@@ -335,6 +397,11 @@ export class VoiceManager extends EventEmitter {
           return;
         }
         this.pending.delete(channelId);
+        this.diagnostic('info', 'join.completed', 'Voice connection established', () => ({
+          transport: connectionTransport(conn),
+          durationMs: Math.max(0, Date.now() - pending.startedAt),
+          activeConnections: this.connections.size,
+        }));
         pending.resolve(conn);
       },
       (e) => {
@@ -345,6 +412,11 @@ export class VoiceManager extends EventEmitter {
         }
         if (this.pending.get(channelId) !== pending) return;
         this.pending.delete(channelId);
+        this.diagnostic('error', 'join.failed', 'Voice connection failed', () => ({
+          transport: connectionTransport(conn),
+          durationMs: Math.max(0, Date.now() - pending.startedAt),
+          error: voiceErrorMetadata(e, this.diagnostics),
+        }));
         pending.reject(e);
       },
     );
@@ -373,6 +445,7 @@ export class VoiceManager extends EventEmitter {
       let timeout: ReturnType<typeof setTimeout>;
       const pending: PendingVoiceJoin = {
         channel,
+        startedAt: Date.now(),
         resolve: (connection: VoiceConnection | LiveKitRtcConnection) => {
           clearTimeout(timeout);
           resolve(connection);
@@ -391,6 +464,10 @@ export class VoiceManager extends EventEmitter {
             pending.connection.destroy();
           }
         }
+        this.diagnostic('error', 'join.failed', 'Voice connection timed out', () => ({
+          reason: 'timeout',
+          durationMs: Math.max(0, Date.now() - pending.startedAt),
+        }));
         pending.reject(
           new Error(
             'Voice connection timeout. Ensure the server has voice enabled and the bot has Connect permissions. ' +
@@ -399,6 +476,10 @@ export class VoiceManager extends EventEmitter {
         );
       }, 20_000);
       this.pending.set(channelId, pending);
+      this.diagnostic('info', 'join.requested', 'Voice connection requested', () => ({
+        shardId: this.shardId,
+        pendingJoins: this.pending.size,
+      }));
       this.client.sendToGateway(this.shardId, {
         op: GatewayOpcodes.VoiceStateUpdate,
         d: {
@@ -436,6 +517,10 @@ export class VoiceManager extends EventEmitter {
           self_deaf: false,
         },
       });
+      this.diagnostic('info', 'leave.completed', 'Left voice connections', () => ({
+        connections: toLeave.length,
+        activeConnections: this.connections.size,
+      }));
     }
   }
 
@@ -461,6 +546,10 @@ export class VoiceManager extends EventEmitter {
           },
         });
       }
+      this.diagnostic('info', 'leave.completed', 'Left voice connection', () => ({
+        connections: 1,
+        activeConnections: this.connections.size,
+      }));
     }
   }
 
@@ -504,6 +593,12 @@ export class VoiceManager extends EventEmitter {
         'debug',
         `[VoiceManager] Skipping voice state sync: no connection_id for channel ${channelId}`,
       );
+      this.diagnostic(
+        'debug',
+        'state_sync.skipped',
+        'Voice state sync skipped',
+        () => ({ reason: 'missing_connection_id' }),
+      );
       return;
     }
 
@@ -520,4 +615,19 @@ export class VoiceManager extends EventEmitter {
       },
     });
   }
+
+  private diagnostic(
+    level: VoiceDiagnosticLevel,
+    code: string,
+    summary: string,
+    data?: () => Record<string, unknown>,
+  ): void {
+    emitVoiceDiagnostic(this.diagnostics, level, code, summary, data);
+  }
+}
+
+function connectionTransport(
+  connection: VoiceConnection | LiveKitRtcConnection,
+): 'livekit' | 'udp' {
+  return connection instanceof LiveKitRtcConnection ? 'livekit' : 'udp';
 }

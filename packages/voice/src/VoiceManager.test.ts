@@ -28,6 +28,60 @@ function createVoiceChannel(client: Client): VoiceChannel {
 }
 
 describe('VoiceManager', () => {
+  it('registers a safe voice component snapshot', () => {
+    const client = new Client({ diagnostics: true });
+
+    new VoiceManager(client, { shardId: 2 });
+    const report = client.createDiagnosticReport();
+
+    expect(report).toMatchObject({
+      packages: {
+        '@fluxerjs/voice': expect.stringMatching(/^\d+\.\d+\.\d+/),
+      },
+      components: {
+        voice: {
+          activeConnections: 0,
+          pendingJoins: 0,
+          trackedGuilds: 0,
+          shardId: 2,
+        },
+      },
+    });
+  });
+
+  it('records join timeout metadata without guild, channel, or user IDs', async () => {
+    vi.useFakeTimers();
+    const client = new Client({ diagnostics: true });
+    client.user = new ClientUser(client, {
+      id: 'private-bot-id',
+      username: 'test-bot',
+      discriminator: '0000',
+      bot: true,
+    });
+    const sendToGateway = vi.spyOn(client, 'sendToGateway').mockImplementation(() => {});
+    const channel = createVoiceChannel(client);
+    const manager = new VoiceManager(client);
+
+    try {
+      const join = manager.join(channel);
+      const rejection = expect(join).rejects.toThrow('Voice connection timeout');
+      await vi.advanceTimersByTimeAsync(20_000);
+      await rejection;
+
+      expect(client.diagnostics.snapshot().map((event) => event.code)).toEqual([
+        'voice.manager.created',
+        'voice.join.requested',
+        'voice.join.failed',
+      ]);
+      expect(JSON.stringify(client.diagnostics.snapshot())).not.toMatch(
+        /private-bot-id|"g1"|"c1"/,
+      );
+    } finally {
+      sendToGateway.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   it('getVoiceChannelId returns null for unknown guild', () => {
     const client = createClient();
     const vm = new VoiceManager(client);

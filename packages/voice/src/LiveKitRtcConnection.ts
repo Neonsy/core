@@ -1,7 +1,6 @@
 import { execFile, spawn } from 'node:child_process';
 import { EventEmitter } from 'events';
-import { Client } from '@fluxerjs/core';
-import { VoiceChannel } from '@fluxerjs/core';
+import { Client, type DiagnosticSource, VoiceChannel } from '@fluxerjs/core';
 import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import {
   GatewayVoiceServerUpdateDispatchData,
@@ -35,6 +34,14 @@ import { opus } from 'prism-media';
 import { promisify } from 'node:util';
 import { createFile } from 'mp4box';
 import type { VideoFrame as WebCodecsVideoFrame } from 'node-webcodecs';
+import {
+  diagnosticCode,
+  diagnosticMetrics,
+  emitVoiceDiagnostic,
+  NOOP_VOICE_DIAGNOSTICS,
+  voiceErrorMetadata,
+  type VoiceDiagnosticLevel,
+} from './diagnostics.js';
 
 const SAMPLE_RATE = 48000;
 const CHANNELS = 1;
@@ -177,9 +184,6 @@ function applyVolumeToInt16(
   return out;
 }
 
-/** Enable verbose audio pipeline logging. Set VOICE_DEBUG=1 in env to enable. */
-const VOICE_DEBUG = process.env.VOICE_DEBUG === '1' || process.env.VOICE_DEBUG === 'true';
-
 /** LiveKit-specific: emitted when server sends leave (token expiry, server policy, etc.). Emitted before disconnect. */
 export type LiveKitRtcConnectionEvents = VoiceConnectionEvents & {
   serverLeave: [];
@@ -276,6 +280,8 @@ export class LiveKitRtcConnection extends EventEmitter {
   private readonly requestedSubscriptions = new Map<string, boolean>();
   private readonly participantTrackSids = new Map<string, string>();
   private readonly activeSpeakers = new Set<string>();
+  private readonly diagnostics: DiagnosticSource;
+  private readonly audioDiagnosticLastAt = new Map<string, number>();
 
   /**
    * @param client - The Fluxer client instance
@@ -287,6 +293,17 @@ export class LiveKitRtcConnection extends EventEmitter {
     this.client = client;
     this.channel = channel;
     this.guildId = channel.guildId;
+    this.diagnostics =
+      client.diagnostics?.createSource('voice') ?? NOOP_VOICE_DIAGNOSTICS;
+  }
+
+  override emit(eventName: string | symbol, ...args: unknown[]): boolean {
+    if (eventName === 'error') {
+      this.diagnostic('error', 'livekit.error', 'LiveKit voice emitted an error', () => ({
+        error: voiceErrorMetadata(args[0], this.diagnostics),
+      }));
+    }
+    return super.emit(eventName, ...args);
   }
 
   /** Whether audio is currently playing. */
@@ -295,19 +312,32 @@ export class LiveKitRtcConnection extends EventEmitter {
   }
 
   private debug(msg: string, data?: object | string): void {
-    console.error('[voice LiveKitRtc]', msg, data ?? '');
+    this.diagnostic(
+      'info',
+      `livekit.${diagnosticCode(msg)}`,
+      `LiveKit voice: ${msg}`,
+      typeof data === 'object' ? () => diagnosticMetrics(data) : undefined,
+    );
   }
 
   private audioDebug(msg: string, data?: object): void {
-    if (VOICE_DEBUG) {
-      console.error('[voice LiveKitRtc audio]', msg, data ?? '');
-    }
+    if (!this.diagnostics.isEnabled('debug')) return;
+    const code = `audio.${diagnosticCode(msg)}`;
+    const now = Date.now();
+    const lastAt = this.audioDiagnosticLastAt.get(code) ?? 0;
+    if (now - lastAt < 5_000) return;
+    this.audioDiagnosticLastAt.set(code, now);
+    this.diagnostic('debug', code, `Voice audio: ${msg}`, () =>
+      diagnosticMetrics(data),
+    );
   }
 
   private emitDisconnect(source: string): void {
     if (this._disconnectEmitted) return;
     this._disconnectEmitted = true;
-    this.debug('emitting disconnect', { source });
+    this.diagnostic('info', 'livekit.disconnected', 'LiveKit voice disconnected', () => ({
+      reason: source,
+    }));
     this.emit('disconnect');
   }
 
@@ -478,9 +508,16 @@ export class LiveKitRtcConnection extends EventEmitter {
     server: GatewayVoiceServerUpdateDispatchData,
     _state: GatewayVoiceStateUpdateDispatchData,
   ): Promise<void> {
+    const startedAt = Date.now();
+    this.diagnostic('debug', 'livekit.connect_started', 'LiveKit voice connection started');
     const raw = (server.endpoint ?? '').trim();
     const token = server.token;
     if (!raw || !token) {
+      this.diagnostic(
+        'error',
+        'livekit.connect_failed',
+        'LiveKit voice connection data was incomplete',
+      );
       this.emit('error', new Error('Missing voice server endpoint or token'));
       return;
     }
@@ -556,11 +593,17 @@ export class LiveKitRtcConnection extends EventEmitter {
       await room.connect(url, token, { autoSubscribe: true, dynacast: false });
       this.lastServerEndpoint = raw;
       this.lastServerToken = token;
-      this.debug('connected to room');
+      this.diagnostic('info', 'livekit.ready', 'LiveKit voice connection became ready', () => ({
+        durationMs: Math.max(0, Date.now() - startedAt),
+      }));
       this.emit('ready');
     } catch (e) {
       this.room = null;
       const err = e instanceof Error ? e : new Error(String(e));
+      this.diagnostic('error', 'livekit.connect_failed', 'LiveKit voice connection failed', () => ({
+        durationMs: Math.max(0, Date.now() - startedAt),
+        error: voiceErrorMetadata(err, this.diagnostics),
+      }));
       this.emit('error', err);
       throw err;
     }
@@ -753,11 +796,10 @@ export class LiveKitRtcConnection extends EventEmitter {
           const { codedWidth, codedHeight } = frame;
           if (codedWidth <= 0 || codedHeight <= 0) {
             frame.close();
-            if (VOICE_DEBUG)
-              this.audioDebug('video frame skipped (invalid dimensions)', {
-                codedWidth,
-                codedHeight,
-              });
+            this.audioDebug('video frame skipped (invalid dimensions)', {
+              codedWidth,
+              codedHeight,
+            });
             return;
           }
           try {
@@ -773,11 +815,10 @@ export class LiveKitRtcConnection extends EventEmitter {
 
             const expectedI420Size = Math.ceil((codedWidth * codedHeight * 3) / 2);
             if (buffer.byteLength < expectedI420Size) {
-              if (VOICE_DEBUG)
-                this.audioDebug('video frame skipped (buffer too small)', {
-                  codedWidth,
-                  codedHeight,
-                });
+              this.audioDebug('video frame skipped (buffer too small)', {
+                codedWidth,
+                codedHeight,
+              });
               return;
             }
             // Drop oldest frames when queue is full to stay in sync and prevent memory spike
@@ -791,7 +832,7 @@ export class LiveKitRtcConnection extends EventEmitter {
               timestampMs: frameTimeMs,
             });
           } catch (err) {
-            if (VOICE_DEBUG) this.audioDebug('video frame error', { error: String(err) });
+            this.audioDebug('video frame error', { error: String(err) });
           }
         },
         error: (e: Error) => {
@@ -873,7 +914,7 @@ export class LiveKitRtcConnection extends EventEmitter {
             const fileObj = mp4File as unknown as { stop?: () => void };
             if (typeof fileObj.stop === 'function') fileObj.stop();
           } catch (e) {
-            if (VOICE_DEBUG) this.audioDebug('loop reset error', { error: String(e) });
+            this.audioDebug('loop reset error', { error: String(e) });
           }
           if (!this._playingVideo || cleanupCalled) return;
           playbackStartMs = null;
@@ -1036,8 +1077,7 @@ export class LiveKitRtcConnection extends EventEmitter {
                 );
                 source.captureFrame(livekitFrame);
               } catch (captureErr) {
-                if (VOICE_DEBUG)
-                  this.audioDebug('captureFrame error', { error: String(captureErr) });
+                this.audioDebug('captureFrame error', { error: String(captureErr) });
                 this.emit(
                   'error',
                   captureErr instanceof Error ? captureErr : new Error(String(captureErr)),
@@ -1395,7 +1435,7 @@ export class LiveKitRtcConnection extends EventEmitter {
         frameIndex += 1n;
         source.captureFrame(frame, timestampUs);
       } catch (e) {
-        if (VOICE_DEBUG) this.audioDebug('captureFrame error', { error: String(e) });
+        this.audioDebug('captureFrame error', { error: String(e) });
       }
     };
 
@@ -1452,7 +1492,7 @@ export class LiveKitRtcConnection extends EventEmitter {
       if (stderr) {
         stderr.on('data', (data: Buffer) => {
           const line = data.toString().trim();
-          if (line && VOICE_DEBUG) this.audioDebug('ffmpeg stderr', { line: line.slice(0, 200) });
+          if (line) this.audioDebug('ffmpeg stderr');
         });
       }
 
@@ -1633,7 +1673,7 @@ export class LiveKitRtcConnection extends EventEmitter {
           framesCaptured++;
         }
       } catch (err) {
-        if (VOICE_DEBUG) this.audioDebug('decode error', { error: String(err) });
+        this.audioDebug('decode error', { error: String(err) });
       }
     };
 
@@ -1784,6 +1824,15 @@ export class LiveKitRtcConnection extends EventEmitter {
   destroy(): void {
     this.disconnect();
     this.removeAllListeners();
+  }
+
+  private diagnostic(
+    level: VoiceDiagnosticLevel,
+    code: string,
+    summary: string,
+    data?: () => Record<string, unknown>,
+  ): void {
+    emitVoiceDiagnostic(this.diagnostics, level, code, summary, data);
   }
 }
 

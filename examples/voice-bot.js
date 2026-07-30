@@ -93,10 +93,18 @@ if (!token) {
   process.exit(1);
 }
 
+const voiceDebug = process.env.VOICE_DEBUG === '1' || process.env.VOICE_DEBUG === 'true';
 const client = new Client({
   intents: 0,
+  diagnostics: voiceDebug ? { components: ['voice'] } : false,
   rest: process.env.FLUXER_API_URL ? { api: process.env.FLUXER_API_URL } : undefined,
 });
+
+if (voiceDebug) {
+  client.diagnostics.subscribe((event) => {
+    console.log(`[voice] ${event.code}: ${event.summary}`, event.data);
+  });
+}
 
 // Create VoiceManager before login so it receives VoiceStatesSync from READY/GUILD_CREATE.
 getVoiceManager(client);
@@ -220,22 +228,6 @@ client.on(Events.MessageCreate, async (message) => {
 });
 
 client.on(Events.Error, (err) => console.error('Client error:', err));
-
-if (process.env.VOICE_DEBUG === '1' || process.env.VOICE_DEBUG === 'true') {
-  client.on(Events.VoiceStateUpdate, (d) =>
-    console.log('[voice] VoiceStateUpdate', {
-      guild_id: d.guild_id,
-      user_id: d.user_id,
-      channel_id: d.channel_id,
-    }),
-  );
-  client.on(Events.VoiceServerUpdate, (d) =>
-    console.log('[voice] VoiceServerUpdate', {
-      guild_id: d.guild_id,
-      endpoint: d.endpoint ? 'present' : 'null',
-    }),
-  );
-}
 
 try {
   await client.login(token);

@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
-import { Client } from '@fluxerjs/core';
-import { VoiceChannel } from '@fluxerjs/core';
+import { Client, type DiagnosticSource, VoiceChannel } from '@fluxerjs/core';
 import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import {
   GatewayVoiceServerUpdateDispatchData,
@@ -13,6 +12,12 @@ import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { opus } from 'prism-media';
+import {
+  emitVoiceDiagnostic,
+  NOOP_VOICE_DIAGNOSTICS,
+  voiceErrorMetadata,
+  type VoiceDiagnosticLevel,
+} from './diagnostics.js';
 /** Minimal WebSocket type for voice (ws module). */
 interface VoiceWebSocket {
   send(data: string | Buffer | ArrayBufferLike): void;
@@ -38,28 +43,6 @@ const CHANNELS = 2;
 const OPUS_FRAME_TICKS = 960 * (CHANNELS === 2 ? 2 : 1);
 /** Interval at which Discord expects Opus frames (20ms). */
 const AUDIO_FRAME_INTERVAL_MS = 20;
-
-/** Log full HTTP response for a URL (used when WebSocket gets unexpected status e.g. 200). */
-async function logFullResponse(url: string): Promise<void> {
-  try {
-    // fetch only supports http/https; wss:// -> https:// for the same endpoint
-    const fetchUrl = url.replace(/^wss:\/\//i, 'https://').replace(/^ws:\/\//i, 'http://');
-    const res = await fetch(fetchUrl, { method: 'GET' });
-    const body = await res.text();
-    const headers: Record<string, string> = {};
-    res.headers.forEach((v, k) => {
-      headers[k] = v;
-    });
-    console.error('[voice] Full response from', url, {
-      status: res.status,
-      statusText: res.statusText,
-      headers,
-      body: body.slice(0, 2000) + (body.length > 2000 ? '...' : ''),
-    });
-  } catch (e) {
-    console.error('[voice] Could not fetch URL for logging:', e);
-  }
-}
 
 export interface VoiceConnectionEvents {
   ready: [];
@@ -90,6 +73,7 @@ export class VoiceConnection extends EventEmitter {
   private remoteUdpPort: number = 0;
   private audioPacketQueue: Buffer[] = [];
   private pacingInterval: ReturnType<typeof setInterval> | null = null;
+  private readonly diagnostics: DiagnosticSource;
 
   constructor(client: Client, channel: VoiceChannel, userId: string) {
     super();
@@ -97,6 +81,17 @@ export class VoiceConnection extends EventEmitter {
     this.channel = channel;
     this.guildId = channel.guildId;
     this._userId = userId;
+    this.diagnostics =
+      client.diagnostics?.createSource('voice') ?? NOOP_VOICE_DIAGNOSTICS;
+  }
+
+  override emit(eventName: string | symbol, ...args: unknown[]): boolean {
+    if (eventName === 'error') {
+      this.diagnostic('error', 'udp.error', 'UDP voice connection emitted an error', () => ({
+        error: voiceErrorMetadata(args[0], this.diagnostics),
+      }));
+    }
+    return super.emit(eventName, ...args);
   }
 
   /** Discord voice session ID. */
@@ -114,10 +109,13 @@ export class VoiceConnection extends EventEmitter {
     server: GatewayVoiceServerUpdateDispatchData,
     state: GatewayVoiceStateUpdateDispatchData,
   ): Promise<void> {
+    const startedAt = Date.now();
+    this.diagnostic('debug', 'udp.connect_started', 'UDP voice connection started');
     this._token = server.token;
     const raw = (server.endpoint ?? '').trim();
     this._sessionId = state.session_id;
     if (!raw || !this._token || !this._sessionId) {
+      this.diagnostic('error', 'udp.connect_failed', 'UDP voice connection data was incomplete');
       this.emit('error', new Error('Missing voice server or session data'));
       return;
     }
@@ -144,10 +142,14 @@ export class VoiceConnection extends EventEmitter {
       const resolveReady = () => {
         cleanup();
         resolve();
+        this.diagnostic('info', 'udp.ready', 'UDP voice connection became ready', () => ({
+          durationMs: Math.max(0, Date.now() - startedAt),
+        }));
         this.emit('ready');
       };
       const onOpen = () => {
         this.voiceWs!.off('error', onError);
+        this.diagnostic('debug', 'udp.websocket_opened', 'Voice WebSocket opened');
         this.sendVoiceOp(VOICE_WS_OPCODES.Identify, {
           server_id: this.guildId,
           user_id: this._userId,
@@ -156,10 +158,11 @@ export class VoiceConnection extends EventEmitter {
         });
       };
       const onError = (err: unknown) => {
-        if (err instanceof Error && /Unexpected server response/i.test(err.message)) {
-          logFullResponse(wsUrl).catch(() => {});
-        }
         cleanup();
+        this.diagnostic('error', 'udp.connect_failed', 'Voice WebSocket failed', () => ({
+          durationMs: Math.max(0, Date.now() - startedAt),
+          error: voiceErrorMetadata(err, this.diagnostics),
+        }));
         reject(err instanceof Error ? err : new Error(String(err)));
       };
       const onMessage = (data: Buffer | ArrayBuffer) => {
@@ -201,7 +204,10 @@ export class VoiceConnection extends EventEmitter {
       ws.on('message', (data: unknown) => onMessage(data as Buffer | ArrayBuffer));
       ws.once('close', () => {
         cleanup();
-        if (!this._destroyed) reject(new Error('Voice WebSocket closed'));
+        if (!this._destroyed) {
+          this.diagnostic('warn', 'udp.websocket_closed', 'Voice WebSocket closed');
+          reject(new Error('Voice WebSocket closed'));
+        }
       });
     });
   }
@@ -232,6 +238,11 @@ export class VoiceConnection extends EventEmitter {
     socket.send(discovery, 0, discovery.length, remotePort, remoteAddress, () => {
       socket.once('message', (msg: Buffer) => {
         if (msg.length < 70) {
+          this.diagnostic(
+            'error',
+            'udp.discovery_failed',
+            'UDP voice discovery response was invalid',
+          );
           this.emit('error', new Error('UDP discovery response too short'));
           return;
         }
@@ -266,6 +277,9 @@ export class VoiceConnection extends EventEmitter {
     this.currentStream = stream as { destroy?: () => void };
     this.audioPacketQueue = [];
     this.sendVoiceOp(VOICE_WS_OPCODES.Speaking, { speaking: 1, delay: 0 });
+    this.diagnostic('info', 'playback.started', 'Voice playback started', () => ({
+      format: 'opus',
+    }));
 
     const stopPacing = () => {
       if (this.pacingInterval) {
@@ -287,12 +301,16 @@ export class VoiceConnection extends EventEmitter {
       this._playing = false;
       this.currentStream = null;
       stopPacing();
+      this.diagnostic('error', 'playback.failed', 'Voice playback failed', () => ({
+        error: voiceErrorMetadata(err, this.diagnostics),
+      }));
       this.emit('error', err);
     });
     stream.on('end', () => {
       this._playing = false;
       this.currentStream = null;
       if (this.audioPacketQueue.length === 0) stopPacing();
+      this.diagnostic('info', 'playback.completed', 'Voice playback completed');
     });
   }
 
@@ -349,6 +367,9 @@ export class VoiceConnection extends EventEmitter {
     this.currentStream = demuxer;
     this.audioPacketQueue = [];
     this.sendVoiceOp(VOICE_WS_OPCODES.Speaking, { speaking: 1, delay: 0 });
+    this.diagnostic('info', 'playback.started', 'Voice playback started', () => ({
+      format: 'webm_opus',
+    }));
 
     const stopPacing = () => {
       if (this.pacingInterval) {
@@ -370,12 +391,16 @@ export class VoiceConnection extends EventEmitter {
       this._playing = false;
       this.currentStream = null;
       stopPacing();
+      this.diagnostic('error', 'playback.failed', 'Voice playback failed', () => ({
+        error: voiceErrorMetadata(err, this.diagnostics),
+      }));
       this.emit('error', err);
     });
     demuxer.on('end', () => {
       this._playing = false;
       this.currentStream = null;
       if (this.audioPacketQueue.length === 0) stopPacing();
+      this.diagnostic('info', 'playback.completed', 'Voice playback completed');
     });
   }
 
@@ -399,6 +424,7 @@ export class VoiceConnection extends EventEmitter {
 
   /** Stop playback and clear the queue. */
   stop(): void {
+    const wasPlaying = this._playing;
     this._playing = false;
     this.audioPacketQueue = [];
     if (this.pacingInterval) {
@@ -408,6 +434,9 @@ export class VoiceConnection extends EventEmitter {
     if (this.currentStream) {
       if (typeof this.currentStream.destroy === 'function') this.currentStream.destroy();
       this.currentStream = null;
+    }
+    if (wasPlaying) {
+      this.diagnostic('info', 'playback.stopped', 'Voice playback stopped');
     }
   }
 
@@ -427,6 +456,7 @@ export class VoiceConnection extends EventEmitter {
       this.udpSocket.close();
       this.udpSocket = null;
     }
+    this.diagnostic('info', 'udp.disconnected', 'UDP voice connection disconnected');
     this.emit('disconnect');
   }
 
@@ -438,5 +468,14 @@ export class VoiceConnection extends EventEmitter {
     }
     this.disconnect();
     this.removeAllListeners();
+  }
+
+  private diagnostic(
+    level: VoiceDiagnosticLevel,
+    code: string,
+    summary: string,
+    data?: () => Record<string, unknown>,
+  ): void {
+    emitVoiceDiagnostic(this.diagnostics, level, code, summary, data);
   }
 }
