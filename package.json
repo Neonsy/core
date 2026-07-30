@@ -17,7 +17,7 @@
     "test:all": "pnpm run build && pnpm exec vitest run && pnpm run test:load && pnpm run test:smoke",
     "test:report": "pnpm run build && pnpm exec vitest run --reporter json --outputFile.json=test-results/results.json",
     "format": "biome format --write .",
-    "format:check": "biome format .",
+    "format:check": "node scripts/check-format.mjs",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "check": "biome check .",
