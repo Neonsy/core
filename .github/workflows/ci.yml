@@ -80,8 +80,8 @@ jobs:
       - name: Package boundaries
         run: pnpm run check:boundaries
 
-      - name: Generate types / coverage
-        run: pnpm run generate:types
+      - name: Verify generated files
+        run: pnpm run check:generated
 
       - name: Typecheck
         run: pnpm run typecheck
