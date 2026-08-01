@@ -20,7 +20,7 @@ export const NON_OPENAPI_EXCEPTIONS = [
   },
   {
     id: 'gateway-call-dispatches',
-    path: 'packages/types/src/Gateway/payloads.ts',
+    path: 'packages/types/src/Gateway/Payloads.ts',
     reason:
       'CALL_* events are session/user voice-call scoped; REST call routes are sessionToken-only',
     owner: 'sdk',

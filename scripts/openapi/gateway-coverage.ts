@@ -93,7 +93,7 @@ function extractHandlerKeys(handlersDir: string): Set<string> {
 }
 
 function main(): void {
-  const eventsPath = path.join(ROOT, 'packages/types/src/Gateway/events.ts');
+  const eventsPath = path.join(ROOT, 'packages/types/src/Gateway/Events.ts');
   const handlersDir = path.join(ROOT, 'packages/fluxer-core/src/ClientCore/EventHandlers');
   const typed = extractDispatchNames(fs.readFileSync(eventsPath, 'utf8'));
   const handled = extractHandlerKeys(handlersDir);

@@ -45,7 +45,7 @@ function main(): void {
 
   // Load Routes keys if available for rough route coverage
   let routeSource = '';
-  const routesPath = path.join(REPO_ROOT, 'packages', 'types', 'src', 'rest', 'routes.ts');
+  const routesPath = path.join(REPO_ROOT, 'packages', 'types', 'src', 'Rest', 'Routes.ts');
   if (fs.existsSync(routesPath)) {
     routeSource = fs.readFileSync(routesPath, 'utf8');
   }
