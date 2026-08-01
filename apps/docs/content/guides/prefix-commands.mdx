@@ -13,7 +13,7 @@ Most Fluxer bots still use prefix commands. Keep parsing in one place so every c
 import { Client, Events, parsePrefixCommand } from '@fluxerjs/core';
 
 const PREFIX = '!';
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot || !message.content) return;

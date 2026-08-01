@@ -14,7 +14,7 @@
 import { Client, Events, parsePrefixCommand } from '@fluxerjs/core';
 
 const PREFIX = '!';
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.Ready, () => {
   console.log(`Logged in as ${client.user?.username}`);

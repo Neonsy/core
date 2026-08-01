@@ -1,40 +1,41 @@
 import { execFile, spawn } from 'node:child_process';
-import { EventEmitter } from 'events';
-import { Client } from '@fluxerjs/core';
-import { VoiceChannel } from '@fluxerjs/core';
-import { ErrorCodes, FluxerError } from '@fluxerjs/util';
-import {
+import { EventEmitter } from 'node:events';
+import { createReadStream } from 'node:fs';
+import { Readable } from 'node:stream';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import type { Client, VoiceChannel } from '@fluxerjs/core';
+import type {
   GatewayVoiceServerUpdateDispatchData,
   GatewayVoiceStateUpdateDispatchData,
 } from '@fluxerjs/types';
+import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import {
-  AudioStream,
-  Room,
-  RoomEvent,
-  AudioSource,
   AudioFrame,
+  AudioSource,
+  AudioStream,
   LocalAudioTrack,
   LocalVideoTrack,
+  type RemoteParticipant,
+  type RemoteTrack,
+  Room,
+  RoomEvent,
+  TrackKind,
   TrackPublishOptions,
   TrackSource,
   VideoBufferType,
   VideoFrame,
   VideoSource,
-  type RemoteParticipant,
-  type RemoteTrack,
-  TrackKind,
 } from '@livekit/rtc-node';
-import { buildLiveKitUrlForRtcSdk } from './livekit.js';
-import { parseOpusPacketBoundaries, concatUint8Arrays } from './opusUtils.js';
-import { VoiceConnectionEvents } from './VoiceConnection.js';
-import { createReadStream } from 'node:fs';
-import { Readable } from 'node:stream';
-import { fileURLToPath } from 'node:url';
-import { OpusDecoder } from 'opus-decoder';
-import { opus } from 'prism-media';
-import { promisify } from 'node:util';
 import { createFile } from 'mp4box';
 import type { VideoFrame as WebCodecsVideoFrame } from 'node-webcodecs';
+import { OpusDecoder } from 'opus-decoder';
+import { opus } from 'prism-media';
+import { buildLiveKitUrlForRtcSdk } from './Livekit.js';
+import { concatUint8Arrays, parseOpusPacketBoundaries } from './OpusUtils.js';
+import type { VoiceConnectionEvents } from './VoiceConnection.js';
+
+type SpawnedProcess = ReturnType<typeof spawn> & import('node:events').EventEmitter;
 
 const SAMPLE_RATE = 48000;
 const CHANNELS = 1;
@@ -436,7 +437,7 @@ export class LiveKitRtcConnection extends EventEmitter {
     this.requestedSubscriptions.set(participantId, autoResubscribe);
 
     const room = this.room;
-    if (!room || !room.isConnected) return { participantId, stop };
+    if (!room?.isConnected) return { participantId, stop };
 
     const participant = room.remoteParticipants.get(participantId);
     if (!participant) return { participantId, stop };
@@ -592,7 +593,7 @@ export class LiveKitRtcConnection extends EventEmitter {
     options?: VideoPlayOptions,
   ): Promise<void> {
     this.stopVideo();
-    if (!this.room || !this.room.isConnected) {
+    if (!this.room?.isConnected) {
       this.emit('error', new Error('LiveKit: not connected'));
       return;
     }
@@ -1137,7 +1138,7 @@ export class LiveKitRtcConnection extends EventEmitter {
                 drainQueue().catch(() => {});
               });
 
-              audioProc.on('exit', (code) => {
+              (audioProc as SpawnedProcess).on('exit', (code) => {
                 if (audioFfmpegProc === audioProc) audioFfmpegProc = null;
                 if (loop && this._playingVideo && !cleanupCalled && (code === 0 || code === null)) {
                   setImmediate(() => runAudioFfmpeg());
@@ -1510,12 +1511,12 @@ export class LiveKitRtcConnection extends EventEmitter {
         });
       }
 
-      proc.on('error', (err) => {
+      (proc as SpawnedProcess).on('error', (err) => {
         this.emit('error', err);
         doCleanup();
       });
 
-      proc.on('exit', (code) => {
+      (proc as SpawnedProcess).on('exit', (code) => {
         ffmpegProc = null;
         if (cleanupCalled || !this._playingVideo) return;
         if (loop && (code === 0 || code === null)) {
@@ -1543,7 +1544,7 @@ export class LiveKitRtcConnection extends EventEmitter {
    */
   async play(urlOrStream: string | NodeJS.ReadableStream): Promise<void> {
     this.stop();
-    if (!this.room || !this.room.isConnected) {
+    if (!this.room?.isConnected) {
       this.emit('error', new Error('LiveKit: not connected'));
       return;
     }

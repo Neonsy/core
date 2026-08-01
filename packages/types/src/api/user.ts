@@ -1,4 +1,4 @@
-import type { Snowflake } from '../common/snowflake.js';
+import type { Snowflake } from '../Common/Snowflake.js';
 
 /**
  * Public user flags bitfield (OpenAPI PublicUserFlags).
@@ -65,19 +65,19 @@ export interface APIUserPartial {
   /** Discriminator (4-digit tag). */
   discriminator: string;
   /** Display name. */
-  global_name?: string | null;
+  global_name: string | null;
   /** Avatar hash. */
-  avatar?: string | null;
+  avatar: string | null;
   /** RGB color as integer (e.g. 7577782) for profile decoration. */
-  avatar_color?: number | null;
+  avatar_color: number | null;
   /** {@link PublicUserFlags} bitfield (public bits); private bits may also be set. */
-  flags?: number | null;
+  flags: number;
+  /** Account-wide reply mention preference. */
+  mention_flags?: number;
   /** Whether this is a bot account. */
   bot?: boolean;
   /** Whether this is an official system user. */
   system?: boolean;
-  /** User banner hash (from profile, member, or invite context). */
-  banner?: string | null;
 }
 
 /** Alias for {@link APIUserPartial} — user object from API responses. */
@@ -146,13 +146,13 @@ export interface APIGuildMember {
   /** ISO-8601 timestamp when the member joined. */
   joined_at: string;
   /** Whether the member is server muted. */
-  mute?: boolean;
+  mute: boolean;
   /** Whether the member is server deafened. */
-  deaf?: boolean;
+  deaf: boolean;
   /** ISO-8601 timestamp until the member is timed out. */
   communication_disabled_until?: string | null;
   /** {@link GuildMemberProfileFlags} bitfield. */
   profile_flags?: number | null;
-  /** ISO-8601 timestamp when the user started boosting this guild. */
-  premium_since?: string | null;
+  /** Per-guild reply mention preference override. */
+  mention_flags?: number | null;
 }

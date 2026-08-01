@@ -1,3 +1,4 @@
-export * from './opcodes.js';
-export * from './events.js';
-export * from './payloads.js';
+export * from './Events.js';
+export * from './GatewayErrorCodes.js';
+export * from './Opcodes.js';
+export * from './Payloads.js';

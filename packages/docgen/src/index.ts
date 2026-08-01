@@ -1,16 +1,18 @@
 #!/usr/bin/env node
+
 /**
  * Custom doc generator using TypeScript Compiler API.
  * Outputs clean JSON schema for the docs website.
  */
 
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import * as ts from 'typescript';
-import { resolve, dirname } from 'path';
-import { mkdirSync, writeFileSync } from 'fs';
-import type { DocOutput } from './schema.js';
+import type { DocOutput } from './Schema.js';
 
-export type { DocOutput, DocClass, DocInterface, DocEnum } from './schema.js';
-import { visitSourceFile } from './visitor.js';
+export type { DocClass, DocEnum, DocInterface, DocOutput } from './Schema.js';
+
+import { visitSourceFile } from './Visitor.js';
 
 export interface DocgenOptions {
   entryPoints: string[];

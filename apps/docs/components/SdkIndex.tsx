@@ -1,6 +1,6 @@
-import Link from 'next/link';
-import { ArrowUpRight, Boxes, Braces, Hash } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { ArrowUpRight, Boxes, Braces, Hash } from 'lucide-react';
+import Link from 'next/link';
 import { getApiSidebarGroups } from '@/components/ApiNav';
 import { PageShell } from '@/components/PageShell';
 import type { DocClass, DocEnum, DocInterface, DocOutput } from '@/lib/doc-schema';
@@ -78,12 +78,10 @@ function SymbolCard({
   return (
     <Link
       href={`${base}/${kind}/${name}/`}
-      className={`group flex min-w-0 flex-col rounded-xl border border-border bg-card p-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${style.hoverBorder} ${style.ring}`}
-    >
+      className={`group flex min-w-0 flex-col rounded-xl border border-border bg-card p-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${style.hoverBorder} ${style.ring}`}>
       <div className="flex items-start justify-between gap-2">
         <span
-          className={`min-w-0 truncate font-mono text-sm font-semibold text-foreground transition-colors ${style.hoverText}`}
-        >
+          className={`min-w-0 truncate font-mono text-sm font-semibold text-foreground transition-colors ${style.hoverText}`}>
           {name}
         </span>
         <ArrowUpRight
@@ -92,7 +90,8 @@ function SymbolCard({
         />
       </div>
       <div className="mt-2.5 flex items-center gap-2 text-xs text-muted-foreground">
-        <span className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold ${style.badge}`}>
+        <span
+          className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold ${style.badge}`}>
           {meta}
         </span>
         {pkg ? <span className="truncate font-mono">{pkg.replace('@fluxerjs/', '')}</span> : null}
@@ -119,9 +118,13 @@ export function SdkIndex({
   return (
     <PageShell
       sidebarTitle="SDK Reference"
-      sidebarGroups={getApiSidebarGroups(undefined, undefined, basePath, version === 'latest' ? undefined : version)}
-      wide
-    >
+      sidebarGroups={getApiSidebarGroups(
+        undefined,
+        undefined,
+        basePath,
+        version === 'latest' ? undefined : version,
+      )}
+      wide>
       <header className="mb-10">
         <h1 className="font-display text-[clamp(2rem,4.5vw,3rem)] font-semibold tracking-tight">
           SDK reference
@@ -140,11 +143,9 @@ export function SdkIndex({
             <a
               key={kind}
               href={`#${kind}`}
-              className={`group flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors ${style.hoverBorder}`}
-            >
+              className={`group flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors ${style.hoverBorder}`}>
               <span
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${style.iconWrap}`}
-              >
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${style.iconWrap}`}>
                 <Icon className="h-5 w-5" aria-hidden />
               </span>
               <div>
@@ -167,8 +168,7 @@ export function SdkIndex({
             <section key={kind} id={kind} className="scroll-mt-24">
               <div className="mb-5 flex items-center gap-3">
                 <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${style.iconWrap}`}
-                >
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${style.iconWrap}`}>
                   <Icon className="h-4 w-4" aria-hidden />
                 </span>
                 <div>

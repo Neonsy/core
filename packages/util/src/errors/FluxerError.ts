@@ -29,4 +29,18 @@ export class FluxerError extends Error {
       ? `${this.name} [${this.code}]: ${this.message}`
       : `${this.name}: ${this.message}`;
   }
+
+  toJSON(): {
+    name: string;
+    message: string;
+    code?: string;
+    cause?: unknown;
+  } {
+    return {
+      name: this.name,
+      message: this.message,
+      ...(this.code !== undefined ? { code: this.code } : {}),
+      ...(this.cause !== undefined ? { cause: this.cause } : {}),
+    };
+  }
 }

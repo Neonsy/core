@@ -1,17 +1,17 @@
-export { VoiceManager, type VoiceManagerOptions, type VoiceStateMap } from './VoiceManager.js';
-export { VoiceConnection, type VoiceConnectionEvents } from './VoiceConnection.js';
 export {
-  LiveKitRtcConnection,
-  type LiveKitRtcConnectionEvents,
   type LiveKitAudioFrame,
   type LiveKitReceiveSubscription,
+  LiveKitRtcConnection,
+  type LiveKitRtcConnectionEvents,
   type VideoPlayOptions,
 } from './LiveKitRtcConnection.js';
-import { Client } from '@fluxerjs/core';
-import { VoiceChannel } from '@fluxerjs/core';
+export { VoiceConnection, type VoiceConnectionEvents } from './VoiceConnection.js';
+export { VoiceManager, type VoiceManagerOptions, type VoiceStateMap } from './VoiceManager.js';
+
+import type { Client, VoiceChannel } from '@fluxerjs/core';
+import type { LiveKitRtcConnection } from './LiveKitRtcConnection';
+import type { VoiceConnection } from './VoiceConnection';
 import { VoiceManager } from './VoiceManager.js';
-import { VoiceConnection } from './VoiceConnection';
-import { LiveKitRtcConnection } from './LiveKitRtcConnection';
 
 /** Union of connection types (Discord-style or LiveKit). */
 export type VoiceConnectionLike = VoiceConnection | LiveKitRtcConnection;

@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Builders for Fluxer messages and embeds",
   "repository": {
     "type": "git",
@@ -19,6 +19,7 @@
     "sdk"
   ],
   "license": "Apache-2.0",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

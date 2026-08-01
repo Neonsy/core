@@ -1,8 +1,8 @@
-import { EventEmitter } from 'events';
-import { ErrorCodes, FluxerError } from '@fluxerjs/util';
+import { EventEmitter } from 'node:events';
 import type { APIGatewayBotResponse, GatewayPresenceUpdateData } from '@fluxerjs/types';
-import { WebSocketShard, type WebSocketConstructor } from './WebSocketShard.js';
-import { getDefaultWebSocket } from './utils/getWebSocket.js';
+import { ErrorCodes, FluxerError } from '@fluxerjs/util';
+import { getDefaultWebSocket } from './Utils/GetWebSocket.js';
+import { type WebSocketConstructor, WebSocketShard } from './WebSocketShard.js';
 
 export type { WebSocketConstructor };
 
@@ -55,7 +55,14 @@ async function retryUntil<T>(
 
 export interface WebSocketManagerOptions {
   token: string;
-  intents: number;
+  /** Legacy intents; Fluxer ignores — send `0`. */
+  intents?: number;
+  /** Identify `flags` ({@link GatewayIdentifyFlags}). */
+  flags?: number;
+  /** Identify `ignored_events`. */
+  ignoredEvents?: string[];
+  /** Identify `initial_guild_id`. */
+  initialGuildId?: string;
   rest: { get: (route: string) => Promise<unknown> };
   version?: string;
   presence?: GatewayPresenceUpdateData;
@@ -69,7 +76,6 @@ export interface WebSocketManagerOptions {
 export class WebSocketManager extends EventEmitter {
   private readonly options: WebSocketManagerOptions;
   private readonly shards = new Map<number, WebSocketShard>();
-  private gatewayUrl: string | null = null;
   private shardCount = 1;
   private aborted = false;
 
@@ -117,7 +123,6 @@ export class WebSocketManager extends EventEmitter {
       throw new FluxerError('Failed to fetch gateway', { code: ErrorCodes.GatewayFetchFailed });
     }
 
-    this.gatewayUrl = gateway.url;
     this.shardCount = this.options.shardCount ?? gateway.shards;
 
     const ids = this.options.shardIds ?? [...Array(this.shardCount).keys()];
@@ -129,7 +134,10 @@ export class WebSocketManager extends EventEmitter {
       const shard = new WebSocketShard({
         url: gateway.url,
         token: this.options.token,
-        intents: this.options.intents,
+        intents: this.options.intents ?? 0,
+        flags: this.options.flags,
+        ignoredEvents: this.options.ignoredEvents,
+        initialGuildId: this.options.initialGuildId,
         presence: this.options.presence,
         shardId: id,
         numShards: this.shardCount,
@@ -165,7 +173,6 @@ export class WebSocketManager extends EventEmitter {
     this.aborted = true;
     for (const shard of this.shards.values()) shard.destroy();
     this.shards.clear();
-    this.gatewayUrl = null;
   }
 
   getShardCount(): number {

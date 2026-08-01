@@ -1,4 +1,4 @@
-import type { Snowflake } from '../common/snowflake.js';
+import type { Snowflake } from '../Common/Snowflake.js';
 
 /**
  * Role from GET /guilds/{id}/roles.

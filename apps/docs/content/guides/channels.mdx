@@ -12,7 +12,7 @@ Use guild.createChannel() to create text (0), voice (2), category (4), or link (
 ```javascript
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.MessageCreate, async (message) => {
   if (!message.guildId || message.content !== '!createchannel') return;
@@ -129,7 +129,7 @@ Use channel.createInvite() to create an invite. Use channel.fetchInvites() to li
 ```javascript
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.MessageCreate, async (message) => {
   if (!message.content.startsWith('!invite') || !message.guildId) return;

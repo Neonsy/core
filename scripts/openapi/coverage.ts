@@ -59,7 +59,7 @@ function main(): void {
         const full = path.join(dir, ent.name);
         if (ent.isDirectory()) walk(full);
         else if (ent.name.endsWith('.ts') && !ent.name.endsWith('.test.ts')) {
-          coreSource += fs.readFileSync(full, 'utf8') + '\n';
+          coreSource += `${fs.readFileSync(full, 'utf8')}\n`;
         }
       }
     };
@@ -121,14 +121,13 @@ function main(): void {
           coreSource.includes(p) ||
           (open.includes('/@me') &&
             [...usedBuilders].some((name) => {
-              const base = open.replace(/\/@me$/, '').replace(/\/\{\}$/, '');
               const block = routeSource.match(
                 new RegExp(`${name}:[\\s\\S]*?(?=\\r?\\n  \\w+:|\\r?\\n\\})`),
               );
               if (!block) return false;
               return [...block[0].matchAll(/`(\/[^`]+)`/g)].some((x) => {
                 const t = x[1]!.replace(/\$\{[^}]+\}/g, '{}');
-                return open.startsWith(t + '/') || open === t;
+                return open.startsWith(`${t}/`) || open === t;
               });
             }));
         if (builderUsedForPath || pathUsedInCore) status = 'wrapped';
@@ -158,7 +157,7 @@ function main(): void {
   }
 
   const report = { summary, operations: ops };
-  fs.writeFileSync(COVERAGE_FILE, JSON.stringify(report, null, 2) + '\n', 'utf8');
+  fs.writeFileSync(COVERAGE_FILE, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   console.log(`Wrote ${path.relative(process.cwd(), COVERAGE_FILE)}`);
   console.log(JSON.stringify(summary, null, 2));
 }

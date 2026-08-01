@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -6,18 +5,19 @@ import {
   Hash,
   Headphones,
   Image,
+  type LucideIcon,
   MessageSquare,
   Radio,
   Smile,
   Webhook,
   Wrench,
-  type LucideIcon,
 } from 'lucide-react';
+import Link from 'next/link';
 import { getGuidesSidebarGroups } from '@/components/GuidesNav';
 import { PageShell } from '@/components/PageShell';
+import { loadVersions } from '@/lib/api-docs';
 import { CATEGORY_ORDER, getCategoryLabel } from '@/lib/guide-meta';
 import { getGuidesByCategory, guidesBasePath } from '@/lib/guides';
-import { loadVersions } from '@/lib/api-docs';
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'getting-started': BookOpen,
@@ -39,7 +39,10 @@ export function GuidesIndexContent({ version }: { version?: string }): React.Rea
   const label = version ?? loadVersions().latest;
 
   return (
-    <PageShell sidebarTitle="Guides" sidebarGroups={getGuidesSidebarGroups(undefined, version)} wide>
+    <PageShell
+      sidebarTitle="Guides"
+      sidebarGroups={getGuidesSidebarGroups(undefined, version)}
+      wide>
       <header className="mb-14">
         <p className="mb-3 font-mono text-xs uppercase tracking-wider text-primary/80">
           Fluxer.js v{label} · {totalGuides} guides
@@ -54,8 +57,7 @@ export function GuidesIndexContent({ version }: { version?: string }): React.Rea
         {firstGuide ? (
           <Link
             href={`${base}/${firstGuide.slug}/`}
-            className="group mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+            className="group mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
             Start with {firstGuide.title}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
@@ -87,8 +89,7 @@ export function GuidesIndexContent({ version }: { version?: string }): React.Rea
                   <Link
                     key={g.slug}
                     href={`${base}/${g.slug}/`}
-                    className="group relative flex flex-col rounded-xl border border-border bg-card p-5 transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5"
-                  >
+                    className="group relative flex flex-col rounded-xl border border-border bg-card p-5 transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5">
                     <h3 className="flex items-start justify-between gap-3 text-sm font-semibold leading-6 text-foreground">
                       <span className="min-w-0">{g.title}</span>
                       <ArrowUpRight

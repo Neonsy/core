@@ -1,5 +1,5 @@
-import { getAllGuides } from './guides';
 import { loadApiDocs } from './api-docs';
+import { getAllGuides } from './guides';
 import { loadOpenApi } from './openapi';
 
 export type SearchKind = 'guide' | 'class' | 'interface' | 'enum' | 'rest';

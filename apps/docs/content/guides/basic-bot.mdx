@@ -12,7 +12,7 @@ Smallest useful bot: connect, wait for Ready, reply to a prefix command.
 ```javascript
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.Ready, () => console.log('Ready!'));
 
@@ -33,7 +33,7 @@ Same thing with `client.events` if you like autocomplete chaining:
 ```javascript
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client
   .events.Ready(() => console.log('Ready!'))

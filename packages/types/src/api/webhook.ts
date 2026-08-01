@@ -1,6 +1,6 @@
-import type { Snowflake } from '../common/snowflake.js';
-import type { APIEmbed } from './embed.js';
-import type { APIUser } from './user.js';
+import type { Snowflake } from '../Common/Snowflake.js';
+import type { APIEmbed } from './Embed.js';
+import type { APIUser } from './User.js';
 
 /**
  * Webhook type (OpenAPI WebhookType).
@@ -25,12 +25,12 @@ export interface APIWebhook {
   /** Webhook display name. */
   name: string;
   /** Webhook avatar hash. */
-  avatar: string | null;
-  /** Webhook token (present when listing channel webhooks; not returned when fetching by ID without token). */
-  token?: string;
+  avatar?: string | null;
+  /** Webhook token (present when listing channel webhooks). */
+  token: string;
   /** User who created the webhook. */
   user: APIUser;
-  /** Webhook type (present on audit-log webhook entries and some list responses). */
+  /** Webhook type (audit-log / some list responses). */
   type?: WebhookType;
 }
 

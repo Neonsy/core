@@ -23,7 +23,7 @@ Create the voice manager **before** `login` so it sees `VoiceStatesSync` from RE
 import { Client, Events, VoiceChannel } from '@fluxerjs/core';
 import { getVoiceManager } from '@fluxerjs/voice';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 getVoiceManager(client);
 
 await client.login(process.env.FLUXER_BOT_TOKEN);

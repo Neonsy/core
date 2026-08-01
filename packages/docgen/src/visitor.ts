@@ -1,18 +1,18 @@
+import { relative } from 'node:path';
 import * as ts from 'typescript';
-import { relative } from 'path';
-import type { DocClass, DocInterface, DocEnum, DocSource } from './schema.js';
 import {
   extractConstructor,
-  extractProperty,
-  extractMethod,
+  extractEnumMember,
   extractGetterProperty,
   extractInterfaceProperty,
-  extractEnumMember,
+  extractMethod,
+  extractProperty,
   extractTypeAliasMembers,
-  getDescriptionFromJSDocComment,
   getDeprecatedFromJSDoc,
+  getDescriptionFromJSDocComment,
   getSeeFromJSDoc,
-} from './extract.js';
+} from './Extract.js';
+import type { DocClass, DocEnum, DocInterface, DocSource } from './Schema.js';
 
 function getJSDoc(node: ts.Node): string {
   const sourceFile = node.getSourceFile();

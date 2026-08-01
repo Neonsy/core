@@ -1,7 +1,7 @@
 import { Network } from 'lucide-react';
 import { PageShell } from '@/components/PageShell';
-import { getRestSidebarGroups } from '@/components/RestNav';
 import { RestExplorer, type RestExplorerOperation } from '@/components/RestExplorer';
+import { getRestSidebarGroups } from '@/components/RestNav';
 import { getOperationsByTag, loadOpenApi } from '@/lib/openapi';
 
 export const metadata = { title: 'REST API' };

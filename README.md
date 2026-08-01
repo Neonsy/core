@@ -4,7 +4,7 @@
 [![CodeQL](https://github.com/fluxerjs/core/actions/workflows/codeql.yml/badge.svg)](https://github.com/fluxerjs/core/actions/workflows/codeql.yml)
 [![npm version](https://img.shields.io/npm/v/@fluxerjs/core.svg)](https://www.npmjs.com/package/@fluxerjs/core)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Socket Badge](https://badge.socket.dev/npm/package/@fluxerjs/core/2.0.0)](https://badge.socket.dev/npm/package/@fluxerjs/core/2.0.0)
+[![Socket Badge](https://badge.socket.dev/npm/package/@fluxerjs/core/2.2.0)](https://badge.socket.dev/npm/package/@fluxerjs/core/2.2.0)
 
 SDK for building bots on [Fluxer](https://fluxer.app).
 
@@ -19,7 +19,7 @@ pnpm add @fluxerjs/core
 ```javascript
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.Ready, () => console.log('Ready'));
 client.on(Events.MessageCreate, async (m) => {

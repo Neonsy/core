@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { ListTree } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import type { TocHeading } from '@/components/OnPageToc';
 import { cn } from '@/lib/utils';
 
@@ -69,10 +69,7 @@ export function OnPageTocClient({
       </div>
 
       <nav className="relative flex flex-col gap-0.5 text-[13px]">
-        <span
-          className="absolute bottom-1 left-[5px] top-1 w-px bg-border"
-          aria-hidden
-        />
+        <span className="absolute bottom-1 left-[5px] top-1 w-px bg-border" aria-hidden />
         {headings.map((h) => {
           const active = h.id === activeId;
           return (
@@ -83,11 +80,8 @@ export function OnPageTocClient({
               className={cn(
                 'group relative py-1.5 transition-colors duration-150',
                 h.depth === 3 ? 'pl-6' : 'pl-4',
-                active
-                  ? 'font-medium text-primary'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
+                active ? 'font-medium text-primary' : 'text-muted-foreground hover:text-foreground',
+              )}>
               <span
                 className={cn(
                   'absolute left-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 transition-all duration-200',

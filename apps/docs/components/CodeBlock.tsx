@@ -1,5 +1,5 @@
-import { highlightCode, normalizeLang } from '@/lib/highlight';
 import { CopyButton } from '@/components/CopyButton';
+import { highlightCode, normalizeLang } from '@/lib/highlight';
 import { cn } from '@/lib/utils';
 
 const LANG_ICONS: Record<string, string> = {
@@ -52,15 +52,13 @@ export async function CodeBlock({
       className={cn(
         'code-frame group relative my-5 overflow-hidden rounded-lg border border-border text-[13px] leading-6 sm:text-[13.5px]',
         className,
-      )}
-    >
+      )}>
       <div className="flex h-9 items-center justify-between border-b border-border/70 bg-muted/50 px-3">
         {showLang ? (
           <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
             <span
               aria-hidden
-              className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border/80 bg-background/80 px-1 text-[10px] font-semibold text-foreground/80"
-            >
+              className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border/80 bg-background/80 px-1 text-[10px] font-semibold text-foreground/80">
               {langBadge(normalized)}
             </span>
             {normalized}
@@ -94,8 +92,7 @@ export async function SchemaBlock({
         <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
           <span
             aria-hidden
-            className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border/80 bg-background/80 px-1 text-[10px] font-semibold text-foreground/80"
-          >
+            className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border/80 bg-background/80 px-1 text-[10px] font-semibold text-foreground/80">
             {langBadge('json')}
           </span>
           {title ?? 'json'}

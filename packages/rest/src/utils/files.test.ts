@@ -1,6 +1,6 @@
 import { Request } from 'undici';
 import { describe, expect, it } from 'vitest';
-import { buildFormData } from './files.js';
+import { buildFormData } from './Files.js';
 
 describe('buildFormData', () => {
   it('creates FormData with payload_json only', () => {

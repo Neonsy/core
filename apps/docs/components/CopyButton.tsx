@@ -29,8 +29,7 @@ export function CopyButton({
         } catch {
           /* ignore */
         }
-      }}
-    >
+      }}>
       {copied ? <Check className="!size-3.5 text-emerald-500" /> : <Copy className="!size-3.5" />}
     </Button>
   );

@@ -12,11 +12,11 @@
       "!**/dist",
       "!**/coverage",
       "!**/node_modules",
-      "!**/packages/voice",
-      "!**/apps/docs",
       "!**/test-fixtures",
       "!**/*.generated.ts",
-      "!**/_generated"
+      "!**/_generated",
+      "!**/apps/docs/.next",
+      "!**/*.css"
     ]
   },
   "formatter": {
@@ -45,16 +45,25 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "suspicious": {
         "noExplicitAny": "error"
       },
       "style": {
         "useImportType": "error",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": {
+            "filenameCases": ["PascalCase"],
+            "strictCase": false
+          }
+        }
       },
       "complexity": {
-        "noForEach": "off"
+        "noForEach": "off",
+        "noThisInStatic": "off",
+        "noStaticOnlyClass": "off"
       }
     }
   },
@@ -64,5 +73,88 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "**/index.ts",
+        "**/index.tsx",
+        "**/index.js",
+        "**/*.d.ts",
+        "**/*.generated.ts",
+        "**/*.config.ts",
+        "**/*.config.js",
+        "**/*.config.mjs",
+        "**/*.config.cjs",
+        ".changeset/**",
+        "turbo.json",
+        "pnpm-workspace.yaml"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/docs/app/**",
+        "apps/docs/lib/**",
+        "apps/docs/data/**",
+        "apps/docs/components/ui/**",
+        "apps/docs/components/mdx.tsx",
+        "apps/docs/components/mdx-pre.tsx",
+        "apps/docs/**/*.css"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": "off"
+          },
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          },
+          "a11y": {
+            "noSvgWithoutTitle": "off",
+            "useSemanticElements": "off",
+            "useKeyWithClickEvents": "off"
+          },
+          "suspicious": {
+            "noAssignInExpressions": "off",
+            "noArrayIndexKey": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/docs/components/**"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          },
+          "a11y": {
+            "noSvgWithoutTitle": "off",
+            "useSemanticElements": "off"
+          },
+          "suspicious": {
+            "noAssignInExpressions": "off",
+            "noArrayIndexKey": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["scripts/**", "examples/**", "benchmarks/**", "local/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    }
+  ]
 }

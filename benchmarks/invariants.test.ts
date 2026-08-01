@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { Collection } from '../packages/collection/src/Collection.ts';
-import { DEFAULT_CACHE_LIMITS } from '../packages/fluxer-core/src/util/Options.ts';
+import { DEFAULT_CACHE_LIMITS } from '../packages/fluxer-core/src/Helpers/Options.ts';
 
 describe('performance invariants', () => {
   it('DEFAULT_CACHE_LIMITS are bounded (non-zero)', () => {

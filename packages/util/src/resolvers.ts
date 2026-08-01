@@ -123,7 +123,7 @@ export function parsePrefixCommand(content: string, prefix: string): ParsedPrefi
 
 /**
  * Convert emoji to API reaction format.
- * Custom: `name:id` (animated: `a:name:id`); Unicode: URI-encoded character.
+ * Custom: `name:id` (animated: `a:name:id`); Unicode: raw character (routes encode).
  */
 export function formatEmoji(emoji: {
   id: string | null;
@@ -131,7 +131,7 @@ export function formatEmoji(emoji: {
   animated?: boolean;
 }): string {
   if (emoji.id) {
-    return emoji.animated ? `a:${emoji.name}:${emoji.id}` : `:${emoji.name}:${emoji.id}`;
+    return emoji.animated ? `a:${emoji.name}:${emoji.id}` : `${emoji.name}:${emoji.id}`;
   }
-  return encodeURIComponent(emoji.name);
+  return emoji.name;
 }

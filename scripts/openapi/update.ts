@@ -64,7 +64,7 @@ async function main(): Promise<void> {
     pathCount,
     schemaCount,
   };
-  fs.writeFileSync(MANIFEST_FILE, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  fs.writeFileSync(MANIFEST_FILE, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   console.log(`Wrote ${path.relative(process.cwd(), OPENAPI_FILE)}`);
   console.log(`paths=${pathCount} schemas=${schemaCount} sha256=${sha256}`);
 }

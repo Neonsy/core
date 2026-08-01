@@ -26,6 +26,7 @@ Copy `.env.example` to `.env` if you want, or set env vars inline.
 | Example | What it shows |
 | ------- | ------------- |
 | [minimal-bot.js](minimal-bot.js) | Login + `!ping` |
+| [cache-bot.js](cache-bot.js) | Custom limits, `client.cache.stats()`, periodic sweeps |
 | [first-steps-bot.js](first-steps-bot.js) | `!hello`, `!avatar`, `!embed`, `!perms`, `!noreply` |
 | [ping-bot.js](ping-bot.js) | Prefix map, embeds, DMs, replies, reactions |
 | [voice-bot.js](voice-bot.js) | `!play`, `!playvideo`, `!stop` (**voice being reworked**) |

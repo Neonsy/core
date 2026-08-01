@@ -1,17 +1,16 @@
-import { EventEmitter } from 'events';
-import { Client } from '@fluxerjs/core';
-import { VoiceChannel } from '@fluxerjs/core';
-import { Events } from '@fluxerjs/core';
-import { GatewayOpcodes, Routes } from '@fluxerjs/types';
-import { thumbnail } from './streamPreviewPlaceholder.js';
-import {
-  GatewayVoiceServerUpdateDispatchData,
-  GatewayVoiceStateUpdateDispatchData,
-} from '@fluxerjs/types';
-import { VoiceConnection } from './VoiceConnection.js';
-import { LiveKitRtcConnection, type LiveKitReceiveSubscription } from './LiveKitRtcConnection.js';
-import { isLiveKitEndpoint } from './livekit.js';
+import { EventEmitter } from 'node:events';
 import { Collection } from '@fluxerjs/collection';
+import { type Client, Events, type VoiceChannel } from '@fluxerjs/core';
+import {
+  GatewayOpcodes,
+  type GatewayVoiceServerUpdateDispatchData,
+  type GatewayVoiceStateUpdateDispatchData,
+  Routes,
+} from '@fluxerjs/types';
+import { type LiveKitReceiveSubscription, LiveKitRtcConnection } from './LiveKitRtcConnection.js';
+import { isLiveKitEndpoint } from './Livekit.js';
+import { thumbnail } from './StreamPreviewPlaceholder.js';
+import { VoiceConnection } from './VoiceConnection.js';
 
 /** Maps guild_id -> user_id -> channel_id (null if not in voice). */
 export type VoiceStateMap = Map<string, Map<string, string | null>>;
@@ -232,6 +231,10 @@ export class VoiceManager extends EventEmitter {
       channel_id: channel.id,
       user_id: userId,
       session_id: '',
+      mute: false,
+      deaf: false,
+      self_mute: false,
+      self_deaf: false,
     };
 
     newConn.connect(data, state).catch((e) => {
@@ -252,12 +255,13 @@ export class VoiceManager extends EventEmitter {
   ): void {
     const cid = conn.channel?.id ?? channelId;
     this.connections.set(cid, conn);
-    conn.once('disconnect', () => {
+    const events = conn as import('events').EventEmitter;
+    events.once('disconnect', () => {
       if (this.connections.get(cid) !== conn) return;
       this.connections.delete(cid);
       this.connectionIds.delete(cid);
     });
-    conn.on('requestVoiceStateSync', (p: { self_stream?: boolean; self_video?: boolean }) => {
+    events.on('requestVoiceStateSync', (p: { self_stream?: boolean; self_video?: boolean }) => {
       this.updateVoiceState(cid, p);
       if (p.self_stream) {
         this.uploadStreamPreview(cid, conn).catch((e) =>
@@ -314,6 +318,10 @@ export class VoiceManager extends EventEmitter {
       channel_id: pending.channel.id,
       user_id: userId,
       session_id: '',
+      mute: false,
+      deaf: false,
+      self_mute: false,
+      self_deaf: false,
     };
 
     this.storeConnectionId(

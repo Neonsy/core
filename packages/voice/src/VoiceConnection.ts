@@ -1,18 +1,19 @@
-import { EventEmitter } from 'events';
-import { Client } from '@fluxerjs/core';
-import { VoiceChannel } from '@fluxerjs/core';
-import { ErrorCodes, FluxerError } from '@fluxerjs/util';
-import {
-  GatewayVoiceServerUpdateDispatchData,
-  GatewayVoiceStateUpdateDispatchData,
-} from '@fluxerjs/types';
-import * as nacl from 'tweetnacl';
+// biome-ignore lint/style/useNodejsImportProtocol: node:dgram drops Socket event methods under tsc -b
 import * as dgram from 'dgram';
-import * as ws from 'ws';
+import { EventEmitter } from 'node:events';
 import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
+import type { Client, VoiceChannel } from '@fluxerjs/core';
+import type {
+  GatewayVoiceServerUpdateDispatchData,
+  GatewayVoiceStateUpdateDispatchData,
+} from '@fluxerjs/types';
+import { ErrorCodes, FluxerError } from '@fluxerjs/util';
 import { opus } from 'prism-media';
+import * as nacl from 'tweetnacl';
+import * as ws from 'ws';
+
 /** Minimal WebSocket type for voice (ws module). */
 interface VoiceWebSocket {
   send(data: string | Buffer | ArrayBufferLike): void;
@@ -116,7 +117,7 @@ export class VoiceConnection extends EventEmitter {
   ): Promise<void> {
     this._token = server.token;
     const raw = (server.endpoint ?? '').trim();
-    this._sessionId = state.session_id;
+    this._sessionId = state.session_id ?? null;
     if (!raw || !this._token || !this._sessionId) {
       this.emit('error', new Error('Missing voice server or session data'));
       return;
@@ -208,7 +209,9 @@ export class VoiceConnection extends EventEmitter {
 
   private async getWebSocketConstructor(): Promise<new (url: string) => VoiceWebSocket> {
     try {
-      return ws.default as new (url: string) => VoiceWebSocket;
+      return ws.default as new (
+        url: string,
+      ) => VoiceWebSocket;
     } catch (err) {
       throw new FluxerError('Install "ws" for voice support: pnpm add ws', {
         code: ErrorCodes.VoiceWebSocketRequired,
@@ -218,7 +221,7 @@ export class VoiceConnection extends EventEmitter {
   }
 
   private sendVoiceOp(op: number, d: unknown): void {
-    if (!this.voiceWs || this.voiceWs.readyState !== 1) return;
+    if (this.voiceWs?.readyState !== 1) return;
     this.voiceWs.send(JSON.stringify({ op, d }));
   }
 

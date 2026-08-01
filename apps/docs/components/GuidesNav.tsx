@@ -3,12 +3,12 @@ import {
   Hash,
   Headphones,
   Image,
+  type LucideIcon,
   MessageSquare,
   Radio,
   Smile,
   Webhook,
   Wrench,
-  type LucideIcon,
 } from 'lucide-react';
 import { DocsSidebar, type SidebarGroup, type SidebarItem } from '@/components/PageShell';
 import { CATEGORY_ORDER, getCategoryLabel } from '@/lib/guide-meta';

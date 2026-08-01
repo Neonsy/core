@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { EmbedBuilder } from './EmbedBuilder.js';
 
 const WIRE_KEYS = new Set([
@@ -239,6 +239,7 @@ describe('EmbedBuilder', () => {
 
     it('does not copy video or audio from response embeds', () => {
       const json = EmbedBuilder.from({
+        type: 'rich',
         title: 'Media',
         video: {
           url: 'https://example.com/video.mp4',

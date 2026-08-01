@@ -1,26 +1,26 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import {
   BookOpen,
   Boxes,
   Braces,
   History,
+  type LucideIcon,
   Menu,
   Search,
   Server,
-  type LucideIcon,
 } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { FluxerInviteIcon } from './FluxerInvite';
-import { FluxerLogo } from './FluxerLogo';
-import { ThemeToggle } from './ThemeToggle';
-import { VersionPicker } from './VersionPicker';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { sectionIndexHref, useDocsVersion } from '@/lib/docs-version';
 import { cn } from '@/lib/utils';
+import { FluxerInviteIcon } from './FluxerInvite';
+import { FluxerLogo } from './FluxerLogo';
+import { ThemeToggle } from './ThemeToggle';
+import { VersionPicker } from './VersionPicker';
 
 function GitHubIcon({ className }: { className?: string }): React.ReactElement {
   return (
@@ -79,10 +79,7 @@ const NAV: {
   },
 ];
 
-function navHref(
-  item: (typeof NAV)[number],
-  preferred: string,
-): string {
+function navHref(item: (typeof NAV)[number], preferred: string): string {
   if (item.versioned) return sectionIndexHref(item.versioned, preferred);
   return item.href;
 }
@@ -93,11 +90,7 @@ function navActive(pathname: string | null, href: string): boolean {
   return pathname === href || pathname === `${base}/` || pathname.startsWith(`${base}/`);
 }
 
-export function SiteHeader({
-  onOpenSearch,
-}: {
-  onOpenSearch?: () => void;
-}): React.ReactElement {
+export function SiteHeader({ onOpenSearch }: { onOpenSearch?: () => void }): React.ReactElement {
   const pathname = usePathname();
   const { preferred } = useDocsVersion();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -105,7 +98,8 @@ export function SiteHeader({
 
   useEffect(() => {
     const platform =
-      (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
+      (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData
+        ?.platform ??
       navigator.platform ??
       navigator.userAgent;
     setShortcut(/mac|iphone|ipad|ipod/i.test(platform) ? '⌘K' : 'Ctrl K');
@@ -131,7 +125,10 @@ export function SiteHeader({
               {NAV.map((item) => {
                 const Icon = item.icon;
                 const href = navHref(item, preferred);
-                const active = navActive(pathname, item.versioned ? `/${item.versioned}` : item.href);
+                const active = navActive(
+                  pathname,
+                  item.versioned ? `/${item.versioned}` : item.href,
+                );
                 return (
                   <Link
                     key={item.href}
@@ -142,8 +139,7 @@ export function SiteHeader({
                       active
                         ? 'bg-muted text-foreground'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                    )}
-                  >
+                    )}>
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background/60 ring-1 ring-border">
                       <Icon
                         className={cn(
@@ -182,8 +178,7 @@ export function SiteHeader({
                   active
                     ? 'bg-background font-medium text-foreground shadow-sm ring-1 ring-border'
                     : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
+                )}>
                 <Icon
                   className={cn(
                     'h-4 w-4 shrink-0 transition-colors',
@@ -200,8 +195,7 @@ export function SiteHeader({
           <button
             type="button"
             onClick={onOpenSearch}
-            className="hidden h-9 w-full max-w-xs items-center gap-2 rounded-lg border border-border bg-card/60 px-3 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-card sm:flex md:w-72 lg:w-80"
-          >
+            className="hidden h-9 w-full max-w-xs items-center gap-2 rounded-lg border border-border bg-card/60 px-3 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-card sm:flex md:w-72 lg:w-80">
             <Search className="h-4 w-4 shrink-0" />
             <span className="text-sm">Search docs…</span>
             <kbd className="pointer-events-none ml-auto shrink-0 rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
@@ -214,13 +208,16 @@ export function SiteHeader({
             size="icon"
             className="sm:hidden"
             onClick={onOpenSearch}
-            aria-label="Search"
-          >
+            aria-label="Search">
             <Search />
           </Button>
           <FluxerInviteIcon />
           <Button variant="ghost" size="icon" asChild>
-            <a href="https://github.com/fluxerjs/core" target="_blank" rel="noreferrer" aria-label="GitHub">
+            <a
+              href="https://github.com/fluxerjs/core"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub">
               <GitHubIcon className="h-4 w-4" />
             </a>
           </Button>

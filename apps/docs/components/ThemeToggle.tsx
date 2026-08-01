@@ -21,8 +21,7 @@ export function ThemeToggle(): React.ReactElement {
       variant="ghost"
       size="icon"
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      onClick={() => setTheme(isDark ? 'light' : 'dark')}
-    >
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}>
       {isDark ? <Sun /> : <Moon />}
     </Button>
   );

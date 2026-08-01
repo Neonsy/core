@@ -1,17 +1,17 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
-import { getGuidesSidebarGroups } from '@/components/GuidesNav';
 import { HelpCallout } from '@/components/FluxerInvite';
+import { getGuidesSidebarGroups } from '@/components/GuidesNav';
 import { CodeTabs, Tip, Warning } from '@/components/mdx';
 import { MdxPre } from '@/components/mdx-pre';
 import { extractToc, OnPageToc } from '@/components/OnPageToc';
 import { PageShell } from '@/components/PageShell';
 import { getCategoryLabel } from '@/lib/guide-meta';
 import { getAllGuides, getGuideBySlug, guidesBasePath } from '@/lib/guides';
-import { notFound } from 'next/navigation';
 
 const components = { Tip, Warning, CodeTabs, pre: MdxPre };
 
@@ -36,8 +36,7 @@ export function GuideContent({
     <PageShell
       sidebarTitle="Guides"
       sidebarGroups={getGuidesSidebarGroups(slug, version)}
-      toc={<OnPageToc headings={toc} />}
-    >
+      toc={<OnPageToc headings={toc} />}>
       <article className="prose prose-docs max-w-none dark:prose-invert">
         <div className="not-prose mb-10">
           <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
@@ -80,8 +79,7 @@ export function GuideContent({
         {prev ? (
           <Link
             href={`${base}/${prev.slug}/`}
-            className="group flex flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
-          >
+            className="group flex flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               ← Previous
             </span>
@@ -95,8 +93,7 @@ export function GuideContent({
         {next ? (
           <Link
             href={`${base}/${next.slug}/`}
-            className="group flex flex-col rounded-xl border border-border bg-card p-4 text-right transition-colors hover:border-primary/40 sm:col-start-2"
-          >
+            className="group flex flex-col rounded-xl border border-border bg-card p-4 text-right transition-colors hover:border-primary/40 sm:col-start-2">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Next →
             </span>

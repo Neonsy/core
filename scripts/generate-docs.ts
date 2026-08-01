@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * Generate combined API documentation JSON from all SDK packages.
  *
@@ -18,23 +19,23 @@
  * installed build — acceptable for reference docs.
  */
 
-import { resolve, dirname, join } from 'path';
+import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import {
-  mkdirSync,
-  writeFileSync,
-  readFileSync,
-  unlinkSync,
-  existsSync,
-  rmSync,
   cpSync,
+  existsSync,
+  mkdirSync,
   readdirSync,
-} from 'fs';
-import { tmpdir } from 'os';
-import { randomBytes } from 'crypto';
-import { execFileSync } from 'child_process';
-import { fileURLToPath } from 'url';
-import { generateDocs } from '@fluxerjs/docgen';
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { DocOutput } from '@fluxerjs/docgen';
+import { generateDocs } from '@fluxerjs/docgen';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');

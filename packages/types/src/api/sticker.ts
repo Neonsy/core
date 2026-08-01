@@ -1,5 +1,5 @@
-import type { Snowflake } from '../common/snowflake.js';
-import type { APIUser } from './user.js';
+import type { Snowflake } from '../Common/Snowflake.js';
+import type { APIUser } from './User.js';
 
 /** Custom sticker reference. */
 export interface APISticker {

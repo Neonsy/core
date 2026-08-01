@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
 import { Client, ClientUser, Events, VoiceChannel } from '@fluxerjs/core';
 import { ChannelType } from '@fluxerjs/types';
-import { VoiceManager } from './VoiceManager.js';
+import { describe, expect, it, vi } from 'vitest';
 import { LiveKitRtcConnection } from './LiveKitRtcConnection.js';
+import { VoiceManager } from './VoiceManager.js';
 
 function createClient(userId?: string): Client {
   const client = new Client();
@@ -11,6 +11,10 @@ function createClient(userId?: string): Client {
       id: userId,
       username: 'test-bot',
       discriminator: '0000',
+      global_name: null,
+      avatar: null,
+      avatar_color: null,
+      flags: 0,
       bot: true,
     });
   }
@@ -67,10 +71,10 @@ describe('VoiceManager', () => {
     const connectResolvers: Array<() => void> = [];
     const connect = vi
       .spyOn(LiveKitRtcConnection.prototype, 'connect')
-      .mockImplementation(
-        () => new Promise<void>((resolve) => connectResolvers.push(resolve)),
-      );
-    const destroy = vi.spyOn(LiveKitRtcConnection.prototype, 'destroy').mockImplementation(() => {});
+      .mockImplementation(() => new Promise<void>((resolve) => connectResolvers.push(resolve)));
+    const destroy = vi
+      .spyOn(LiveKitRtcConnection.prototype, 'destroy')
+      .mockImplementation(() => {});
     const channel = createVoiceChannel(client);
 
     try {

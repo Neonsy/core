@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { getUnicodeFromShortcode, UNICODE_EMOJI_SHORTCODES } from './emojiShortcodes.js';
+import { describe, expect, it } from 'vitest';
+import { getUnicodeFromShortcode, UNICODE_EMOJI_SHORTCODES } from './EmojiShortcodes.js';
 
 describe('getUnicodeFromShortcode', () => {
   it('resolves :heart: to unicode', () => {
@@ -19,7 +19,7 @@ describe('getUnicodeFromShortcode', () => {
 
   it('trims whitespace', () => {
     const r = getUnicodeFromShortcode('  heart  ');
-    expect(r).toBe(UNICODE_EMOJI_SHORTCODES['heart']);
+    expect(r).toBe(UNICODE_EMOJI_SHORTCODES.heart);
   });
 
   it('returns undefined for empty or invalid', () => {

@@ -1,6 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["pnpm-lock.yaml"],
+  "globalPassThroughEnv": [
+    "BOT_LOGIN_TIMEOUT_MS",
+    "DOCS_ALLOW_PARTIAL",
+    "DOCS_GITHUB_REPO",
+    "DOCS_GIT_REMOTE",
+    "FLUXER_BOT_TOKEN",
+    "FLUXER_REPO",
+    "GITHUB_TOKEN",
+    "GH_TOKEN",
+    "OPENAPI_COMPARE_PATH",
+    "OPENAPI_URL",
+    "REQUIRE_BOT_TOKEN",
+    "VERCEL",
+    "VERCEL_GIT_PROVIDER_TOKEN"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

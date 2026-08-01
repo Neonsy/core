@@ -1,18 +1,18 @@
 export {
-  EmbedBuilder,
-  type EmbedAuthorOptions,
-  type EmbedFooterOptions,
-  type EmbedFieldData,
-  type EmbedMediaOptions,
-  type RESTPostAPIEmbed,
-} from './messages/EmbedBuilder.js';
-export {
+  type APIAttachmentPayload,
   AttachmentBuilder,
   type AttachmentPayloadOptions,
-  type APIAttachmentPayload,
-} from './messages/AttachmentBuilder.js';
+} from './Messages/AttachmentBuilder.js';
+export {
+  type EmbedAuthorOptions,
+  EmbedBuilder,
+  type EmbedFieldData,
+  type EmbedFooterOptions,
+  type EmbedMediaOptions,
+  type RESTPostAPIEmbed,
+} from './Messages/EmbedBuilder.js';
 export {
   MessagePayload,
   type MessagePayloadCreateOptions,
   type MessagePayloadData,
-} from './messages/MessagePayload.js';
+} from './Messages/MessagePayload.js';

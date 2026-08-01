@@ -1,7 +1,7 @@
 import type { APIErrorBody, RateLimitErrorBody } from '@fluxerjs/types';
 import { FormData } from 'undici';
-import { FluxerAPIError, HTTPError, RateLimitError } from './errors/index.js';
-import { sharedFetch } from './fetch/sharedFetch.js';
+import { FluxerAPIError, HTTPError, RateLimitError } from './Errors/index.js';
+import { sharedFetch } from './Fetch/SharedFetch.js';
 import { RateLimitManager } from './RateLimitManager.js';
 import {
   DEFAULT_API,
@@ -9,8 +9,8 @@ import {
   DEFAULT_VERSION,
   MAX_RETRIES,
   REQUEST_TIMEOUT,
-} from './utils/constants.js';
-import { type AttachmentPayload, buildFormData } from './utils/files.js';
+} from './Utils/Constants.js';
+import { type AttachmentPayload, buildFormData } from './Utils/Files.js';
 
 export interface RequestOptions {
   body?: unknown | FormData;

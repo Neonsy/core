@@ -1,10 +1,10 @@
 import { FormData } from 'undici';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FluxerAPIError, HTTPError, RateLimitError } from './errors/index.js';
-import { sharedFetch } from './fetch/sharedFetch.js';
+import { FluxerAPIError, HTTPError, RateLimitError } from './Errors/index.js';
+import { sharedFetch } from './Fetch/SharedFetch.js';
 import { RequestManager } from './RequestManager.js';
 
-vi.mock('./fetch/sharedFetch.js', () => ({
+vi.mock('./Fetch/SharedFetch.js', () => ({
   sharedFetch: vi.fn(),
   closeSharedFetch: vi.fn(),
 }));

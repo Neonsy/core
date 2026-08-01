@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { parseOpusPacketBoundaries } from './opusUtils.js';
+import { describe, expect, it } from 'vitest';
+import { parseOpusPacketBoundaries } from './OpusUtils.js';
 
 describe('parseOpusPacketBoundaries', () => {
   it('returns null for buffer shorter than 2 bytes', () => {

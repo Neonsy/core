@@ -1,38 +1,52 @@
-import type { Snowflake } from '../common';
 import type {
-  APIUser,
   APIChannel,
+  APIEmoji,
   APIGuild,
-  APIMessage,
+  APIGuildAuditLogEntry,
   APIGuildMember,
   APIInvite,
+  APIMessage,
   APIRole,
-  APIEmoji,
   APISticker,
-  APIGuildAuditLogEntry,
+  APIUser,
   APIUserConnectionsUpdate,
-  APIWebAuthnCredential,
   APIVoiceState,
+  APIWebAuthnCredential,
   GatewayReactionMemberSnapshot,
   RelationshipType,
-} from '../api';
-import type { GatewayOpcodes } from './opcodes.js';
-import type { GatewayDispatchEventName } from './events.js';
+} from '../Api';
+import type { Snowflake } from '../Common';
+import type { GatewayDispatchEventName } from './Events.js';
+import type { GatewayOpcodes } from './Opcodes.js';
 
 // ─── Outgoing (client -> gateway) ────────────────────────────────────────────
+
+/** Identify flags (Fluxer `GatewayIdentifyFlags`). Sent as `flags` on IDENTIFY. */
+export const GatewayIdentifyFlags = {
+  DebounceMessageReactions: 1 << 1,
+} as const;
 
 /** Identify payload (opcode 2) — initial handshake. */
 export interface GatewayIdentifyData {
   /** Bot or user token. */
   token: string;
-  /** Gateway intents bitfield. */
-  intents: number;
   /** Client properties. */
   properties: {
     os: string;
     browser: string;
     device: string;
   };
+  /**
+   * Legacy Discord-style intents bitfield. Fluxer ignores this; prefer {@link flags}.
+   * @deprecated Fluxer has no gateway intents — omit or send `0`.
+   */
+  intents?: number;
+  /** {@link GatewayIdentifyFlags} bitfield. */
+  flags?: number;
+  /** Dispatch event names to suppress for this session. */
+  ignored_events?: string[];
+  /** Prefer hydrating this guild first after READY. */
+  initial_guild_id?: Snowflake;
   /** Whether to use zlib compression. */
   compress?: boolean;
   /** Threshold for large guild offline member fetching. */
@@ -120,6 +134,24 @@ export interface GatewayRequestChannelMemberCountsData {
   nonce?: string;
 }
 
+/** Client request for guild members (opcode 8). */
+export interface GatewayRequestGuildMembersData {
+  /** Single guild ID. */
+  guild_id?: Snowflake;
+  /** Multiple guild IDs. */
+  guild_ids?: Snowflake[];
+  /** Username prefix query (empty string = all, when not using user_ids). */
+  query?: string;
+  /** Max members to return (0 = no limit when using user_ids). */
+  limit?: number;
+  /** Specific user IDs to fetch. */
+  user_ids?: Snowflake[];
+  /** Whether to include presences in the chunk. */
+  presences?: boolean;
+  /** Optional nonce echoed in GUILD_MEMBERS_CHUNK. */
+  nonce?: string;
+}
+
 /** Union of all client-to-gateway payloads. */
 export type GatewaySendPayload =
   | { op: GatewayOpcodes.Identify; d: GatewayIdentifyData }
@@ -129,7 +161,7 @@ export type GatewaySendPayload =
   | { op: GatewayOpcodes.VoiceStateUpdate; d: GatewayVoiceStateUpdateData }
   | {
       op: GatewayOpcodes.RequestGuildMembers;
-      d: { guild_id: Snowflake; query?: string; limit: number };
+      d: GatewayRequestGuildMembersData;
     }
   | { op: GatewayOpcodes.RequestGuildCounts; d: GatewayRequestGuildCountsData }
   | { op: GatewayOpcodes.RequestChannelMemberCounts; d: GatewayRequestChannelMemberCountsData };
@@ -142,20 +174,53 @@ export interface GatewayHelloData {
   heartbeat_interval: number;
 }
 
+/**
+ * Guild snapshot in READY / GUILD_CREATE.
+ * Fluxer nests guild metadata under `properties`; flat guild objects are also accepted.
+ */
+export type GatewayGuildSnapshot =
+  | (APIGuild & {
+      unavailable?: boolean;
+      channels?: APIChannel[];
+      roles?: APIRole[];
+      members?: APIGuildMember[];
+      emojis?: APIEmoji[];
+      stickers?: APISticker[];
+      voice_states?: APIVoiceState[];
+      member_count?: number;
+      online_count?: number;
+      joined_at?: string;
+    })
+  | {
+      id: Snowflake;
+      properties: APIGuild;
+      unavailable?: boolean;
+      channels?: APIChannel[];
+      roles?: APIRole[];
+      members?: APIGuildMember[];
+      emojis?: APIEmoji[];
+      stickers?: APISticker[];
+      voice_states?: APIVoiceState[];
+      member_count?: number;
+      online_count?: number;
+      joined_at?: string;
+    };
+
 /** READY dispatch (op 0, t = READY) — initial connection established. */
 export interface GatewayReadyDispatchData {
-  /** Gateway protocol version. */
-  v: number;
   /** Current user object. */
   user: APIUser;
-  /** Guilds the user is in (may be unavailable during startup). */
-  guilds: Array<APIGuild & { unavailable?: boolean }>;
+  /**
+   * Guilds for this session.
+   * Bot tokens typically receive `[]` here; full snapshots arrive via GUILD_CREATE.
+   */
+  guilds: GatewayGuildSnapshot[];
   /** Session ID for resuming. */
   session_id: string;
-  /** Shard info [shard_id, num_shards]. */
+  /** Private / DM channels (user clients; usually absent for bots). */
+  private_channels?: APIChannel[];
+  /** Shard info [shard_id, num_shards] when sharding. */
   shard?: [number, number];
-  /** Application info. */
-  application: { id: Snowflake; flags: number };
 }
 
 /** MESSAGE_CREATE dispatch — new message. */
@@ -282,8 +347,8 @@ export interface GatewayMessageAckDispatchData {
   channel_id: Snowflake;
 }
 
-/** GUILD_CREATE — full guild with channels, members, roles, unavailable? */
-export type GatewayGuildCreateDispatchData = APIGuild & { unavailable?: boolean };
+/** GUILD_CREATE — full guild snapshot (nested `properties` or flat). */
+export type GatewayGuildCreateDispatchData = GatewayGuildSnapshot;
 /** GUILD_UPDATE — full guild object */
 export type GatewayGuildUpdateDispatchData = APIGuild;
 /** GUILD_DELETE — id, unavailable? (true = temp outage) */

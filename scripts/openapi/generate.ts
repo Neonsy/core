@@ -34,13 +34,6 @@ function propKeys(schemas: Record<string, Schema>, name: string): string[] {
   return Object.keys(s.properties).sort();
 }
 
-function enumValues(schemas: Record<string, Schema>, name: string): unknown[] {
-  const s = resolve(schemas, schemas[name]);
-  if (s?.enum) return s.enum;
-  // Channel create type enums live on request schemas
-  return [];
-}
-
 function main(): void {
   const doc = JSON.parse(fs.readFileSync(OPENAPI_FILE, 'utf8')) as {
     components: { schemas: Record<string, Schema> };
@@ -103,7 +96,7 @@ function main(): void {
 
   fs.mkdirSync(GENERATED_DIR, { recursive: true });
   const out = path.join(GENERATED_DIR, 'openapi-conformance.ts');
-  fs.writeFileSync(out, lines.join('\n') + '\n', 'utf8');
+  fs.writeFileSync(out, `${lines.join('\n')}\n`, 'utf8');
   console.log(`Wrote ${path.relative(process.cwd(), out)}`);
 }
 

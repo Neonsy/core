@@ -1,6 +1,6 @@
-import type { Snowflake } from '../common/snowflake.js';
-import type { APIChannelPartial } from './channel.js';
-import type { APIUser } from './user.js';
+import type { Snowflake } from '../Common/Snowflake.js';
+import type { APIChannelPartial } from './Channel.js';
+import type { APIUser } from './User.js';
 
 /**
  * Invite type discriminator (OpenAPI InviteType).
@@ -101,9 +101,15 @@ export interface APIGuildInvite extends InviteShared {
   guild: APIGuildPartial;
   /** Channel the invite targets. */
   channel: APIChannelPartial;
-  /** Total guild member count. */
+  /**
+   * Total guild member count.
+   * Required on REST `GuildInviteResponse`; may be omitted on gateway INVITE_CREATE partials.
+   */
   member_count?: number;
-  /** Online member count. */
+  /**
+   * Online member count.
+   * Required on REST `GuildInviteResponse`; may be omitted on gateway INVITE_CREATE partials.
+   */
   presence_count?: number;
 }
 

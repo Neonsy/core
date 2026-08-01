@@ -68,3 +68,9 @@ pnpm exec changeset
 - `packages/` - Monorepo packages
 - `apps/docs/` - Documentation site
 - `examples/` - Example bots
+
+## Source file naming
+
+Under `packages/*/src`, use **PascalCase** for directories and module files (for example `Helpers/Events.ts`, `Utils/Constants.ts`). Keep barrel files as `index.ts`. Subpath entry shims are `Subpath*.ts` (published export names stay lowercase). Generated files (`*.generated.ts`, `_generated/`) are exempt. Run `pnpm run check:casing` to catch import path casing mismatches on case-insensitive filesystems. Biome enforces the filename convention via `useFilenamingConvention`.
+
+Next.js App Router files under `apps/docs/app/` and shadcn UI under `apps/docs/components/ui/` keep framework conventions (lowercase route segments).

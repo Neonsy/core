@@ -1,16 +1,16 @@
+import { EventEmitter } from 'node:events';
 import type {
-  GatewaySendPayload,
-  GatewayHelloData,
-  GatewayReceivePayload,
-  GatewayIdentifyData,
-  GatewayResumeData,
-  GatewayPresenceUpdateData,
   GatewayDispatchEventName,
+  GatewayHelloData,
+  GatewayIdentifyData,
+  GatewayPresenceUpdateData,
+  GatewayReceivePayload,
+  GatewayResumeData,
+  GatewaySendPayload,
 } from '@fluxerjs/types';
 import { GatewayOpcodes } from '@fluxerjs/types';
-import { EventEmitter } from 'events';
-import { getDefaultWebSocketSync } from './utils/getWebSocket.js';
-import { GatewayCloseCodes } from './utils/constants.js';
+import { GatewayCloseCodes } from './Utils/Constants.js';
+import { getDefaultWebSocketSync } from './Utils/GetWebSocket.js';
 
 export type WebSocketLike = {
   send(data: string | ArrayBufferLike): void;
@@ -24,7 +24,14 @@ export type WebSocketConstructor = new (url: string) => WebSocketLike;
 export interface WebSocketShardOptions {
   url: string;
   token: string;
-  intents: number;
+  /** Legacy intents; Fluxer ignores — send `0`. */
+  intents?: number;
+  /** Identify `flags`. */
+  flags?: number;
+  /** Identify `ignored_events`. */
+  ignoredEvents?: string[];
+  /** Identify `initial_guild_id`. */
+  initialGuildId?: string;
   presence?: GatewayPresenceUpdateData;
   shardId: number;
   numShards: number;
@@ -354,13 +361,16 @@ export class WebSocketShard extends EventEmitter {
 
     const identify: GatewayIdentifyData = {
       token: this.options.token,
-      intents: this.options.intents,
+      intents: this.options.intents ?? 0,
       properties: {
         os: typeof process !== 'undefined' ? (process.platform ?? 'unknown') : 'unknown',
         browser: 'fluxerjs',
         device: 'fluxerjs',
       },
     };
+    if (this.options.flags !== undefined) identify.flags = this.options.flags;
+    if (this.options.ignoredEvents?.length) identify.ignored_events = this.options.ignoredEvents;
+    if (this.options.initialGuildId) identify.initial_guild_id = this.options.initialGuildId;
     if (this.options.presence) identify.presence = this.options.presence;
     if (this.options.numShards > 1) {
       identify.shard = [this.options.shardId, this.options.numShards];

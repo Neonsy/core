@@ -1,7 +1,7 @@
-import type { Snowflake } from '../common/snowflake.js';
-import type { APIUser } from './user.js';
-import type { APIMessage } from './message.js';
-import type { ContentWarningLevel } from './guild.js';
+import type { Snowflake } from '../Common/Snowflake.js';
+import type { ContentWarningLevel } from './Guild.js';
+import type { APIMessage } from './Message.js';
+import type { APIUser } from './User.js';
 
 /**
  * Channel type enum (Fluxer OpenAPI).
@@ -53,20 +53,22 @@ export interface APIChannelPartial {
   name?: string | null;
   /** Channel type (see {@link ChannelType}). */
   type: ChannelType;
-  /** Channel icon hash. */
+  /** Channel icon hash (group DMs / some partials). */
   icon?: string | null;
-  /** Parent category ID. */
+  /** Parent category ID (some partials). */
   parent_id?: Snowflake | null;
+  /** DM recipients (username only on some partial payloads). */
+  recipients?: Array<APIUser | { username: string }>;
 }
 
 /**
  * Full channel object from GET /channels/{id} or GET /guilds/{id}/channels.
  */
-export interface APIChannel extends APIChannelPartial {
-  /** Guild ID (null for DMs). */
-  guild_id?: Snowflake | null;
+export interface APIChannel extends Omit<APIChannelPartial, 'name' | 'recipients'> {
+  /** Guild ID (absent for DMs). */
+  guild_id?: Snowflake;
   /** Channel name. */
-  name: string | null;
+  name?: string;
   /** Channel topic. */
   topic?: string | null;
   /** External URL (link channels, type 998). */
@@ -78,11 +80,13 @@ export interface APIChannel extends APIChannelPartial {
   /** Sort position in the channel list. */
   position?: number;
   /** Parent category ID. */
-  parent_id: Snowflake | null;
+  parent_id?: Snowflake | null;
   /** Voice bitrate (kbps). */
   bitrate?: number | null;
   /** Voice user limit (0 = unlimited). */
   user_limit?: number | null;
+  /** Max active voice connections per user in this channel. */
+  voice_connection_limit?: number | null;
   /** Voice RTC region ID. */
   rtc_region?: string | null;
   /** Last message ID in this channel. */
@@ -95,12 +99,14 @@ export interface APIChannel extends APIChannelPartial {
   recipients?: APIUser[];
   /** Whether the channel is NSFW. */
   nsfw?: boolean;
+  /** Per-channel NSFW override (`null` inherits). */
+  nsfw_override?: boolean | null;
   /** Slowmode delay in seconds. */
   rate_limit_per_user?: number;
   /** User-specific nicknames in group DMs (user_id -> nick). */
   nicks?: Record<string, string>;
   /** Content warning level. */
-  content_warning_level?: ContentWarningLevel | null;
+  content_warning_level?: ContentWarningLevel;
   /** Content warning custom text. */
   content_warning_text?: string | null;
 }
@@ -158,13 +164,15 @@ interface ChannelCreateShared {
   /** Permission overwrites. */
   permission_overwrites?: APIChannelOverwrite[];
   /** Whether the channel is NSFW. */
-  nsfw?: boolean | null;
+  nsfw?: boolean;
   /** NSFW override flag. */
   nsfw_override?: boolean | null;
   /** Content warning level. */
-  content_warning_level?: ContentWarningLevel | null;
+  content_warning_level?: ContentWarningLevel;
   /** Content warning custom text. */
   content_warning_text?: string | null;
+  /** Slowmode delay in seconds (0–21600). */
+  rate_limit_per_user?: number | null;
   /** Channel name. */
   name: string;
 }

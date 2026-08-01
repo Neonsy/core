@@ -1,6 +1,6 @@
+import { notFound } from 'next/navigation';
 import { SdkSymbol } from '@/components/SdkSymbol';
 import { getSymbol, loadApiDocs } from '@/lib/api-docs';
-import { notFound } from 'next/navigation';
 
 export function generateStaticParams(): { kind: string; name: string }[] {
   const docs = loadApiDocs();

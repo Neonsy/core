@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { FLUXER_EPOCH } from './snowflake.js';
+import { describe, expect, it } from 'vitest';
+import { FLUXER_EPOCH } from './Snowflake.js';
 
 describe('snowflake common', () => {
   it('FLUXER_EPOCH is 2015-01-01', () => {

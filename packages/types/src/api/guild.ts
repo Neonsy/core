@@ -1,5 +1,5 @@
-import type { Snowflake } from '../common/snowflake.js';
-import type { WebhookType } from './webhook.js';
+import type { Snowflake } from '../Common/Snowflake.js';
+import type { WebhookType } from './Webhook.js';
 
 /**
  * Guild verification level (OpenAPI VerificationLevel).
@@ -254,9 +254,9 @@ export interface APIGuild {
   /** Guild name. */
   name: string;
   /** Guild icon hash. */
-  icon: string | null;
+  icon?: string | null;
   /** Guild banner hash. */
-  banner: string | null;
+  banner?: string | null;
   /** Banner width in pixels. */
   banner_width?: number | null;
   /** Banner height in pixels. */
@@ -268,7 +268,7 @@ export interface APIGuild {
   /** Splash height in pixels. */
   splash_height?: number | null;
   /** Splash card alignment (see {@link SplashCardAlignment}). */
-  splash_card_alignment?: SplashCardAlignment;
+  splash_card_alignment: SplashCardAlignment;
   /** Embed splash image hash (deprecated). */
   embed_splash?: string | null;
   /** Embed splash width in pixels. */
@@ -282,7 +282,7 @@ export interface APIGuild {
   /** System channel ID (join/boost messages). */
   system_channel_id?: Snowflake | null;
   /** {@link SystemChannelFlags} bitfield. */
-  system_channel_flags?: number;
+  system_channel_flags: number;
   /** Rules channel ID. */
   rules_channel_id?: Snowflake | null;
   /** AFK voice channel ID. */
@@ -297,18 +297,38 @@ export interface APIGuild {
   mfa_level: GuildMFALevel;
   /** NSFW level (see {@link GuildNSFWLevel}). */
   nsfw_level: GuildNSFWLevel;
+  /** Whether the guild is marked as adult (18+) content. */
+  nsfw: boolean;
   /** Explicit content filter level (see {@link GuildExplicitContentFilter}). */
   explicit_content_filter: GuildExplicitContentFilter;
   /** Default notification level (see {@link DefaultMessageNotifications}). */
   default_message_notifications: DefaultMessageNotifications;
   /** {@link GuildOperations} bitfield of disabled operations. */
-  disabled_operations?: number;
+  disabled_operations: number;
   /** Content warning level (see {@link ContentWarningLevel}). */
-  content_warning_level?: ContentWarningLevel;
+  content_warning_level: ContentWarningLevel;
+  /** Custom guild-wide content warning text. */
+  content_warning_text?: string | null;
   /** ISO-8601 timestamp before which message history is not available. */
   message_history_cutoff?: string | null;
   /** Permissions for the current user in this guild (bitfield string). */
-  permissions?: string | null;
+  permissions?: string;
+  /** Roles when included in a gateway/REST guild payload. */
+  roles?: import('./Role.js').APIRole[];
+  /** Emojis when included in a gateway/REST guild payload. */
+  emojis?: import('./Emoji.js').APIEmoji[];
+  /** Stickers when included in a gateway/REST guild payload. */
+  stickers?: import('./Sticker.js').APISticker[];
+  /** Channels when included in a gateway/REST guild payload. */
+  channels?: import('./Channel.js').APIChannel[];
+  /** Member count when included (gateway / guild payloads). */
+  member_count?: number;
+  /** Online member count when included (gateway / guild payloads). */
+  online_count?: number;
+  /** Approximate member count when `with_counts` is set on guild list. */
+  approximate_member_count?: number;
+  /** Approximate online count when `with_counts` is set on guild list. */
+  approximate_presence_count?: number;
 }
 
 /** Audit log entry from GET /guilds/{id}/audit-logs. */
@@ -322,7 +342,7 @@ export interface APIGuildAuditLogEntry {
   /** Target entity ID (channel, member, role, etc.). */
   target_id?: Snowflake | null;
   /** Reason provided for the action. */
-  reason?: string | null;
+  reason?: string;
   /** Action-specific metadata (e.g. role name, channel name). */
   options?: Record<string, string>;
   /** Changed fields; value types vary by action_type (e.g. string for name, number for permissions). */

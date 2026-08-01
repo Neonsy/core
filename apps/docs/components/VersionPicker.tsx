@@ -1,7 +1,7 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
 import { Check, ChevronDown } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,11 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  hrefForVersion,
-  parseSitePath,
-  useDocsVersion,
-} from '@/lib/docs-version';
+import { hrefForVersion, parseSitePath, useDocsVersion } from '@/lib/docs-version';
 import { cn } from '@/lib/utils';
 
 export interface VersionPickerProps {
@@ -28,9 +24,7 @@ export function VersionPicker({ className }: VersionPickerProps): React.ReactEle
 
   const options: { value: string; label: string; isLatest: boolean }[] = [
     { value: 'latest', label: latest, isLatest: true },
-    ...versions
-      .filter((v) => v !== latest)
-      .map((v) => ({ value: v, label: v, isLatest: false })),
+    ...versions.filter((v) => v !== latest).map((v) => ({ value: v, label: v, isLatest: false })),
   ];
 
   return (
@@ -45,8 +39,7 @@ export function VersionPicker({ className }: VersionPickerProps): React.ReactEle
             'data-[state=open]:border-border data-[state=open]:bg-card',
             className,
           )}
-          aria-label="SDK version"
-        >
+          aria-label="SDK version">
           <span>v{displayVersion}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" aria-hidden />
         </button>
@@ -66,8 +59,7 @@ export function VersionPicker({ className }: VersionPickerProps): React.ReactEle
                 className={cn(
                   'cursor-pointer justify-between gap-4 font-mono text-xs',
                   selected && 'bg-accent',
-                )}
-              >
+                )}>
                 <span className="flex items-center gap-2">
                   <span>v{o.label}</span>
                   {o.isLatest ? (

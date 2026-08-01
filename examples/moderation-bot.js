@@ -12,10 +12,10 @@
 
 import {
   Client,
-  Events,
   EmbedBuilder,
-  FluxerError,
   ErrorCodes,
+  Events,
+  FluxerError,
   PermissionFlags,
   parsePrefixCommand,
   parseUserMention,
@@ -38,7 +38,7 @@ function getPermissionNames(perms) {
   return Object.keys(PermissionFlags).filter((name) => perms.has(PermissionFlags[name]));
 }
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.Ready, () => {
   console.log(`Logged in as ${client.user?.username}. Commands: !ban, !kick, !unban, !perms`);

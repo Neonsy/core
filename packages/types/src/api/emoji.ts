@@ -1,5 +1,5 @@
-import type { Snowflake } from '../common/snowflake.js';
-import type { APIUser } from './user.js';
+import type { Snowflake } from '../Common/Snowflake.js';
+import type { APIUser } from './User.js';
 
 /** Custom emoji reference. */
 export interface APIEmoji {
@@ -9,6 +9,8 @@ export interface APIEmoji {
   name: string;
   /** Whether the emoji is animated. */
   animated: boolean;
+  /** Whether the emoji is NSFW. */
+  nsfw: boolean;
 }
 
 /** Custom emoji with user context (who created it). */

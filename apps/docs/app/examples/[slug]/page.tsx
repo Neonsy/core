@@ -1,15 +1,10 @@
+import { ExternalLink, FileCode2 } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ExternalLink, FileCode2 } from 'lucide-react';
 import { CodeBlock } from '@/components/CodeBlock';
 import { HelpCallout } from '@/components/FluxerInvite';
 import { PageShell } from '@/components/PageShell';
-import {
-  EXAMPLES_REPO,
-  getExample,
-  getExamples,
-  getExamplesSidebarItems,
-} from '@/lib/examples';
+import { EXAMPLES_REPO, getExample, getExamples, getExamplesSidebarItems } from '@/lib/examples';
 
 export function generateStaticParams(): { slug: string }[] {
   return getExamples().map((e) => ({ slug: e.slug }));
@@ -62,8 +57,7 @@ export default async function ExamplePage({
           href={`${EXAMPLES_REPO}/${ex.file}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
-        >
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary">
           <ExternalLink className="h-3 w-3" aria-hidden />
           View on GitHub
         </a>
@@ -80,8 +74,7 @@ export default async function ExamplePage({
         {prev ? (
           <Link
             href={`/examples/${prev.slug}/`}
-            className="group flex flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
-          >
+            className="group flex flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Previous
             </span>
@@ -95,8 +88,7 @@ export default async function ExamplePage({
         {next ? (
           <Link
             href={`/examples/${next.slug}/`}
-            className="group flex flex-col rounded-xl border border-border bg-card p-4 text-right transition-colors hover:border-primary/40 sm:col-start-2"
-          >
+            className="group flex flex-col rounded-xl border border-border bg-card p-4 text-right transition-colors hover:border-primary/40 sm:col-start-2">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Next
             </span>

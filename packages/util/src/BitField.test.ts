@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { BitField } from './BitField.js';
 
 class TestBitField extends BitField<'A' | 'B' | 'C'> {

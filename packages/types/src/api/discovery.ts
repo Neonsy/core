@@ -1,5 +1,5 @@
-import type { Snowflake } from '../common/snowflake.js';
-import type { GuildNSFWLevel } from './guild.js';
+import type { Snowflake } from '../Common/Snowflake.js';
+import type { GuildNSFWLevel } from './Guild.js';
 
 /** Response from GET /guilds/{id}/discovery (discovery eligibility and current application). */
 export interface APIDiscoveryStatus {

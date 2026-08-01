@@ -1,12 +1,15 @@
 {
   "package": "@fluxerjs/rest",
-  "generatedAt": "2026-07-11T02:20:57.227Z",
+  "generatedAt": "2026-08-01T14:11:00.867Z",
   "entries": [
     {
       "subpath": ".",
       "exports": [
         "AttachmentData",
         "AttachmentPayload",
+        "DEFAULT_API",
+        "DEFAULT_USER_AGENT",
+        "DEFAULT_VERSION",
         "FluxerAPIError",
         "HTTPError",
         "REST",
@@ -17,6 +20,8 @@
         "RequestManager",
         "RequestOptions",
         "RestOptions",
+        "RetryPolicy",
+        "RetryPolicyContext",
         "Routes",
         "buildFormData",
         "closeSharedFetch",
@@ -28,7 +33,9 @@
       "exports": [
         "RequestManager",
         "RequestOptions",
-        "RestOptions"
+        "RestOptions",
+        "RetryPolicy",
+        "RetryPolicyContext"
       ]
     }
   ]

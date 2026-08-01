@@ -16,7 +16,7 @@ Use message.send() when you want to post in the channel without replying. Same s
 ```javascript
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.content === '!hello') {
@@ -34,7 +34,7 @@ Use `message.sendTo(channelId, payload)` to post elsewhere (logs, announcements,
 ```javascript
 import { Client, Events, EmbedBuilder } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID; // Your log channel's snowflake
 
 client.on(Events.MessageCreate, async (message) => {
@@ -63,7 +63,7 @@ Use client.channels.send(channelId, payload) when you have a channel ID. Works e
 ```javascript
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 const ANNOUNCE_CHANNEL_ID = process.env.ANNOUNCE_CHANNEL_ID;
 
 client.on(Events.Ready, async () => {
@@ -82,7 +82,7 @@ Resolve a channel by ID from cache or API. Use channel.canSendMessage() or chann
 ```javascript
 import { Client } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 await client.login(process.env.FLUXER_BOT_TOKEN);
 
 // Fetch channel (from API if not cached)

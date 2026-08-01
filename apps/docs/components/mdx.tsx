@@ -1,7 +1,7 @@
 'use client';
 
-import { Children, isValidElement, useMemo, type ReactNode } from 'react';
 import { AlertTriangle, Lightbulb } from 'lucide-react';
+import { Children, isValidElement, type ReactNode, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function Tip({ children }: { children: ReactNode }): React.ReactElement {
@@ -17,8 +17,7 @@ export function Warning({ children }: { children: ReactNode }): React.ReactEleme
   return (
     <aside
       role="note"
-      className="my-6 flex gap-3 rounded-lg border border-orange-500/40 bg-orange-500/10 px-4 py-3.5 text-sm leading-relaxed text-foreground"
-    >
+      className="my-6 flex gap-3 rounded-lg border border-orange-500/40 bg-orange-500/10 px-4 py-3.5 text-sm leading-relaxed text-foreground">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-hidden />
       <div className="min-w-0 [&_p]:m-0 [&_strong]:font-semibold">{children}</div>
     </aside>
@@ -44,15 +43,16 @@ export function CodeTabs({ children }: { children: ReactNode }): React.ReactElem
   const defaultValue = 'tab-0';
 
   return (
-    <Tabs defaultValue={defaultValue} className="my-6 overflow-hidden rounded-xl border border-border bg-card not-prose shadow-sm">
+    <Tabs
+      defaultValue={defaultValue}
+      className="my-6 overflow-hidden rounded-xl border border-border bg-card not-prose shadow-sm">
       <div className="border-b border-border bg-muted/40 px-2 pt-2">
         <TabsList className="h-auto w-full justify-start gap-1 bg-transparent p-0">
           {labels.map((label, i) => (
             <TabsTrigger
               key={`${label}-${i}`}
               value={`tab-${i}`}
-              className="rounded-t-md rounded-b-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:shadow-none"
-            >
+              className="rounded-t-md rounded-b-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:shadow-none">
               {label}
             </TabsTrigger>
           ))}
@@ -62,8 +62,7 @@ export function CodeTabs({ children }: { children: ReactNode }): React.ReactElem
         <TabsContent
           key={i}
           value={`tab-${i}`}
-          className="m-0 [&_.code-frame]:my-0 [&_.code-frame]:rounded-none [&_.code-frame]:border-0 [&_.code-frame]:shadow-none"
-        >
+          className="m-0 [&_.code-frame]:my-0 [&_.code-frame]:rounded-none [&_.code-frame]:border-0 [&_.code-frame]:shadow-none">
           {child}
         </TabsContent>
       ))}

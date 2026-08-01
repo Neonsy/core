@@ -33,7 +33,7 @@ pnpm add @fluxerjs/builders@2 @fluxerjs/voice
 | Snake_case public options | CamelCase SDK options; snake_case only on the wire |
 | `RangeError` / ad-hoc throws | `FluxerError` + `ErrorCodes` for user-facing validation |
 | Dual aliases and Discord stubs | One path; stubs deleted without deprecation warnings |
-| Unbounded caches by default | Bounded `DEFAULT_CACHE_LIMITS` (use `0` for unbounded) |
+| Unbounded caches by default | Bounded `DEFAULT_CACHE_LIMITS` (`0` / `Infinity` = unbounded; `messages: false` = off) |
 | `toJSON()` at send sites | Pass builders `MessagePayload` / options directly |
 
 Voice gateway events stay **wire-shaped** on purpose so `@fluxerjs/voice` keeps working. See [Voice](/guides/voice/).
@@ -279,15 +279,21 @@ Deep dive: [Events](/guides/events/).
 
 ## Cache defaults
 
-Clients default to bounded caches (`DEFAULT_CACHE_LIMITS`). Opt out per field with `0`:
+Clients default to bounded caches (`DEFAULT_CACHE_LIMITS`). Opt out per numeric field with `0` or `Infinity` (unbounded). Disable message caching with `messages: false` — **`messages: 0` is unbounded**, not off (a warning is emitted if you pass `0`).
 
 ```javascript
 new Client({
-  cache: { guilds: 0, users: 0, channels: 0, messages: 0, members: 0 },
+  cache: {
+    guilds: 0,
+    users: 0,
+    channels: 0,
+    members: 0,
+    messages: false, // was: messages: 0 meaning "off" in older docs
+  },
 });
 ```
 
-Sweep without destroying the client: `client.sweepMessages()`, `client.sweepMembers()`, `client.users.sweep()`, `guild.members.sweep()`. See [Caching](/guides/caching/).
+Sweep via `client.cache.sweepMessages()` / `sweepMembers()` / `sweepUsers()` / `sweepChannels()` / `sweepGuilds()`, or the legacy aliases `client.sweepMessages()`, `client.sweepMembers()`, `client.users.sweep()`, `guild.members.sweep()`. See [Caching](/guides/caching/).
 
 ## Presence
 
@@ -436,7 +442,7 @@ Quick index of every known break. Details and code live in the sections above.
 | `EmbedBuilder.setVideo` / `setAudio` removed | `@fluxerjs/builders` | Response-only on `APIEmbed` |
 | `EmbedBuilder.clearFields` removed | `@fluxerjs/builders` | Use `setFields()` / `setFields([])` |
 | Request embed type is `RESTPostAPIEmbed` | `@fluxerjs/types`, builders | Response remains `APIEmbed` |
-| Default cache limits are bounded | `@fluxerjs/core` | `DEFAULT_CACHE_LIMITS`; `0` = unbounded |
+| Default cache limits are bounded | `@fluxerjs/core` | `DEFAULT_CACHE_LIMITS`; `0`/`Infinity` = unbounded; `messages: false` = off |
 | `channel.bulkDelete(n \| ids)` | `@fluxerjs/core` | Number fetches last N; `bulkDeleteMessages` removed |
 | `ping: false` / `defaultReplyPing: false` only set `replied_user: false` | `@fluxerjs/core` | Not `SuppressNotifications` |
 | `client.user.setPresence({ status, activities?, customStatus? })` | `@fluxerjs/core` | Opcode 3 on all shards |

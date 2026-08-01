@@ -1,243 +1,273 @@
-export { Client, type ClientEvents, type ClientEventMethods } from './client/Client.js';
-export type {
-  MessageDeleteBulkPayload,
-  InviteDeletePayload,
-  TypingStartPayload,
-  GuildEmojisUpdatePayload,
-  AuditLogEntryPayload,
-  AuditLogFetchPayload,
-  VanityURLPayload,
-  GuildMemberSearchHit,
-  GuildMemberSearchPayload,
-  PackSummaryPayload,
-  PartialUserGuildPayload,
-  MessageReactionRemoveAllPayload,
-  MessageReactionPayload,
-  MessageReactionRemoveEmojiPayload,
-  GuildRoleDeletePayload,
-  ReactionEmojiPayload,
-  PresenceUpdatePayload,
-} from './client/eventPayloads.js';
-export { ChannelManager } from './client/ChannelManager.js';
-export { GuildMemberManager } from './client/GuildMemberManager.js';
-export {
-  UserManager,
-  type FetchedUserWithProfile,
-} from './client/UserManager.js';
-export {
-  PackManager,
-  toPackSummaryPayload,
-  type PackDashboardPayload,
-  type PackDashboardSectionPayload,
-} from './client/PackManager.js';
-export {
-  MessageManager,
-  type FetchMessagesOptions,
-  type BulkFetchMessagesOptions,
-  type BulkFetchMessagesResult,
-  type BulkFetchMessagesChannelResult,
-} from './client/MessageManager.js';
-export { ClientUser } from './client/ClientUser.js';
-export {
-  toMemberSearchBody,
-  toBulkFetchWire,
-  toPresenceWire,
-  toDiscoveryBody,
-  toSudoBody,
-  toPackInviteBody,
-  toEmojiCreateBody,
-  toEmojiEditBody,
-  toStickerCreateBody,
-  toStickerEditBody,
-  toMemberEditBody,
-  toChannelEditBody,
-  toChannelInviteBody,
-  toMessageAttachmentEditWire,
-  toAttachmentUploadPlanBody,
-  toAttachmentUploadCompleteBody,
-  toDiscoveryStatusPayload,
-  toDiscoveryApplicationPayload,
-  toProfilePayload,
-  type GuildMemberSearchOptions,
-  type BulkFetchMessagesRequest,
-  type WebhookEditOptions,
-  type PackCreateOptions,
-  type PackEditOptions,
-  type DiscoveryApplicationOptions,
-  type PresenceUpdateOptions,
-  type SudoVerificationOptions,
-  type PackInviteCreateOptions,
-  type ExpressionCreateOptions,
-  type ExpressionEditOptions,
-  type StickerCreateOptions,
-  type StickerEditOptions,
-  type GuildMemberEditOptions,
-  type ChannelEditOptions,
-  type ChannelInviteCreateOptions,
-  type MessageAttachmentEdit,
-  type AttachmentUploadPlanItem,
-  type AttachmentUploadCompleteItem,
-  type AttachmentUploadPlanResponse,
-  type AttachmentUploadCompleteResponse,
-  type DiscoveryStatusPayload,
-  type DiscoveryApplicationPayload,
-  type ProfilePayload,
-  type RtcRegionPayload,
-  type ChannelSlowmodePayload,
-  type PackEmojiPayload,
-  type PackStickerPayload,
-  type PackInvitePayload,
-  type PackBulkCreatePayload,
-} from './client/sdkOptions.js';
-export { Base } from './structures/Base.js';
-export { User } from './structures/User.js';
-export { Guild } from './structures/Guild.js';
-export {
-  Channel,
-  GuildChannel,
-  TextChannel,
-  VoiceChannel,
-  CategoryChannel,
-  LinkChannel,
-  DMChannel,
-  type FetchPinnedMessagesOptions,
-  type PinnedMessagesPage,
-  type UploadFileForSend,
-} from './structures/Channel.js';
-export {
-  Message,
-  type MessageEditOptions,
-  type MessageSendOptions,
-  type ReplyOptions,
-  type AllowedMentionsOptions,
-  type MessageReplyTarget,
-} from './structures/Message.js';
-export { AllowedMentions } from './util/messageUtils.js';
-export type { PartialMessage } from './structures/PartialMessage.js';
-export { MessageReaction } from './structures/MessageReaction.js';
-export {
-  Webhook,
-  type WebhookSendOptions,
-  type WebhookMessageEditOptions,
-} from './structures/Webhook.js';
-export { GuildMember } from './structures/GuildMember.js';
-export {
-  GuildMemberRoleManager,
-  type RoleResolvable,
-} from './structures/GuildMemberRoleManager.js';
-export { Role } from './structures/Role.js';
-export type { RoleCreateOptions, RoleEditOptions } from './structures/roleOptions.js';
-export { Invite } from './structures/Invite.js';
-export { GuildBan } from './structures/GuildBan.js';
-export { GuildEmoji } from './structures/GuildEmoji.js';
-export { GuildSticker } from './structures/GuildSticker.js';
-export { Events } from './util/Events.js';
-export {
-  MessageCollector,
-  type MessageCollectorOptions,
-  type MessageCollectorEndReason,
-} from './util/MessageCollector.js';
-export {
-  ReactionCollector,
-  type ReactionCollectorOptions,
-  type ReactionCollectorEndReason,
-  type CollectedReaction,
-} from './util/ReactionCollector.js';
-export { FluxerError, type FluxerErrorOptions } from './errors/FluxerError.js';
-export { ErrorCodes } from './errors/ErrorCodes.js';
-
 // Re-export builders for convenience
-export { EmbedBuilder, MessagePayload, AttachmentBuilder } from '@fluxerjs/builders';
-
-// Re-export Routes, GatewayOpcodes, MessageAttachmentFlags for REST/gateway API calls
-export {
-  Routes,
-  GatewayOpcodes,
-  MessageAttachmentFlags,
-  MessageFlags,
-  MessageReferenceType,
-  MessageType,
-  ChannelType,
-  OverwriteType,
-  InviteType,
-  AuditLogActionType,
-  GuildNSFWLevel,
-  ContentWarningLevel,
-  SplashCardAlignment,
-  SystemChannelFlags,
-  GuildOperations,
-  PublicUserFlags,
-  GuildMemberProfileFlags,
-  RelationshipType,
-  type APIAllowedMentions,
-  type AllowedMentionType,
-  type APIGuildMemberSearchResponse,
-  type APIBulkMessageFetchRequest,
-  type APIBulkMessageFetchResponse,
-  type APIBulkMessageFetchResponseChannel,
-} from '@fluxerjs/types';
-
-// Re-export Tenor URL resolver and mention parsers for embeds and moderation
-export { resolveTenorToImageUrl, parseUserMention, parsePrefixCommand } from '@fluxerjs/util';
-
-// Re-export permission helpers for role/member permission checks
-export {
-  PermissionsBitField,
-  PermissionFlags,
-  resolvePermissionsToBitfield,
-  UserFlagsBitField,
-  UserFlagsBits,
-  MessageFlagsBitField,
-  MessageFlagsBits,
-  type PermissionString,
-  type PermissionResolvable,
-  type UserFlagsString,
-  type UserFlagsResolvable,
-  type MessageFlagsString,
-  type MessageFlagsResolvable,
-} from '@fluxerjs/util';
-
-export { CDN_URL, STATIC_CDN_URL } from './util/Constants.js';
-export {
-  cdnAvatarURL,
-  cdnDisplayAvatarURL,
-  cdnBannerURL,
-  cdnMemberAvatarURL,
-  cdnMemberBannerURL,
-  cdnDefaultAvatarURL,
-  cdnGuildAssetURL,
-  cdnEmojiURL,
-  cdnStickerURL,
-} from './util/cdn.js';
-export type { CdnUrlOptions } from './util/cdn.js';
-export type { ClientOptions, CacheSizeLimits } from './util/Options.js';
-export { DEFAULT_CACHE_LIMITS } from './util/Options.js';
-export {
-  DEFAULT_INSTANCE_ENDPOINTS,
-  parseInstanceDiscovery,
-  resolveInstanceEndpoints,
-  normalizeApiOrigin,
-  inviteUrl,
-  type ResolvedInstance,
-} from './util/instance.js';
-export type { DiscoveryOrigin } from './client/Client.js';
+export { AttachmentBuilder, EmbedBuilder, MessagePayload } from '@fluxerjs/builders';
 export type {
   APIInstance,
   APIInstanceEndpoints,
   APIWellKnownFluxer,
 } from '@fluxerjs/types';
+// Re-export Routes, GatewayOpcodes, MessageAttachmentFlags for REST/gateway API calls
 export {
-  ClientCluster,
+  type AllowedMentionType,
+  type APIAllowedMentions,
+  type APIBulkMessageFetchRequest,
+  type APIBulkMessageFetchResponse,
+  type APIBulkMessageFetchResponseChannel,
+  type APIGuildMemberSearchResponse,
+  AuditLogActionType,
+  ChannelType,
+  ContentWarningLevel,
+  GatewayOpcodes,
+  GuildMemberProfileFlags,
+  GuildNSFWLevel,
+  GuildOperations,
+  InviteType,
+  MessageAttachmentFlags,
+  MessageFlags,
+  MessageReferenceType,
+  MessageType,
+  OverwriteType,
+  PublicUserFlags,
+  RelationshipType,
+  Routes,
+  SplashCardAlignment,
+  SystemChannelFlags,
+} from '@fluxerjs/types';
+// Re-export Klipy URL resolver and mention parsers for embeds and moderation
+// Re-export permission helpers for role/member permission checks
+export {
+  createLogger,
+  type LogFields,
+  type Logger,
+  type LoggerOptions,
+  type LogLevel,
+  MessageFlagsBitField,
+  MessageFlagsBits,
+  type MessageFlagsResolvable,
+  type MessageFlagsString,
+  PermissionFlags,
+  type PermissionResolvable,
+  type PermissionString,
+  PermissionsBitField,
+  parsePrefixCommand,
+  parseUserMention,
+  resolveKlipyToImageUrl,
+  resolvePermissionsToBitfield,
+  serializeError,
+  UserFlagsBitField,
+  UserFlagsBits,
+  type UserFlagsResolvable,
+  type UserFlagsString,
+} from '@fluxerjs/util';
+export type { CacheStats } from './ClientCore/CacheController.js';
+export { CacheController } from './ClientCore/CacheController.js';
+export { ChannelManager } from './ClientCore/ChannelManager.js';
+export type { DiscoveryOrigin } from './ClientCore/Client.js';
+export {
+  Client,
+  type ClientEventListener,
+  type ClientEventMethods,
+  type ClientEventName,
+  type ClientEvents,
+} from './ClientCore/Client.js';
+export {
+  type AddClientRuntimeOptions,
   BETA_CLIENT_CLUSTER_WARNING,
+  ClientCluster,
+  type ClientClusterOptions,
   type ClientRuntime,
   type ClientRuntimeStatus,
-  type ClientClusterOptions,
-  type AddClientRuntimeOptions,
   type RestartClientRuntimeOptions,
-} from './client/ClientCluster.js';
+} from './ClientCore/ClientCluster.js';
 export {
-  ClientClusterEvents,
-  type ClientClusterEventName,
-  type ClientClusterEventMap,
   type ClientClusterEventListener,
-} from './client/ClientClusterEvents.js';
+  type ClientClusterEventMap,
+  type ClientClusterEventName,
+  ClientClusterEvents,
+} from './ClientCore/ClientClusterEvents.js';
+export { ClientUser } from './ClientCore/ClientUser.js';
+export type {
+  AuditLogChange,
+  AuditLogEntryPayload,
+  // Other public camelCase DTOs (REST / helpers)
+  AuditLogFetchPayload,
+  ChannelMemberCountsUpdatePayload,
+  ChannelPinsUpdatePayload,
+  ChannelRecipientPayload,
+  GuildCountsUpdatePayload,
+  GuildEmojisUpdatePayload,
+  GuildMemberSearchHit,
+  GuildMemberSearchPayload,
+  GuildMembersChunkPayload,
+  GuildRoleDeletePayload,
+  GuildRoleUpdatePayload,
+  GuildStickersUpdatePayload,
+  InviteDeletePayload,
+  // ClientEvents camelCase DTOs (keep in sync with ClientEvents + EventPayloads)
+  MessageDeleteBulkPayload,
+  MessageReactionAddManyEntry,
+  MessageReactionAddManyPayload,
+  MessageReactionPayload,
+  MessageReactionRemoveAllPayload,
+  MessageReactionRemoveEmojiPayload,
+  PackSummaryPayload,
+  PartialUserGuildPayload,
+  PresenceActivity,
+  PresenceUpdateBulkPayload,
+  PresenceUpdatePayload,
+  ReactionEmojiPayload,
+  TypingStartPayload,
+  VanityURLPayload,
+  WebhooksUpdatePayload,
+} from './ClientCore/EventPayloads.js';
+export { GuildMemberManager } from './ClientCore/GuildMemberManager.js';
+export {
+  type BulkFetchMessagesChannelResult,
+  type BulkFetchMessagesOptions,
+  type BulkFetchMessagesResult,
+  type FetchMessagesOptions,
+  MessageManager,
+} from './ClientCore/MessageManager.js';
+export {
+  type PackDashboardPayload,
+  type PackDashboardSectionPayload,
+  PackManager,
+  toPackSummaryPayload,
+} from './ClientCore/PackManager.js';
+export {
+  type AttachmentUploadCompleteItem,
+  type AttachmentUploadCompleteResponse,
+  type AttachmentUploadPlanItem,
+  type AttachmentUploadPlanResponse,
+  type BulkFetchMessagesRequest,
+  type ChannelEditOptions,
+  type ChannelInviteCreateOptions,
+  type ChannelSlowmodePayload,
+  type DiscoveryApplicationOptions,
+  type DiscoveryApplicationPayload,
+  type DiscoveryStatusPayload,
+  type ExpressionCreateOptions,
+  type ExpressionEditOptions,
+  type GuildMemberEditOptions,
+  type GuildMemberSearchOptions,
+  type MessageAttachmentEdit,
+  type PackBulkCreatePayload,
+  type PackCreateOptions,
+  type PackEditOptions,
+  type PackEmojiPayload,
+  type PackInviteCreateOptions,
+  type PackInvitePayload,
+  type PackStickerPayload,
+  type PresenceUpdateOptions,
+  type ProfilePayload,
+  type RtcRegionPayload,
+  type StickerCreateOptions,
+  type StickerEditOptions,
+  type SudoVerificationOptions,
+  toAttachmentUploadCompleteBody,
+  toAttachmentUploadPlanBody,
+  toBulkFetchWire,
+  toChannelEditBody,
+  toChannelInviteBody,
+  toDiscoveryApplicationPayload,
+  toDiscoveryBody,
+  toDiscoveryStatusPayload,
+  toEmojiCreateBody,
+  toEmojiEditBody,
+  toMemberEditBody,
+  toMemberSearchBody,
+  toMessageAttachmentEditWire,
+  toPackInviteBody,
+  toPresenceWire,
+  toProfilePayload,
+  toStickerCreateBody,
+  toStickerEditBody,
+  toSudoBody,
+  type WebhookEditOptions,
+} from './ClientCore/SdkOptions/index.js';
+export {
+  type FetchedUserWithProfile,
+  UserManager,
+} from './ClientCore/UserManager.js';
+export { Base } from './Domain/Base.js';
+export {
+  CategoryChannel,
+  Channel,
+  DMChannel,
+  type FetchPinnedMessagesOptions,
+  GuildChannel,
+  LinkChannel,
+  type PinnedMessagesPage,
+  TextChannel,
+  type UploadFileForSend,
+  VoiceChannel,
+} from './Domain/Channel/index.js';
+export { Guild } from './Domain/Guild/Guild.js';
+export { GuildBan } from './Domain/Guild/GuildBan.js';
+export { GuildEmoji } from './Domain/Guild/GuildEmoji.js';
+export { GuildMember } from './Domain/Guild/GuildMember.js';
+export {
+  GuildMemberRoleManager,
+  type RoleResolvable,
+} from './Domain/Guild/GuildMemberRoleManager.js';
+export { GuildSticker } from './Domain/Guild/GuildSticker.js';
+export { Role } from './Domain/Guild/Role.js';
+export type { RoleCreateOptions, RoleEditOptions } from './Domain/Guild/RoleOptions.js';
+export { Invite } from './Domain/Invite.js';
+export {
+  type AllowedMentionsOptions,
+  Message,
+  type MessageEditOptions,
+  type MessageReplyTarget,
+  type MessageSendOptions,
+  type ReplyOptions,
+} from './Domain/Message/index.js';
+export { MessageReaction } from './Domain/Message/MessageReaction.js';
+export type { PartialMessage } from './Domain/Message/PartialMessage.js';
+export { User } from './Domain/User.js';
+export {
+  Webhook,
+  type WebhookMessageEditOptions,
+  type WebhookSendOptions,
+} from './Domain/Webhook.js';
+export type { CdnUrlOptions } from './Helpers/Cdn.js';
+export {
+  cdnAvatarURL,
+  cdnBannerURL,
+  cdnDefaultAvatarURL,
+  cdnDisplayAvatarURL,
+  cdnEmojiURL,
+  cdnGuildAssetURL,
+  cdnMemberAvatarURL,
+  cdnMemberBannerURL,
+  cdnStickerURL,
+} from './Helpers/Cdn.js';
+export { CDN_URL, STATIC_CDN_URL } from './Helpers/Constants.js';
+export { Events } from './Helpers/Events.js';
+export {
+  DEFAULT_INSTANCE_ENDPOINTS,
+  inviteUrl,
+  normalizeApiOrigin,
+  parseInstanceDiscovery,
+  type ResolvedInstance,
+  resolveInstanceEndpoints,
+} from './Helpers/Instance.js';
+export {
+  MessageCollector,
+  type MessageCollectorEndReason,
+  type MessageCollectorOptions,
+} from './Helpers/MessageCollector.js';
+export { AllowedMentions } from './Helpers/MessageUtils/index.js';
+export type { CacheSizeLimits, ClientOptions, ResolvedCacheLimits } from './Helpers/Options.js';
+export {
+  DEFAULT_CACHE_LIMITS,
+  normalizeCacheLimit,
+  resolveCacheLimits,
+} from './Helpers/Options.js';
+export {
+  type CollectedReaction,
+  ReactionCollector,
+  type ReactionCollectorEndReason,
+  type ReactionCollectorOptions,
+} from './Helpers/ReactionCollector.js';
+export { ErrorCodes } from './LibErrors/ErrorCodes.js';
+export { FluxerError, type FluxerErrorOptions } from './LibErrors/FluxerError.js';

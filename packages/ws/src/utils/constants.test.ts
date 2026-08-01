@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { GatewayCloseCodes } from './constants.js';
+import { describe, expect, it } from 'vitest';
+import { GatewayCloseCodes } from './Constants.js';
 
 describe('GatewayCloseCodes', () => {
   it('has standard WebSocket close codes', () => {

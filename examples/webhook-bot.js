@@ -13,7 +13,7 @@
  * @see https://fluxerjs.blstmo.com/guides/webhooks/
  */
 
-import { Client, Events, EmbedBuilder, Webhook, parsePrefixCommand } from '@fluxerjs/core';
+import { Client, EmbedBuilder, Events, parsePrefixCommand, Webhook } from '@fluxerjs/core';
 
 const PREFIX = '!';
 const BRAND_COLOR = 0x4641d9;
@@ -162,7 +162,7 @@ if (!token) {
   process.exit(1);
 }
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.Ready, () => {
   console.log(`Logged in as ${client.user?.username}`);
@@ -176,7 +176,7 @@ client.on(Events.Ready, () => {
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot || !message.content) return;
   const parsed = parsePrefixCommand(message.content, PREFIX);
-  if (!parsed || parsed.command !== 'webhook') return;
+  if (parsed?.command !== 'webhook') return;
 
   const [subcmd, ...args] = parsed.args;
 

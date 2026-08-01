@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { formatColor, escapeMarkdown, formatTimestamp, truncate } from './formatters.js';
+import { describe, expect, it } from 'vitest';
+import { escapeMarkdown, formatColor, formatTimestamp, truncate } from './Formatters.js';
 
 describe('formatColor', () => {
   it('formats color as hex', () => {

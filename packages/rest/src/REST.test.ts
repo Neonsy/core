@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { REST } from './REST.js';
 import { Routes } from '@fluxerjs/types';
-import { sharedFetch } from './fetch/sharedFetch.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { sharedFetch } from './Fetch/SharedFetch.js';
+import { REST } from './Rest.js';
 
-vi.mock('./fetch/sharedFetch.js', () => ({
+vi.mock('./Fetch/SharedFetch.js', () => ({
   sharedFetch: vi.fn(),
   closeSharedFetch: vi.fn(),
 }));

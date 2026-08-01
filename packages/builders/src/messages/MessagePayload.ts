@@ -1,6 +1,6 @@
 import type { APIAllowedMentions, APIMessageReference } from '@fluxerjs/types';
-import { EmbedBuilder, type RESTPostAPIEmbed } from './EmbedBuilder.js';
 import { AttachmentBuilder } from './AttachmentBuilder.js';
+import { EmbedBuilder, type RESTPostAPIEmbed } from './EmbedBuilder.js';
 
 export interface MessagePayloadData {
   content?: string | null;

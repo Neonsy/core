@@ -1,13 +1,13 @@
+export { GatewayCloseCodes } from './Utils/Constants.js';
+export { getDefaultWebSocket, getDefaultWebSocketSync } from './Utils/GetWebSocket.js';
 export {
+  type WebSocketConstructor,
   WebSocketManager,
   type WebSocketManagerOptions,
-  type WebSocketConstructor,
 } from './WebSocketManager.js';
 export {
-  WebSocketShard,
   narrowGatewayPayload,
-  type WebSocketShardOptions,
   type WebSocketLike,
+  WebSocketShard,
+  type WebSocketShardOptions,
 } from './WebSocketShard.js';
-export { getDefaultWebSocket, getDefaultWebSocketSync } from './utils/getWebSocket.js';
-export { GatewayCloseCodes } from './utils/constants.js';

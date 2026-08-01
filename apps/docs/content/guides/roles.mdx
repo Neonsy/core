@@ -16,7 +16,7 @@ Use guild.createRole() to create a new role. Pass name, permissions, color, hois
 ```javascript
 import { Client, Events, PermissionFlags, resolvePermissionsToBitfield } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.content === '!createrole' && message.guildId) {

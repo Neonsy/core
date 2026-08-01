@@ -72,8 +72,7 @@ export default async function RestOperationPage({
             className={cn(
               'rounded-md px-2.5 py-1 font-mono text-xs font-bold uppercase tracking-wide',
               badge,
-            )}
-          >
+            )}>
             {op.method}
           </span>
           <code className="break-all font-mono text-sm text-foreground">{op.path}</code>
@@ -112,8 +111,7 @@ export default async function RestOperationPage({
                 {op.parameters.map((p) => (
                   <tr
                     key={`${p.in}-${p.name}`}
-                    className="border-t border-border transition-colors hover:bg-muted/30"
-                  >
+                    className="border-t border-border transition-colors hover:bg-muted/30">
                     <td className="px-3 py-2 font-mono">
                       {p.name}
                       {p.required ? <span className="text-rose-500">*</span> : null}
@@ -158,8 +156,7 @@ export default async function RestOperationPage({
                   className={cn(
                     'rounded-md px-2 py-0.5 font-mono text-sm font-semibold',
                     statusStyle(res.status),
-                  )}
-                >
+                  )}>
                   {res.status}
                 </span>
                 <p className="text-sm text-muted-foreground">{res.description}</p>

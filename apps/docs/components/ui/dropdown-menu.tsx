@@ -1,8 +1,8 @@
 'use client';
 
-import * as React from 'react';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronRight, Circle } from 'lucide-react';
+import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 export const DropdownMenu = DropdownMenuPrimitive.Root;
@@ -25,8 +25,7 @@ export const DropdownMenuSubTrigger = React.forwardRef<
       inset && 'pl-8',
       className,
     )}
-    {...props}
-  >
+    {...props}>
     {children}
     <ChevronRight className="ml-auto" />
   </DropdownMenuPrimitive.SubTrigger>
@@ -95,8 +94,7 @@ export const DropdownMenuCheckboxItem = React.forwardRef<
       className,
     )}
     checked={checked}
-    {...props}
-  >
+    {...props}>
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
         <Check className="h-4 w-4" />
@@ -117,8 +115,7 @@ export const DropdownMenuRadioItem = React.forwardRef<
       'relative flex cursor-default select-none items-center rounded-lg py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className,
     )}
-    {...props}
-  >
+    {...props}>
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
         <Circle className="h-2 w-2 fill-current" />
@@ -164,6 +161,9 @@ export function DropdownMenuShortcut({
   ...props
 }: React.HTMLAttributes<HTMLSpanElement>): React.ReactElement {
   return (
-    <span className={cn('ml-auto text-xs tracking-widest text-muted-foreground', className)} {...props} />
+    <span
+      className={cn('ml-auto text-xs tracking-widest text-muted-foreground', className)}
+      {...props}
+    />
   );
 }

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { WebSocketManager, type WebSocketConstructor } from './WebSocketManager.js';
+import { describe, expect, it, vi } from 'vitest';
+import { type WebSocketConstructor, WebSocketManager } from './WebSocketManager.js';
 
 const FakeWebSocket = class {
   static CONNECTING = 0;
@@ -11,7 +11,6 @@ const FakeWebSocket = class {
   send = vi.fn();
   addEventListener = vi.fn();
   removeEventListener = vi.fn();
-  constructor(_url: string) {}
 } as unknown as WebSocketConstructor;
 
 describe('WebSocketManager.connect', () => {
@@ -24,7 +23,6 @@ describe('WebSocketManager.connect', () => {
     const get = vi.fn().mockRejectedValue(fatal);
     const manager = new WebSocketManager({
       token: 'test-token',
-      intents: 0,
       rest: { get },
       WebSocket: FakeWebSocket,
     });

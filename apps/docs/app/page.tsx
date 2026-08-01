@@ -1,13 +1,7 @@
+import type { LucideIcon } from 'lucide-react';
+import { ArrowRight, BookOpen, Braces, GitBranch, Server } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  ArrowRight,
-  BookOpen,
-  Braces,
-  GitBranch,
-  Server,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { CodeBlock } from '@/components/CodeBlock';
 import { CopyButton } from '@/components/CopyButton';
 import { HelpCallout } from '@/components/FluxerInvite';
@@ -89,8 +83,8 @@ export default async function HomePage(): Promise<React.ReactElement> {
               Typed bots for the Fluxer API.
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-              Managers return structures. Events are camelCase. The OpenAPI contract
-              stays the source of truth from install to deploy.
+              Managers return structures. Events are camelCase. The OpenAPI contract stays the
+              source of truth from install to deploy.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -121,12 +115,13 @@ export default async function HomePage(): Promise<React.ReactElement> {
                     className="h-[18px] w-[18px]"
                     unoptimized
                   />
-                  <span className="text-xs font-medium text-muted-foreground">Install with pnpm</span>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Install with pnpm
+                  </span>
                 </div>
                 <Link
                   href="/guides/installation/"
-                  className="text-xs font-medium text-primary hover:underline"
-                >
+                  className="text-xs font-medium text-primary hover:underline">
                   Full setup
                 </Link>
               </div>
@@ -148,21 +143,25 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section className="border-b border-border">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-[var(--content-pad)] py-10 sm:flex-row sm:items-center sm:justify-between sm:gap-10">
           <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-            Need voice? Install{' '}
-            <code className="font-mono text-foreground">@fluxerjs/voice</code> and follow the{' '}
+            Need voice? Install <code className="font-mono text-foreground">@fluxerjs/voice</code>{' '}
+            and follow the{' '}
             <Link href="/guides/voice/" className="font-medium text-primary hover:underline">
               Voice guide
             </Link>
             . APIs there are changing soon.
           </p>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <Link href="/guides/basic-bot/" className="font-medium text-foreground hover:text-primary">
+            <Link
+              href="/guides/basic-bot/"
+              className="font-medium text-foreground hover:text-primary">
               Basic bot →
             </Link>
             <Link href="/guides/events/" className="font-medium text-foreground hover:text-primary">
               Events →
             </Link>
-            <Link href="/guides/builders/" className="font-medium text-foreground hover:text-primary">
+            <Link
+              href="/guides/builders/"
+              className="font-medium text-foreground hover:text-primary">
               Builders →
             </Link>
           </div>
@@ -181,16 +180,21 @@ export default async function HomePage(): Promise<React.ReactElement> {
               <Link
                 key={item.href}
                 href={item.href}
-                className="group flex flex-col bg-card p-6 transition-colors hover:bg-muted/40"
-              >
-                <Icon className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden />
+                className="group flex flex-col bg-card p-6 transition-colors hover:bg-muted/40">
+                <Icon
+                  className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary"
+                  aria-hidden
+                />
                 <h3 className="mt-4 font-display text-lg font-semibold">{item.title}</h3>
                 <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">
                   {item.description}
                 </p>
                 <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
                   Open
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                  <ArrowRight
+                    className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
                 </span>
               </Link>
             );

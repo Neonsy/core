@@ -16,7 +16,7 @@ member.permissions returns an object with has(permission). Use it for server-wid
 ```javascript
 import { Client, Events, PermissionFlags } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 async function getMemberPerms(message) {
   const guild = message.guild ?? await message.client.guilds.resolve(message.guildId);

@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { Routes } from '@fluxerjs/types';
 import { RequestManager, type RequestOptions, type RetryPolicy } from './RequestManager.js';
 import {
@@ -7,7 +7,7 @@ import {
   DEFAULT_VERSION,
   MAX_RETRIES,
   REQUEST_TIMEOUT,
-} from './utils/constants.js';
+} from './Utils/Constants.js';
 
 export interface RESTOptions {
   api?: string;

@@ -73,8 +73,7 @@ export function TypeText({
         <Link
           key={key++}
           href={linked.href}
-          className="text-sky-600 underline decoration-sky-600/30 underline-offset-2 hover:decoration-sky-600 dark:text-sky-400 dark:decoration-sky-400/30"
-        >
+          className="text-sky-600 underline decoration-sky-600/30 underline-offset-2 hover:decoration-sky-600 dark:text-sky-400 dark:decoration-sky-400/30">
           {token}
         </Link>,
       );

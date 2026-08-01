@@ -43,7 +43,10 @@ async function getHighlighter(): Promise<Highlighter> {
 
 export function normalizeLang(lang?: string | null): string {
   if (!lang) return 'text';
-  const raw = lang.trim().toLowerCase().replace(/^language-/, '');
+  const raw = lang
+    .trim()
+    .toLowerCase()
+    .replace(/^language-/, '');
   return LANG_ALIASES[raw] ?? raw;
 }
 

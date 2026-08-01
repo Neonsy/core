@@ -1,11 +1,11 @@
+import { Boxes, Braces, ExternalLink, Hash, type LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 import { getApiSidebarGroups } from '@/components/ApiNav';
 import { PageShell } from '@/components/PageShell';
 import { DocDescription, TypeText } from '@/components/TypeText';
 import { docsGitRef, githubSourceUrl } from '@/lib/api-docs';
 import type { DocClass, DocEnum, DocInterface, DocParam, DocSymbol } from '@/lib/doc-schema';
 import { cn } from '@/lib/utils';
-import { Boxes, Braces, ExternalLink, Hash, type LucideIcon } from 'lucide-react';
-import Link from 'next/link';
 
 interface KindStyle {
   label: string;
@@ -79,14 +79,15 @@ export function SdkSymbol({
     <PageShell
       sidebarTitle="SDK Reference"
       sidebarGroups={getApiSidebarGroups(kind, symbol.name, basePath, versionForNav)}
-      wide
-    >
+      wide>
       <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href={`${base}/`} className="transition-colors hover:text-foreground">
           SDK
         </Link>
         <span className="text-border">/</span>
-        <Link href={`${base}/#${kind}`} className="capitalize transition-colors hover:text-foreground">
+        <Link
+          href={`${base}/#${kind}`}
+          className="capitalize transition-colors hover:text-foreground">
           {style.label}
         </Link>
         {symbol.package ? (
@@ -99,8 +100,10 @@ export function SdkSymbol({
 
       <div className="flex items-center gap-3">
         <span
-          className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', style.badge)}
-        >
+          className={cn(
+            'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
+            style.badge,
+          )}>
           <Icon className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0">
@@ -108,8 +111,7 @@ export function SdkSymbol({
             className={cn(
               'font-mono text-[11px] font-semibold uppercase tracking-wide',
               style.accentText,
-            )}
-          >
+            )}>
             {style.label}
           </span>
           <h1 className="font-display text-[clamp(1.75rem,4vw,2.5rem)] font-semibold leading-tight tracking-tight">
@@ -150,8 +152,7 @@ export function SdkSymbol({
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors',
               style.chip,
-            )}
-          >
+            )}>
             {j.label}
             <span className="font-mono text-[10px] text-muted-foreground/70">{j.count}</span>
           </a>
@@ -161,8 +162,7 @@ export function SdkSymbol({
             href={source}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
-          >
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary">
             <ExternalLink className="h-3 w-3" aria-hidden />
             Source
           </a>
@@ -215,13 +215,7 @@ function SectionHeading({
   );
 }
 
-function ClassBody({
-  symbol,
-  style,
-}: {
-  symbol: DocClass;
-  style: KindStyle;
-}): React.ReactElement {
+function ClassBody({ symbol, style }: { symbol: DocClass; style: KindStyle }): React.ReactElement {
   const properties = symbol.properties ?? [];
   const methods = symbol.methods ?? [];
   const ctorParams = symbol.constructor?.params ?? [];
@@ -266,8 +260,7 @@ function ClassBody({
                 type={`(${(m.params ?? []).map(formatParam).join(', ')}): ${m.returns}`}
                 description={m.description}
                 deprecated={m.deprecated}
-                style={style}
-              >
+                style={style}>
                 {(m.params ?? []).length ? <ParamsTable params={m.params ?? []} /> : null}
               </MemberCard>
             ))}
@@ -354,8 +347,7 @@ function InterfaceBody({
                 name={m.name}
                 type={`(${(m.params ?? []).map(formatParam).join(', ')}): ${m.returns}`}
                 description={m.description}
-                style={style}
-              >
+                style={style}>
                 {(m.params ?? []).length ? <ParamsTable params={m.params ?? []} /> : null}
               </MemberCard>
             ))}
@@ -378,13 +370,7 @@ function InterfaceBody({
   );
 }
 
-function EnumBody({
-  symbol,
-  style,
-}: {
-  symbol: DocEnum;
-  style: KindStyle;
-}): React.ReactElement {
+function EnumBody({ symbol, style }: { symbol: DocEnum; style: KindStyle }): React.ReactElement {
   const members = symbol.members ?? [];
   return (
     <section id="members" className="mt-12 scroll-mt-24">
@@ -399,8 +385,12 @@ function EnumBody({
           </thead>
           <tbody>
             {members.map((m) => (
-              <tr key={m.name} className="border-t border-border transition-colors hover:bg-muted/30">
-                <td className={cn('px-3 py-2 font-mono font-medium', style.accentText)}>{m.name}</td>
+              <tr
+                key={m.name}
+                className="border-t border-border transition-colors hover:bg-muted/30">
+                <td className={cn('px-3 py-2 font-mono font-medium', style.accentText)}>
+                  {m.name}
+                </td>
                 <td className="px-3 py-2 font-mono text-muted-foreground">
                   {JSON.stringify(m.value)}
                 </td>
@@ -438,8 +428,7 @@ function MemberCard({
   return (
     <div
       id={name}
-      className="group scroll-mt-24 rounded-xl border border-border bg-card p-4 transition-colors hover:border-border/60"
-    >
+      className="group scroll-mt-24 rounded-xl border border-border bg-card p-4 transition-colors hover:border-border/60">
       <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 font-mono text-sm">
         <span className={cn('font-semibold text-foreground transition-colors', style.memberHover)}>
           {name}

@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect } from 'vitest';
-import { Routes } from './routes.js';
+import { describe, expect, it } from 'vitest';
+import { Routes } from './Routes.js';
 
 const OPENAPI_FILE = resolve(
   dirname(fileURLToPath(import.meta.url)),

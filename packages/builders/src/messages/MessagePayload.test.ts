@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { MessagePayload } from './MessagePayload.js';
-import { EmbedBuilder } from './EmbedBuilder.js';
+import { describe, expect, it } from 'vitest';
 import { AttachmentBuilder } from './AttachmentBuilder.js';
+import { EmbedBuilder } from './EmbedBuilder.js';
+import { MessagePayload } from './MessagePayload.js';
 
 describe('MessagePayload', () => {
   it('creates empty payload', () => {

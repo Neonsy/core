@@ -12,7 +12,7 @@ Use `setImage()` and `setThumbnail()` with a URL string, or pass `EmbedMediaOpti
 ```javascript
 import { Client, Events, EmbedBuilder } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.content === '!embedimg') {
@@ -44,4 +44,4 @@ const embed = new EmbedBuilder()
 
 ## GIFs in embeds
 
-Embeds need a GIF URL for animated images (not MP4). For Tenor, use `resolveTenorToImageUrl()` — see [GIFs (Tenor)](/guides/gifs/).
+Embeds need a GIF URL for animated images (not MP4). For Klipy, use `resolveKlipyToImageUrl()` — see [GIFs (Klipy)](/guides/gifs/).

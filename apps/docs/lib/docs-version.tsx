@@ -1,14 +1,7 @@
 'use client';
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
 import { usePathname } from 'next/navigation';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'fluxer.docs.version';
 
@@ -44,9 +37,7 @@ export function parseSitePath(pathname: string | null): ParsedSitePath {
     };
   }
 
-  const versionedDocs = pathname.match(
-    /^\/docs\/v\/([^/]+)(?:\/(class|interface|enum)\/([^/]+))?/,
-  );
+  const versionedDocs = pathname.match(/^\/docs\/v\/([^/]+)(?:\/(class|interface|enum)\/([^/]+))?/);
   if (versionedDocs) {
     return {
       section: 'docs',

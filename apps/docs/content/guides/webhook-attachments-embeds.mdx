@@ -16,7 +16,7 @@ You do not need a title for embeds to work. At least one of title, description, 
 ```javascript
 import { Client, Webhook, EmbedBuilder } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 const webhook = Webhook.fromToken(client, webhookId, webhookToken);
 
 // Description only - no title
@@ -38,7 +38,7 @@ Attach files to webhook messages using the files array. Each file needs name and
 import { Client, Webhook } from '@fluxerjs/core';
 import { readFileSync } from 'fs';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 const webhook = Webhook.fromToken(client, webhookId, webhookToken);
 
 const buffer = readFileSync('report.pdf');
@@ -59,7 +59,7 @@ Combine content, description-only embed, and file attachments in a single webhoo
 import { Client, Webhook, EmbedBuilder } from '@fluxerjs/core';
 import { readFileSync } from 'fs';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 const webhook = Webhook.fromToken(client, webhookId, webhookToken);
 
 await webhook.send({

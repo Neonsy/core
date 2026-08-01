@@ -1,5 +1,5 @@
-import { AlertTriangle, Plus, RefreshCw, Sparkles, Trash2, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { AlertTriangle, Plus, RefreshCw, Sparkles, Trash2, Wrench } from 'lucide-react';
 import { changelogEntries } from '@/data/changelog';
 
 export const metadata = { title: 'Changelog' };
@@ -58,13 +58,20 @@ export default function ChangelogPage(): React.ReactElement {
                 className="absolute left-0 mt-1.5 hidden h-4 w-4 rounded-full border-2 border-background bg-primary ring-2 ring-primary/30 sm:block"
                 aria-hidden
               />
-              <div className="mb-5 flex flex-wrap items-baseline gap-3">
-                <h2 className="font-mono text-2xl font-semibold tracking-tight">
-                  v{entry.version}
-                </h2>
-                <time className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-xs text-muted-foreground">
-                  {entry.date}
-                </time>
+              <div className="mb-5">
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <h2 className="font-mono text-2xl font-semibold tracking-tight">
+                    v{entry.version}
+                  </h2>
+                  <time className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-xs text-muted-foreground">
+                    {entry.date}
+                  </time>
+                </div>
+                {entry.summary ? (
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
+                    {entry.summary}
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-4">
@@ -74,26 +81,40 @@ export default function ChangelogPage(): React.ReactElement {
                   return (
                     <section
                       key={section.title}
-                      className="rounded-2xl border border-border bg-card p-5"
-                    >
+                      className="rounded-2xl border border-border bg-card p-5">
                       <h3 className="mb-4 flex items-center gap-2.5 text-sm font-semibold">
                         <span
-                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${style.wrap}`}
-                        >
+                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${style.wrap}`}>
                           <Icon className="h-4 w-4" aria-hidden />
                         </span>
                         {section.title}
                       </h3>
-                      <ul className="space-y-2.5">
-                        {section.items.map((item) => (
-                          <li key={item} className="flex gap-3 text-sm leading-6">
-                            <span
-                              className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${style.dot}`}
-                              aria-hidden
-                            />
-                            <span className="text-muted-foreground">{item}</span>
-                          </li>
-                        ))}
+                      <ul className="space-y-3">
+                        {section.items.map((item) => {
+                          const summary = typeof item === 'string' ? item : item.summary;
+                          const detail = typeof item === 'string' ? undefined : item.detail;
+                          return (
+                            <li key={summary} className="flex gap-3 text-sm leading-6">
+                              <span
+                                className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${style.dot}`}
+                                aria-hidden
+                              />
+                              <div className="space-y-1">
+                                <span
+                                  className={
+                                    detail ? 'font-medium text-foreground' : 'text-muted-foreground'
+                                  }>
+                                  {summary}
+                                </span>
+                                {detail ? (
+                                  <p className="text-[0.8125rem] leading-6 text-muted-foreground">
+                                    {detail}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </section>
                   );

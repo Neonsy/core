@@ -1,23 +1,21 @@
-import type { Snowflake } from '../common/index.js';
-import type { APIGuildMember } from './user.js';
+import type { Snowflake } from '../Common/index.js';
+import type { APIGuildMember } from './User.js';
 
 /**
- * Voice state as returned by Fluxer (GUILD_CREATE.voice_states, VOICE_STATE_UPDATE, VOICE_STATES_SYNC).
- * Matches fluxer `VoiceStateResponse`. Mute/deaf flags are always present on wire payloads;
- * optional here so client-side connect stubs (frozen `@fluxerjs/voice`) type-check.
+ * Voice state as returned by Fluxer (GUILD_CREATE.voice_states, VOICE_STATE_UPDATE).
+ * Matches fluxer `VoiceStateResponse`.
  */
 export interface APIVoiceState {
   guild_id?: Snowflake | null;
   channel_id: Snowflake | null;
   user_id: Snowflake;
   connection_id?: string | null;
-  /** Present when connected; null/empty on client connect stubs. */
-  session_id: string | null;
+  session_id?: string;
   member?: APIGuildMember;
-  mute?: boolean;
-  deaf?: boolean;
-  self_mute?: boolean;
-  self_deaf?: boolean;
+  mute: boolean;
+  deaf: boolean;
+  self_mute: boolean;
+  self_deaf: boolean;
   suppress?: boolean;
   self_video?: boolean;
   self_stream?: boolean;
@@ -27,3 +25,7 @@ export interface APIVoiceState {
   /** True when the client advertised E2EE support in IDENTIFY. */
   e2ee_capable?: boolean;
 }
+
+/** Minimal voice-state stub used by `@fluxerjs/voice` before a full wire payload exists. */
+export type APIVoiceStateStub = Partial<APIVoiceState> &
+  Pick<APIVoiceState, 'channel_id' | 'user_id'>;

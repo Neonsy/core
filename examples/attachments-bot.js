@@ -15,7 +15,7 @@
 import { Client, Events, MessageAttachmentFlags, parsePrefixCommand } from '@fluxerjs/core';
 
 const PREFIX = '!';
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 // Minimal valid 1x1 PNG
 const PNG_1X1 = Buffer.from(

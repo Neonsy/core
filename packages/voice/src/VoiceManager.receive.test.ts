@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import { VoiceManager } from './VoiceManager.js';
+import { describe, expect, it, vi } from 'vitest';
 import { LiveKitRtcConnection } from './LiveKitRtcConnection.js';
+import { VoiceManager } from './VoiceManager.js';
 
 function makeClient() {
   return {

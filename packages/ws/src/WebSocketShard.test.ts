@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
 import { GatewayOpcodes } from '@fluxerjs/types';
-import { WebSocketShard, narrowGatewayPayload, shouldReconnectOnClose } from './WebSocketShard.js';
-import { GatewayCloseCodes } from './utils/constants.js';
+import { describe, expect, it, vi } from 'vitest';
+import { GatewayCloseCodes } from './Utils/Constants.js';
+import { narrowGatewayPayload, shouldReconnectOnClose, WebSocketShard } from './WebSocketShard.js';
 
 class MockWebSocket {
   readyState = 1;
+  // biome-ignore lint/complexity/noUselessConstructor: required WebSocket(url) signature for mocks
   constructor(_url: string) {}
   send(_data: string | ArrayBufferLike): void {}
   close(_code?: number): void {}
@@ -58,7 +59,6 @@ describe('WebSocketShard', () => {
     const shard = new WebSocketShard({
       url: 'wss://gateway.fluxer.app',
       token: 'test-token',
-      intents: 0,
       shardId: 0,
       numShards: 1,
       WebSocket: MockWebSocket,
@@ -84,7 +84,6 @@ describe('WebSocketShard', () => {
     const shard = new WebSocketShard({
       url: 'wss://gateway.fluxer.app',
       token: 'test-token',
-      intents: 0,
       shardId: 0,
       numShards: 1,
       debug: false,
@@ -107,7 +106,6 @@ describe('WebSocketShard', () => {
     const shard = new WebSocketShard({
       url: 'wss://gateway.fluxer.app',
       token: 'test-token',
-      intents: 0,
       shardId: 0,
       numShards: 1,
       WebSocket: MockWebSocket,
@@ -140,6 +138,7 @@ describe('WebSocketShard', () => {
     const closes: number[] = [];
     class TrackingWS {
       readyState = 1;
+      // biome-ignore lint/complexity/noUselessConstructor: required WebSocket(url) signature for mocks
       constructor(_url: string) {}
       send(): void {}
       close(code?: number): void {
@@ -151,7 +150,6 @@ describe('WebSocketShard', () => {
     const shard = new WebSocketShard({
       url: 'wss://gateway.fluxer.app',
       token: 'test-token',
-      intents: 0,
       shardId: 0,
       numShards: 1,
       WebSocket: TrackingWS,
@@ -166,7 +164,6 @@ describe('WebSocketShard', () => {
     const shard = new WebSocketShard({
       url: 'wss://gateway.fluxer.app',
       token: 'test-token',
-      intents: 0,
       shardId: 0,
       numShards: 1,
       WebSocket: MockWebSocket,

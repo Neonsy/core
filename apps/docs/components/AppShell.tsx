@@ -5,12 +5,12 @@ import Fuse from 'fuse.js';
 import { BookOpen, Boxes, Braces, Hash, Search, Server } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
-import type { SearchItem, SearchKind } from '@/lib/search-index';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { DocsVersionProvider } from '@/lib/docs-version';
+import type { SearchItem, SearchKind } from '@/lib/search-index';
+import { cn } from '@/lib/utils';
 import { HelpFab } from './FluxerInvite';
 import { SiteHeader } from './Header';
-import { DocsVersionProvider } from '@/lib/docs-version';
-import { cn } from '@/lib/utils';
 
 const KIND_META: Record<
   SearchKind,
@@ -207,8 +207,7 @@ function SearchCommand({
                   <Command.Group
                     key={group.kind}
                     heading={meta.label}
-                    className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-muted-foreground"
-                  >
+                    className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-muted-foreground">
                     {group.items.map((item) => (
                       <Command.Item
                         key={item.id}
@@ -217,14 +216,12 @@ function SearchCommand({
                           onOpenChange(false);
                           router.push(item.href);
                         }}
-                        className="flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2.5 text-sm aria-selected:bg-accent aria-selected:text-accent-foreground"
-                      >
+                        className="flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2.5 text-sm aria-selected:bg-accent aria-selected:text-accent-foreground">
                         <span
                           className={cn(
                             'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
                             meta.badge,
-                          )}
-                        >
+                          )}>
                           <Icon className="h-3.5 w-3.5" />
                         </span>
                         <span className="min-w-0 flex-1">
@@ -283,8 +280,7 @@ function KindChip({
         active
           ? (className ?? 'border-transparent bg-primary/15 text-primary')
           : 'border-border text-muted-foreground hover:text-foreground',
-      )}
-    >
+      )}>
       {label}
     </button>
   );

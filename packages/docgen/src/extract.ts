@@ -1,15 +1,15 @@
-import * as ts from 'typescript';
 import doctrine from 'doctrine';
+import * as ts from 'typescript';
+import { formatTypeAliasSignature, formatTypeFromType, formatTypeNode } from './FormatType.js';
 import type {
-  DocParam,
   DocConstructor,
-  DocProperty,
-  DocMethod,
-  DocSource,
-  DocInterfaceProperty,
   DocEnumMember,
-} from './schema.js';
-import { formatTypeNode, formatTypeFromType, formatTypeAliasSignature } from './formatType.js';
+  DocInterfaceProperty,
+  DocMethod,
+  DocParam,
+  DocProperty,
+  DocSource,
+} from './Schema.js';
 
 function getJSDoc(node: ts.Node): string {
   const sourceFile = node.getSourceFile();

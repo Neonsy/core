@@ -131,19 +131,23 @@ export interface APIInstanceAppPublic {
  * Full instance discovery document (`WellKnownFluxerResponse`).
  * Prefer {@link APIInstanceEndpoints} when only URLs are needed.
  */
+/**
+ * Full instance discovery document (`WellKnownFluxerResponse`).
+ * Nested sections are required on the wire; discovery helpers may fill defaults when absent.
+ */
 export interface APIInstance {
   api_code_version: number;
   endpoints: APIInstanceEndpoints;
-  captcha?: APIInstanceCaptcha;
-  features?: APIInstanceFeatures;
-  gif?: APIInstanceGif;
-  sso?: APIInstanceSso;
-  registration?: APIInstanceRegistration;
-  community?: APIInstanceCommunity;
-  services?: APIInstanceServices;
-  limits?: APIInstanceLimits;
-  push?: APIInstancePush;
-  app_public?: APIInstanceAppPublic;
+  captcha: APIInstanceCaptcha;
+  features: APIInstanceFeatures;
+  gif: APIInstanceGif;
+  sso: APIInstanceSso;
+  registration: APIInstanceRegistration;
+  community: APIInstanceCommunity;
+  services: APIInstanceServices;
+  limits: APIInstanceLimits;
+  push: APIInstancePush;
+  app_public: APIInstanceAppPublic;
 }
 
 /** @deprecated Use {@link APIInstance} — alias kept for clarity with OpenAPI naming. */

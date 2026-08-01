@@ -48,7 +48,7 @@ if (userId) {
 import { Client, Events, PermissionFlags, parseUserMention } from '@fluxerjs/core';
 
 const PREFIX = '!';
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 async function getModeratorPerms(message) {
   const guild = message.guild ?? (await message.client.guilds.resolve(message.guildId));

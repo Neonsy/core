@@ -12,7 +12,7 @@ A webhook is an ID plus a token that can post into a channel. Handy for scripts,
 ```javascript
 import { Client, Webhook } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 const webhook = Webhook.fromToken(client, webhookId, webhookToken);
 await webhook.send('Message from a script!');
 ```
@@ -24,7 +24,7 @@ No `login()` required for token-based execute.
 Needs Manage Webhooks. The **token is only returned on create**. Store it. List/fetch will not give it back.
 
 ```javascript
-const client = new Client({ intents: 0 });
+const client = new Client();
 await client.login(process.env.FLUXER_BOT_TOKEN);
 
 const channel = client.channels.get(channelId);

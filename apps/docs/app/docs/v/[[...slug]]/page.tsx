@@ -1,7 +1,7 @@
+import { notFound, redirect } from 'next/navigation';
 import { SdkIndex } from '@/components/SdkIndex';
 import { SdkSymbol } from '@/components/SdkSymbol';
 import { getSymbol, loadApiDocsFor, loadVersions } from '@/lib/api-docs';
-import { notFound, redirect } from 'next/navigation';
 
 /**
  * Versioned SDK routes (static export):

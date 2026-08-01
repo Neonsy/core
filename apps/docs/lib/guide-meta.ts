@@ -20,15 +20,15 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 /** Category order for guides index (Getting Started first, etc). */
 export const CATEGORY_ORDER: string[] = [
-  "getting-started",
-  "sending-messages",
-  "media",
-  "channels",
-  "emojis",
-  "webhooks",
-  "voice",
-  "events",
-  "other"
+  'getting-started',
+  'sending-messages',
+  'media',
+  'channels',
+  'emojis',
+  'webhooks',
+  'voice',
+  'events',
+  'other',
 ];
 
 export function getCategoryLabel(cat?: string): string {

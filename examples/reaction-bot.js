@@ -9,7 +9,7 @@
 
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.Ready, () => {
   console.log(`Logged in as ${client.user?.username}`);

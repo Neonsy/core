@@ -1,7 +1,6 @@
-import type { Snowflake } from '../common/snowflake.js';
-import type { APIUser } from './user.js';
-import type { APIGuildMember } from './user.js';
-import type { APIEmbed } from './embed.js';
+import type { Snowflake } from '../Common/Snowflake.js';
+import type { APIEmbed } from './Embed.js';
+import type { APIGuildMember, APIUser } from './User.js';
 
 /**
  * Message type discriminator (OpenAPI MessageType).
@@ -25,6 +24,8 @@ export enum MessageType {
   ChannelPinnedMessage = 6,
   UserJoin = 7,
   Reply = 19,
+  /** Client-only system message (Fluxer `CLIENT_SYSTEM`). */
+  ClientSystem = 99,
 }
 
 /**
@@ -230,23 +231,34 @@ export interface APIMessage {
   /** ISO-8601 timestamp when the message was sent. */
   timestamp: string;
   /** ISO-8601 timestamp when the message was last edited (null if never edited). */
-  edited_timestamp: string | null;
+  edited_timestamp?: string | null;
   /** Whether the message is pinned. */
   pinned: boolean;
   /** Whether the message mentions @everyone or @here. */
-  mention_everyone?: boolean;
+  mention_everyone: boolean;
   /** Whether the message is text-to-speech. */
-  tts?: boolean;
+  tts: boolean;
   /** Users mentioned in the message. */
-  mentions?: APIUser[] | null;
+  mentions: APIUser[];
   /** Role IDs mentioned in the message. */
-  mention_roles?: Snowflake[] | null;
+  mention_roles: Snowflake[];
+  /** Channels mentioned that are visible to @everyone. */
+  mention_channels?: Array<{
+    id: Snowflake;
+    guild_id: Snowflake;
+    name: string;
+    type: number;
+  }> | null;
+  /** Users referenced from non-notifying content (client resolution). */
+  users?: APIUser[] | null;
   /** Embeds attached to the message. */
   embeds?: APIEmbed[] | null;
   /** File attachments. */
   attachments?: APIMessageAttachment[] | null;
   /** Stickers in the message. */
   stickers?: APIMessageSticker[] | null;
+  /** IDs of custom NSFW emojis in this message. */
+  nsfw_emojis?: Snowflake[];
   /** Reactions to the message. */
   reactions?: APIMessageReaction[] | null;
   /** Reply/forward reference (see {@link APIMessageReference}). */

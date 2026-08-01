@@ -18,9 +18,9 @@
  * See the Voice guide: https://fluxerjs.blstmo.com/guides/voice/
  */
 
-import youtubedl from 'youtube-dl-exec';
-import { Client, Events, VoiceChannel, parsePrefixCommand } from '@fluxerjs/core';
+import { Client, Events, parsePrefixCommand, VoiceChannel } from '@fluxerjs/core';
 import { getVoiceManager, LiveKitRtcConnection } from '@fluxerjs/voice';
+import youtubedl from 'youtube-dl-exec';
 
 console.warn(
   '[voice] WARNING: Voice is being reworked. Fluxer is updating how voice works; @fluxerjs/voice and this example will change soon.',
@@ -94,7 +94,6 @@ if (!token) {
 }
 
 const client = new Client({
-  intents: 0,
   rest: process.env.FLUXER_API_URL ? { api: process.env.FLUXER_API_URL } : undefined,
 });
 

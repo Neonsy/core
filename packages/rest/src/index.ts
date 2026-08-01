@@ -1,4 +1,7 @@
-export { REST, type RESTOptions } from './REST.js';
+export { Routes } from '@fluxerjs/types';
+export { FluxerAPIError, HTTPError, RateLimitError } from './Errors/index.js';
+export { closeSharedFetch, sharedFetch } from './Fetch/SharedFetch.js';
+export { RateLimitManager, type RateLimitState } from './RateLimitManager.js';
 export {
   RequestManager,
   type RequestOptions,
@@ -6,9 +9,6 @@ export {
   type RetryPolicy,
   type RetryPolicyContext,
 } from './RequestManager.js';
-export { RateLimitManager, type RateLimitState } from './RateLimitManager.js';
-export { FluxerAPIError, RateLimitError, HTTPError } from './errors/index.js';
-export { buildFormData, type AttachmentPayload, type AttachmentData } from './utils/files.js';
-export { sharedFetch, closeSharedFetch } from './fetch/sharedFetch.js';
-export { Routes } from '@fluxerjs/types';
-export { DEFAULT_API, DEFAULT_VERSION, DEFAULT_USER_AGENT } from './utils/constants.js';
+export { REST, type RESTOptions } from './Rest.js';
+export { DEFAULT_API, DEFAULT_USER_AGENT, DEFAULT_VERSION } from './Utils/Constants.js';
+export { type AttachmentData, type AttachmentPayload, buildFormData } from './Utils/Files.js';

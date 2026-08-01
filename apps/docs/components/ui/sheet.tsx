@@ -1,9 +1,9 @@
 'use client';
 
-import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { X } from 'lucide-react';
+import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 export const Sheet = DialogPrimitive.Root;
@@ -45,11 +45,15 @@ const sheetVariants = cva(
 
 export const SheetContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & VariantProps<typeof sheetVariants>
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> &
+    VariantProps<typeof sheetVariants>
 >(({ side = 'left', className, children, ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
-    <DialogPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(sheetVariants({ side }), className)}
+      {...props}>
       {children}
       <DialogPrimitive.Close className="absolute right-3 top-3 rounded-md p-1.5 opacity-70 hover:bg-muted hover:opacity-100">
         <X className="h-4 w-4" />
@@ -60,7 +64,10 @@ export const SheetContent = React.forwardRef<
 ));
 SheetContent.displayName = DialogPrimitive.Content.displayName;
 
-export function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>): React.ReactElement {
+export function SheetHeader({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>): React.ReactElement {
   return <div className={cn('flex flex-col space-y-2 p-4 text-left', className)} {...props} />;
 }
 

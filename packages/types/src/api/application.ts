@@ -1,6 +1,6 @@
-import type { Snowflake } from '../common/snowflake.js';
-import type { APIUserPartial } from './user.js';
-import type { APIMessage } from './message.js';
+import type { Snowflake } from '../Common/Snowflake.js';
+import type { APIMessage } from './Message.js';
+import type { APIUserPartial } from './User.js';
 
 /** Bot/application info from GET /applications/@me. */
 export interface APIApplicationMe {

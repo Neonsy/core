@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { ErrorCodes } from './ErrorCodes.js';
 import { FluxerError } from './FluxerError.js';
 
@@ -24,6 +24,7 @@ describe('ErrorCodes', () => {
     expect(ErrorCodes.InvalidAttachmentInput).toBe('INVALID_ATTACHMENT_INPUT');
     expect(ErrorCodes.AttachmentUploadFailed).toBe('ATTACHMENT_UPLOAD_FAILED');
     expect(ErrorCodes.InvalidChannelType).toBe('INVALID_CHANNEL_TYPE');
+    expect(ErrorCodes.InvalidGatewayRequest).toBe('INVALID_GATEWAY_REQUEST');
   });
 
   it('has all required codes', () => {

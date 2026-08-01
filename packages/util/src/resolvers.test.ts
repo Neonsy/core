@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  parseEmoji,
   formatEmoji,
-  parseUserMention,
-  parseRoleMention,
+  parseEmoji,
   parsePrefixCommand,
+  parseRoleMention,
+  parseUserMention,
   resolveColor,
-} from './resolvers.js';
+} from './Resolvers.js';
 
 describe('parseEmoji', () => {
   it('returns null for null/undefined/non-string', () => {
@@ -60,7 +60,7 @@ describe('parseEmoji', () => {
 describe('formatEmoji', () => {
   it('formats custom emoji as name:id', () => {
     expect(formatEmoji({ id: '123456789012345678', name: 'custom' })).toBe(
-      ':custom:123456789012345678',
+      'custom:123456789012345678',
     );
   });
 
@@ -70,9 +70,9 @@ describe('formatEmoji', () => {
     );
   });
 
-  it('encodes unicode emoji for API (id null)', () => {
+  it('returns raw unicode for API (id null); routes encodeURIComponent', () => {
     const r = formatEmoji({ id: null, name: '❤' });
-    expect(r).toBe(encodeURIComponent('❤'));
+    expect(r).toBe('❤');
   });
 });
 

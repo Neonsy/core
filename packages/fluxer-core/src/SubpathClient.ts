@@ -1,0 +1,35 @@
+export {
+  Client,
+  type ClientEventListener,
+  type ClientEventMethods,
+  type ClientEventName,
+  type ClientEvents,
+} from './ClientCore/Client.js';
+export type {
+  AuditLogChange,
+  AuditLogEntryPayload,
+  ChannelMemberCountsUpdatePayload,
+  ChannelPinsUpdatePayload,
+  ChannelRecipientPayload,
+  GuildCountsUpdatePayload,
+  GuildEmojisUpdatePayload,
+  GuildMembersChunkPayload,
+  GuildRoleDeletePayload,
+  GuildRoleUpdatePayload,
+  GuildStickersUpdatePayload,
+  InviteDeletePayload,
+  MessageDeleteBulkPayload,
+  MessageReactionAddManyEntry,
+  MessageReactionAddManyPayload,
+  MessageReactionPayload,
+  MessageReactionRemoveAllPayload,
+  MessageReactionRemoveEmojiPayload,
+  PresenceActivity,
+  PresenceUpdateBulkPayload,
+  PresenceUpdatePayload,
+  ReactionEmojiPayload,
+  TypingStartPayload,
+  WebhooksUpdatePayload,
+} from './ClientCore/EventPayloads.js';
+export { Events } from './Helpers/Events.js';
+export type { CacheSizeLimits, ClientOptions } from './Helpers/Options.js';

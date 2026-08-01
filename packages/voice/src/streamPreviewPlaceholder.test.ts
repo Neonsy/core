@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { thumbnail } from './streamPreviewPlaceholder.js';
+import { describe, expect, it } from 'vitest';
+import { thumbnail } from './StreamPreviewPlaceholder.js';
 
 describe('streamPreviewPlaceholder', () => {
   it('exports valid base64 string', () => {

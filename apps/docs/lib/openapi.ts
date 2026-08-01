@@ -81,7 +81,10 @@ function resolveOpenApiPath(): string {
   return candidates[0]!;
 }
 
-function deref(schema: OpenApiSchema | undefined, schemas: Record<string, OpenApiSchema>): OpenApiSchema | undefined {
+function deref(
+  schema: OpenApiSchema | undefined,
+  schemas: Record<string, OpenApiSchema>,
+): OpenApiSchema | undefined {
   if (!schema) return undefined;
   if (schema.$ref) {
     const name = schema.$ref.replace('#/components/schemas/', '');
@@ -155,7 +158,11 @@ export function loadOpenApi(): OpenApiDoc {
         };
       }
 
-      const responsesRaw = (op.responses as Record<string, { description?: string; content?: Record<string, { schema?: OpenApiSchema }> }>) ?? {};
+      const responsesRaw =
+        (op.responses as Record<
+          string,
+          { description?: string; content?: Record<string, { schema?: OpenApiSchema }> }
+        >) ?? {};
       const responses = Object.entries(responsesRaw).map(([status, res]) => {
         const media = res.content ? Object.values(res.content)[0] : undefined;
         return {

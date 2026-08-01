@@ -283,9 +283,8 @@ export class EmbedBuilder {
       .join('').length;
     if (total > MAX.total) throw new RangeError(`Embed total length must be ≤${MAX.total}`);
 
-    const out: RESTPostAPIEmbed = {};
+    const out: RESTPostAPIEmbed = { description: d.description ?? null };
     if (d.title != null) out.title = d.title;
-    if (d.description != null) out.description = d.description;
     if (d.url != null) out.url = d.url;
     if (d.color != null) out.color = d.color;
     if (d.timestamp != null) out.timestamp = d.timestamp;

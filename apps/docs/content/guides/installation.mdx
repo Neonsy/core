@@ -50,7 +50,7 @@ Or use a `.env` file with a loader of your choice. The examples folder has an `.
 ```javascript
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.Ready, () => {
   console.log(`Logged in as ${client.user?.username}`);
@@ -59,7 +59,7 @@ client.on(Events.Ready, () => {
 await client.login(process.env.FLUXER_BOT_TOKEN);
 ```
 
-Fluxer does not use Discord-style privileged intents. Pass `intents: 0` and you still receive messages.
+Fluxer has no Discord-style gateway intents. Omit intents; use `ignoredEvents` to suppress specific dispatches if needed.
 
 ## Verify it works
 
@@ -81,8 +81,7 @@ Most bots use the default hosted API. For a custom base URL (legacy):
 
 ```javascript
 const client = new Client({
-  intents: 0,
-  rest: { api: process.env.FLUXER_API_URL },
+    rest: { api: process.env.FLUXER_API_URL },
 });
 ```
 

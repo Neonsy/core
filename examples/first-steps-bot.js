@@ -11,15 +11,15 @@
 
 import {
   Client,
-  Events,
   EmbedBuilder,
+  Events,
+  PermissionFlags,
   parsePrefixCommand,
   parseUserMention,
-  PermissionFlags,
 } from '@fluxerjs/core';
 
 const PREFIX = '!';
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.Ready, () => console.log('Ready!'));
 

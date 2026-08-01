@@ -12,7 +12,7 @@ Use `EmbedBuilder` for titles, fields, colors, and footers. Pass the builder int
 ```javascript
 import { Client, Events, EmbedBuilder } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.MessageCreate, async (message) => {
   if (message.content !== '!embed') return;
@@ -56,4 +56,4 @@ Send first, then `message.edit({ embeds: [updated] })`. See [Editing embeds](/gu
 
 ## Media in embeds
 
-Images, thumbnails, and animated flags: [Embed media](/guides/embed-media/). Tenor: [GIFs](/guides/gifs/).
+Images, thumbnails, and animated flags: [Embed media](/guides/embed-media/). Klipy: [GIFs](/guides/gifs/).

@@ -1,8 +1,8 @@
+import { notFound, redirect } from 'next/navigation';
 import { GuideContent } from '@/components/GuideContent';
 import { GuidesIndexContent } from '@/components/GuidesIndexContent';
 import { loadVersions } from '@/lib/api-docs';
 import { getGuideBySlug, getGuideSlugs } from '@/lib/guides';
-import { notFound, redirect } from 'next/navigation';
 
 /**
  * Versioned guide routes (static export):

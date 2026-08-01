@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
 import { ExternalLink, MessageCircleQuestion, X } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { FLUXER_INVITE_URL } from '@/lib/community';
 import { cn } from '@/lib/utils';
 
@@ -36,8 +36,7 @@ export function FluxerInviteIcon({ className }: { className?: string }): React.R
       className={cn(
         'inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
         className,
-      )}
-    >
+      )}>
       <FluxerAppIcon className="h-4 w-4" />
     </a>
   );
@@ -50,8 +49,7 @@ export function HelpCallout({ className }: { className?: string }): React.ReactE
       className={cn(
         'flex flex-col gap-3 rounded-xl border border-border bg-card px-5 py-4 sm:flex-row sm:items-center sm:justify-between',
         className,
-      )}
-    >
+      )}>
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <FluxerAppIcon className="h-5 w-5" />
@@ -67,8 +65,7 @@ export function HelpCallout({ className }: { className?: string }): React.ReactE
         href={FLUXER_INVITE_URL}
         target="_blank"
         rel="noreferrer"
-        className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-      >
+        className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">
         Join here
         <ExternalLink className="h-3.5 w-3.5" aria-hidden />
       </a>
@@ -112,8 +109,7 @@ export function HelpFab(): React.ReactElement {
           open
             ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
             : 'pointer-events-none translate-y-2 scale-95 opacity-0',
-        )}
-      >
+        )}>
         <div className="mb-2 px-1">
           <p className="text-sm font-medium text-foreground">Need help?</p>
           <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
@@ -125,8 +121,7 @@ export function HelpFab(): React.ReactElement {
             href={FLUXER_INVITE_URL}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm transition-colors hover:bg-muted"
-          >
+            className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm transition-colors hover:bg-muted">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <FluxerAppIcon className="h-4 w-4" />
             </span>
@@ -140,8 +135,7 @@ export function HelpFab(): React.ReactElement {
             href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm transition-colors hover:bg-muted"
-          >
+            className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm transition-colors hover:bg-muted">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
               <GitHubIcon className="h-4 w-4" />
             </span>
@@ -163,8 +157,7 @@ export function HelpFab(): React.ReactElement {
         className={cn(
           'inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-lg shadow-black/10 transition-colors hover:bg-muted dark:shadow-black/40',
           open && 'bg-muted',
-        )}
-      >
+        )}>
         {open ? (
           <X className="h-5 w-5" aria-hidden />
         ) : (

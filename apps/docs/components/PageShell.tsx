@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { ChevronDown, Menu, Search } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import Link from 'next/link';
+import { type ReactNode, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
@@ -41,15 +41,13 @@ function SidebarLink({
         item.active
           ? 'bg-primary/15 font-medium text-primary'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-      )}
-    >
+      )}>
       {item.badge ? (
         <span
           className={cn(
             'w-11 shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wide',
             `method-${item.badge}`,
-          )}
-        >
+          )}>
           {item.badge}
         </span>
       ) : null}
@@ -126,10 +124,7 @@ function SidebarNav({
           {(filteredGroups ?? []).map((group) => {
             const hasActive = group.items.some((i) => i.active);
             return (
-              <Collapsible
-                key={group.id}
-                defaultOpen={q ? true : (group.defaultOpen ?? hasActive)}
-              >
+              <Collapsible key={group.id} defaultOpen={q ? true : (group.defaultOpen ?? hasActive)}>
                 <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs font-semibold text-foreground hover:bg-muted [&[data-state=open]>svg]:rotate-180">
                   {group.icon}
                   <span className="min-w-0 flex-1 truncate">{group.label}</span>
@@ -234,8 +229,7 @@ export function PageShell({
               className={cn(
                 'docs-content w-full',
                 wide ? 'max-w-none' : 'max-w-[min(100%,56rem)] xl:max-w-[min(100%,64rem)]',
-              )}
-            >
+              )}>
               {children}
             </div>
           </main>

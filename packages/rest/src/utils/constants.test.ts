@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_API,
-  DEFAULT_VERSION,
   DEFAULT_USER_AGENT,
-  REQUEST_TIMEOUT,
+  DEFAULT_VERSION,
   MAX_RETRIES,
-} from './constants.js';
+  REQUEST_TIMEOUT,
+} from './Constants.js';
 
 describe('rest constants', () => {
   it('DEFAULT_API points to Fluxer API', () => {

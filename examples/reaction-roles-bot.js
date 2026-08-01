@@ -11,7 +11,7 @@
  * @see https://fluxerjs.blstmo.com/guides/reactions/
  */
 
-import { Client, Events, EmbedBuilder, parsePrefixCommand } from '@fluxerjs/core';
+import { Client, EmbedBuilder, Events, parsePrefixCommand } from '@fluxerjs/core';
 
 const ROLE_EMOJI_MAP = {
   '🎮': process.env.ROLE_GAMING ?? 'ROLE_ID_FOR_GAMING',
@@ -20,7 +20,7 @@ const ROLE_EMOJI_MAP = {
 };
 
 const PREFIX = '!';
-const client = new Client({ intents: 0 });
+const client = new Client();
 let rolesMessageId = process.env.REACTION_ROLES_MESSAGE_ID ?? null;
 
 function getRoleIdForEmoji(reaction) {
@@ -62,7 +62,7 @@ async function handleReactionRemove({ reaction, user }) {
   if (!guild) return;
 
   const member = guild.members.get(user.id) ?? (await guild.fetchMember(user.id).catch(() => null));
-  if (!member || !member.roles.has(roleId)) return;
+  if (!member?.roles.has(roleId)) return;
 
   try {
     await member.roles.remove(roleId);
@@ -79,7 +79,7 @@ client.on(Events.Ready, () => {
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot || !message.content) return;
   const parsed = parsePrefixCommand(message.content, PREFIX);
-  if (!parsed || parsed.command !== 'roles') return;
+  if (parsed?.command !== 'roles') return;
 
   if (!message.guildId) {
     await message.reply('Use this in a server channel.');

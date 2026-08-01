@@ -91,7 +91,9 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
   }
 
   ::selection {
@@ -193,22 +195,41 @@
     max-width: min(100%, 64rem);
   }
 
-.docs-grid-bg {
+  .docs-grid-bg {
     background-image:
       radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--primary) / 0.14), transparent),
       linear-gradient(to right, hsl(var(--border) / 0.45) 1px, transparent 1px),
       linear-gradient(to bottom, hsl(var(--border) / 0.45) 1px, transparent 1px);
-    background-size: auto, 48px 48px, 48px 48px;
+    background-size:
+      auto,
+      48px 48px,
+      48px 48px;
   }
 
-  .method-get { @apply text-emerald-600 dark:text-emerald-400; }
-  .method-post { @apply text-primary; }
-  .method-put { @apply text-amber-600 dark:text-amber-400; }
-  .method-patch { @apply text-pink-600 dark:text-pink-400; }
-  .method-delete { @apply text-rose-600 dark:text-rose-400; }
-  .method-class { @apply text-sky-600 dark:text-sky-400; }
-  .method-type { @apply text-violet-600 dark:text-violet-400; }
-  .method-enum { @apply text-amber-600 dark:text-amber-400; }
+  .method-get {
+    @apply text-emerald-600 dark:text-emerald-400;
+  }
+  .method-post {
+    @apply text-primary;
+  }
+  .method-put {
+    @apply text-amber-600 dark:text-amber-400;
+  }
+  .method-patch {
+    @apply text-pink-600 dark:text-pink-400;
+  }
+  .method-delete {
+    @apply text-rose-600 dark:text-rose-400;
+  }
+  .method-class {
+    @apply text-sky-600 dark:text-sky-400;
+  }
+  .method-type {
+    @apply text-violet-600 dark:text-violet-400;
+  }
+  .method-enum {
+    @apply text-amber-600 dark:text-amber-400;
+  }
 }
 
 @layer utilities {

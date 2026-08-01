@@ -1,4 +1,4 @@
-﻿---
+---
 title: Events
 description: "Listen to gateway events with client.on. Handlers receive hydrated structures, camelCase DTOs, or wire payloads depending on the event."
 category: events
@@ -14,7 +14,7 @@ Use `client.on(Events.X, handler)` to subscribe. Handlers receive event-specific
 ```javascript title="Default"
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.Ready, () => {
   console.log('Bot is ready!');
@@ -30,7 +30,7 @@ await client.login(process.env.FLUXER_BOT_TOKEN);
 ```javascript title="client.events"
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client
   .events.Ready(() => console.log('Bot is ready!'))
@@ -50,7 +50,7 @@ client.events.X(handler) offers the same API with chaining and better autocomple
 After the major rewrite, `ClientEvents` payloads fall into three groups:
 
 1. **Hydrated structures**  -  `Message`, `PartialMessage`, `Guild`, `Channel`, `GuildMember`, `Role`, `Invite`, `User`, `GuildBan`, `MessageReaction`, `GuildEmoji` (via DTOs). Prefer these for bot logic.
-2. **CamelCase DTOs**  -  normalized objects from `eventPayloads.ts` (and a few inline camelCase shapes). Use `channelId` / `guildId`, not snake_case wire fields.
+2. **CamelCase DTOs**  -  normalized objects from `EventPayloads.ts` (and a few inline camelCase shapes). Use `channelId` / `guildId`, not snake_case wire fields.
 3. **Wire gateway shapes**  -  still `Gateway*DispatchData` from `@fluxerjs/types` (snake_case). Voice events stay wire on purpose so [`@fluxerjs/voice`](/guides/voice/) can consume them unchanged.
 
 `*Update` handlers that receive old/new structures may see the **same instance** for both args when the cache patches in place (member, channel, guild).
@@ -109,7 +109,7 @@ client.on(Events.VoiceServerUpdate, (data) => {});
 ```javascript
 import { Client, Events } from '@fluxerjs/core';
 
-const client = new Client({ intents: 0 });
+const client = new Client();
 
 client.on(Events.MessageReactionAdd, ({ reaction, user, messageId, channelId, emoji, userId }) => {
   const emojiStr = emoji.id ? `<:${emoji.name}:${emoji.id}>` : emoji.name;
@@ -160,7 +160,7 @@ Events exposed on `Client` via `Events` / `ClientEvents`. Only these names are s
 | Members | `GuildMemberAdd`, `GuildMemberUpdate`, `GuildMemberRemove`, `GuildMembersChunk` |
 | Roles | `GuildRoleCreate`, `GuildRoleUpdate`, `GuildRoleDelete` |
 | Moderation | `GuildBanAdd`, `GuildBanRemove` |
-| Channels | `ChannelCreate`, `ChannelUpdate`, `ChannelDelete`, `ChannelPinsUpdate`, `ChannelMemberCountsUpdate` |
+| Channels | `ChannelCreate`, `ChannelUpdate`, `ChannelDelete`, `ChannelPinsUpdate`, `ChannelMemberCountsUpdate`, `ChannelRecipientAdd`, `ChannelRecipientRemove` |
 | Invites | `InviteCreate`, `InviteDelete` |
 | Users / presence | `UserUpdate`, `UserConnectionsUpdate`, `WebAuthnCredentialsUpdate`, `PresenceUpdate`, `PresenceUpdateBulk`, `TypingStart` |
 | Webhooks | `WebhooksUpdate` |
@@ -208,6 +208,8 @@ Handler argument types from `ClientEvents`. Structure names are classes from `@f
 | `ChannelUpdate` | `Channel`, `Channel` |
 | `ChannelDelete` | `Channel` |
 | `ChannelPinsUpdate` | `ChannelPinsUpdatePayload` |
+| `ChannelRecipientAdd` | `ChannelRecipientPayload` |
+| `ChannelRecipientRemove` | `ChannelRecipientPayload` |
 | `InviteCreate` | `Invite` |
 | `InviteDelete` | `InviteDeletePayload` |
 | `TypingStart` | `TypingStartPayload` |
@@ -225,7 +227,7 @@ Handler argument types from `ClientEvents`. Structure names are classes from `@f
 
 ### CamelCase DTOs
 
-Exported from `@fluxerjs/core` (defined in `eventPayloads.ts`). Voice events remain wire-shaped on purpose.
+Exported from `@fluxerjs/core` (defined in `EventPayloads.ts`). Voice events remain wire-shaped on purpose.
 
 | Payload | Notes |
 | --- | --- |
@@ -235,9 +237,13 @@ Exported from `@fluxerjs/core` (defined in `eventPayloads.ts`). Voice events rem
 | `GuildEmojisUpdatePayload` / `GuildStickersUpdatePayload` | cached structures |
 | `MessageReactionRemoveAllPayload` / `RemoveEmoji` / `AddMany` | camelCase |
 | `ChannelPinsUpdatePayload` | `channelId`, `guildId`, `lastPinTimestamp` |
+| `ChannelRecipientPayload` | `channelId`, `user` |
 | `PresenceUpdatePayload` / `PresenceUpdateBulkPayload` | camelCase |
+| `PresenceActivity` | nested activity on presence payloads |
 | `WebhooksUpdatePayload` | `channelId`, `guildId` |
 | `GuildMembersChunkPayload` | includes `GuildMember[]` |
 | `GuildCountsUpdatePayload` / `ChannelMemberCountsUpdatePayload` | camelCase counts |
-| `AuditLogEntryPayload` | camelCase audit entry |
+| `AuditLogEntryPayload` / `AuditLogChange` | camelCase audit entry |
 | `GuildRoleUpdatePayload` | `{ role, oldRole }` |
+| `GuildRoleDeletePayload` | `{ roleId, guildId, role }` |
+| `MessageReactionAddManyEntry` | nested entry on add-many batches |

@@ -17,11 +17,11 @@
 
 import {
   Client,
-  Events,
-  EmbedBuilder,
-  PermissionFlags,
   cdnBannerURL,
   cdnMemberAvatarURL,
+  EmbedBuilder,
+  Events,
+  PermissionFlags,
   parsePrefixCommand,
   parseUserMention,
 } from '@fluxerjs/core';
@@ -94,7 +94,6 @@ if (!token) {
 }
 
 const client = new Client({
-  intents: 0,
   rest: process.env.FLUXER_API_URL ? { api: process.env.FLUXER_API_URL } : undefined,
 });
 

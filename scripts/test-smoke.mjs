@@ -6,9 +6,6 @@
  * Usage: node scripts/test-smoke.mjs
  */
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-
 const iterations = 5;
 
 async function exerciseTypes() {
@@ -28,7 +25,7 @@ async function exerciseUtil() {
   if (m.resolveColor?.(0xff0000) !== 0xff0000) throw new Error('resolveColor failed');
   if (!m.formatColor?.(0xff0000)?.startsWith('#')) throw new Error('formatColor failed');
   const parsed = m.parseEmoji?.('<:custom:123456789012345678>');
-  if (!parsed || parsed.id !== '123456789012345678') throw new Error('parseEmoji failed');
+  if (parsed?.id !== '123456789012345678') throw new Error('parseEmoji failed');
 }
 
 async function exerciseCollection() {

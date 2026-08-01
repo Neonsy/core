@@ -48,8 +48,7 @@ export async function MdxPre({
   return (
     <div
       className="code-frame group relative my-6 overflow-hidden rounded-lg border border-border not-prose"
-      data-title={title}
-    >
+      data-title={title}>
       <div className="flex h-9 items-center justify-between border-b border-border/70 bg-muted/50 px-3">
         <span className="truncate font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
           {title}

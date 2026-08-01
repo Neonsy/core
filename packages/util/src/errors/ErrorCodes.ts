@@ -55,6 +55,8 @@ export const ErrorCodes = {
   AttachmentUploadFailed: 'ATTACHMENT_UPLOAD_FAILED',
   /** Operation requires a personal-notes channel (or wrong channel type). */
   InvalidChannelType: 'INVALID_CHANNEL_TYPE',
+  /** Gateway opcode payload missing required fields. */
+  InvalidGatewayRequest: 'INVALID_GATEWAY_REQUEST',
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { ArrowUpRight, Search, X } from 'lucide-react';
+import Link from 'next/link';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -70,7 +70,10 @@ function scoreOp(op: RestExplorerOperation, q: string): number {
 
   // token match (e.g. "guild member")
   const tokens = q.split(/\s+/).filter(Boolean);
-  if (tokens.length > 1 && tokens.every((t) => path.includes(t) || summary.includes(t) || id.includes(t))) {
+  if (
+    tokens.length > 1 &&
+    tokens.every((t) => path.includes(t) || summary.includes(t) || id.includes(t))
+  ) {
     return 55;
   }
   return -1;
@@ -151,8 +154,7 @@ export function RestExplorer({
               type="button"
               onClick={() => setQuery('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label="Clear filter"
-            >
+              aria-label="Clear filter">
               <X className="h-4 w-4" />
             </button>
           ) : null}
@@ -164,8 +166,7 @@ export function RestExplorer({
             onClick={() => {
               setActiveMethod(null);
               setActiveTag(null);
-            }}
-          >
+            }}>
             All
           </FilterPill>
           {methods.map((m) => {
@@ -180,8 +181,7 @@ export function RestExplorer({
                   activeMethod === m
                     ? `${style.badge} border-transparent`
                     : 'border-border text-muted-foreground hover:text-foreground',
-                )}
-              >
+                )}>
                 {m}
               </button>
             );
@@ -191,8 +191,7 @@ export function RestExplorer({
                 <FilterPill
                   key={t}
                   active={activeTag === t}
-                  onClick={() => setActiveTag(activeTag === t ? null : t)}
-                >
+                  onClick={() => setActiveTag(activeTag === t ? null : t)}>
                   {t}
                 </FilterPill>
               ))
@@ -212,8 +211,7 @@ export function RestExplorer({
         <div
           ref={scrollRef}
           className="relative min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/60 bg-card/30 p-2"
-          role="list"
-        >
+          role="list">
           <div className="relative w-full" style={{ height: total * ROW }}>
             {visible.map((op, i) => {
               const index = range.start + i;
@@ -228,14 +226,12 @@ export function RestExplorer({
                     style.hover,
                     'hover:border-border',
                   )}
-                  style={{ top: index * ROW, height: ROW - GAP }}
-                >
+                  style={{ top: index * ROW, height: ROW - GAP }}>
                   <span
                     className={cn(
                       'w-16 shrink-0 rounded-md px-2 py-1 text-center font-mono text-[10px] font-bold uppercase tracking-wide',
                       style.badge,
-                    )}
-                  >
+                    )}>
                     {op.method}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -284,8 +280,7 @@ function FilterPill({
         active
           ? 'border-transparent bg-primary/15 text-primary'
           : 'border-border text-muted-foreground hover:text-foreground',
-      )}
-    >
+      )}>
       {children}
     </button>
   );

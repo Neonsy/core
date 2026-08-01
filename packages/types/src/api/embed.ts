@@ -118,7 +118,7 @@ export interface APIEmbedChild {
 /** Full embed object as returned by the API / gateway. */
 export interface APIEmbed {
   /** Render kind; see {@link EmbedType}. */
-  type?: EmbedType;
+  type: EmbedType;
   /** Canonical URL associated with the embed. */
   url?: string | null;
   /** Title text. */
@@ -149,6 +149,12 @@ export interface APIEmbed {
   nsfw?: boolean | null;
   /** Nested embeds from unfurlers */
   children?: APIEmbedChild[] | null;
+  /** Sanitized oEmbed HTML for specialized renderers. */
+  html?: string | null;
+  /** Preferred width of sanitized oEmbed HTML. */
+  html_width?: number | null;
+  /** Preferred height of sanitized oEmbed HTML. */
+  html_height?: number | null;
 }
 
 /** Embed author for send/create requests. */
@@ -174,7 +180,7 @@ export interface RESTPostAPIEmbed {
   /** ISO-8601 timestamp shown in the embed. */
   timestamp?: string | null;
   /** Body description (markdown). */
-  description?: string | null;
+  description: string | null;
   /** Author block. */
   author?: RESTPostAPIEmbedAuthor | null;
   /** Large image. */

@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
-    routes: 'src/subpath-routes.ts',
+    routes: 'src/SubpathRoutes.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,

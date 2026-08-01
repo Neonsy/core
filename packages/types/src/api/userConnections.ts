@@ -1,4 +1,4 @@
-import type { Snowflake } from '../common/snowflake.js';
+import type { Snowflake } from '../Common/Snowflake.js';
 
 /** External connection on a user profile (Bluesky, custom domain, etc.). */
 export interface APIUserConnection {

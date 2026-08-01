@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { isLiveKitEndpoint, buildLiveKitUrlForRtcSdk } from './livekit.js';
+import { describe, expect, it } from 'vitest';
+import { buildLiveKitUrlForRtcSdk, isLiveKitEndpoint } from './Livekit.js';
 
 describe('isLiveKitEndpoint', () => {
   it('returns false for null, undefined, empty', () => {

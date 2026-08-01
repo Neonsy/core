@@ -71,6 +71,12 @@ jobs:
       - name: OpenAPI verify
         run: pnpm run openapi:verify
 
+      - name: OpenAPI type alignment
+        run: pnpm run openapi:assert
+
+      - name: Gateway coverage (strict)
+        run: pnpm run openapi:gateway-coverage -- --strict
+
       - name: Package boundaries
         run: pnpm run check:boundaries
 
@@ -79,6 +85,12 @@ jobs:
 
       - name: Typecheck
         run: pnpm run typecheck
+
+      - name: Public export surface
+        run: pnpm run check:exports
+
+      - name: Import path casing
+        run: pnpm run check:casing
 
   build-test:
     runs-on: ubuntu-latest

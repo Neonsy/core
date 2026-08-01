@@ -23,6 +23,19 @@ client.on(Events.MessageCreate, async (m) => {
 await client.login(process.env.FLUXER_BOT_TOKEN);
 ```
 
+### Cache limits and sweeps
+
+```javascript
+const client = new Client({
+  cache: { guilds: 100, messages: 25 }, // messages: false to disable
+});
+
+client.on(Events.Ready, () => console.log(client.cache.stats()));
+client.cache.sweepMessages((msg) => Date.now() - Date.parse(msg.timestamp) > 3_600_000);
+```
+
+See `examples/cache-bot.js` and the [Caching guide](https://fluxerjs.blstmo.com/guides/caching/).
+
 Self-hosted / multi-instance: use `Client.fromDiscovery(origin)` or `ClientOptions.instance`.
 **Beta:** `ClientCluster` (also `@fluxerjs/core/cluster`) can add/remove/restart independently-tokened
 runtimes without process restart — see `examples/multi-instance-bot.js`. API may change.

@@ -1,4 +1,4 @@
-import type { Snowflake } from '../common/snowflake.js';
+import type { Snowflake } from '../Common/Snowflake.js';
 
 /**
  * Expression pack kind (OpenAPI PackType).

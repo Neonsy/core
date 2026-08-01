@@ -25,10 +25,10 @@
  */
 
 import {
+  BETA_CLIENT_CLUSTER_WARNING,
   ClientCluster,
   ClientClusterEvents,
   Events,
-  BETA_CLIENT_CLUSTER_WARNING,
 } from '@fluxerjs/core';
 
 console.warn(`[beta] ${BETA_CLIENT_CLUSTER_WARNING}`);

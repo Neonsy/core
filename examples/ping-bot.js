@@ -11,12 +11,12 @@
 
 import {
   Client,
-  Events,
   EmbedBuilder,
-  Routes,
-  User,
+  Events,
   parsePrefixCommand,
   parseUserMention,
+  Routes,
+  User,
 } from '@fluxerjs/core';
 
 const PREFIX = '!';
@@ -206,7 +206,6 @@ if (!token) {
 }
 
 const client = new Client({
-  intents: 0,
   rest: process.env.FLUXER_API_URL ? { api: process.env.FLUXER_API_URL } : undefined,
 });
 
