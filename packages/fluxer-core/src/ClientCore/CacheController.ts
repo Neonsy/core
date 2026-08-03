@@ -6,8 +6,8 @@ import type { User } from '../Domain/User.js';
 import type { ResolvedCacheLimits } from '../Helpers/Options.js';
 import type { Client } from './Client.js';
 
-/** Snapshot of current cache sizes. */
-export interface CacheStats {
+/** Cache buckets whose capacity evictions are tracked. */
+export interface CacheEvictionStats {
   guilds: number;
   channels: number;
   users: number;
@@ -19,6 +19,22 @@ export interface CacheStats {
   stickers: number;
 }
 
+/** Snapshot of current cache sizes and capacity evictions since Client construction. */
+export interface CacheStats {
+  guilds: number;
+  channels: number;
+  users: number;
+  members: number;
+  messages: number;
+  messageChannels: number;
+  roles: number;
+  emojis: number;
+  stickers: number;
+  evictions: CacheEvictionStats;
+}
+
+export type CacheEvictionBucket = keyof CacheEvictionStats;
+
 /**
  * Public cache facade: limits, stats, sweeps, and cascade teardown entry points.
  * Not a second source of truth — wraps managers / {@link MessageCache}.
@@ -29,6 +45,18 @@ export class CacheController {
 
   /** Re-entrancy guard for dual-index / guild cascade teardown. */
   private _cascading = false;
+
+  private readonly evictionCounts: CacheEvictionStats = {
+    guilds: 0,
+    channels: 0,
+    users: 0,
+    members: 0,
+    messages: 0,
+    messageChannels: 0,
+    roles: 0,
+    emojis: 0,
+    stickers: 0,
+  };
 
   constructor(
     private readonly client: Client,
@@ -65,7 +93,22 @@ export class CacheController {
       roles,
       emojis,
       stickers,
+      evictions: { ...this.evictionCounts },
     };
+  }
+
+  /** Record an entry removed because a configured cache limit was reached. @internal */
+  recordEviction(bucket: CacheEvictionBucket, count = 1): void {
+    if (count <= 0) return;
+    this.evictionCounts[bucket] += count;
+
+    if (bucket === 'guilds' || bucket === 'channels' || bucket === 'users') {
+      this.client.logger.debug('Cache entry evicted at configured FIFO limit', {
+        bucket,
+        limit: this.limits[bucket],
+        evictions: this.evictionCounts[bucket],
+      });
+    }
   }
 
   sweepMessages(

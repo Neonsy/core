@@ -22,7 +22,10 @@ export class ChannelManager extends LimitedCollection<string, Channel | GuildCha
   constructor(private readonly client: Client) {
     super({
       maxSize: client.cache.limits.channels,
-      onEvict: (_id, channel) => client.cache.cascadeChannel(channel, 'global'),
+      onEvict: (_id, channel) => {
+        client.cache.recordEviction('channels');
+        client.cache.cascadeChannel(channel, 'global');
+      },
     });
   }
 

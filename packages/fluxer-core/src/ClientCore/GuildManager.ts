@@ -14,7 +14,10 @@ export class GuildManager extends LimitedCollection<string, Guild> {
   constructor(private readonly client: Client) {
     super({
       maxSize: client.cache.limits.guilds,
-      onEvict: (_id, guild) => client.cache.cascadeGuild(guild),
+      onEvict: (_id, guild) => {
+        client.cache.recordEviction('guilds');
+        client.cache.cascadeGuild(guild);
+      },
     });
   }
 

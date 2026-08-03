@@ -134,6 +134,7 @@ export class Client extends EventEmitter {
     this._messageCache = new MessageCache(
       () => this.cache.limits.messages,
       () => this.cache.limits.channels,
+      (bucket, count) => this.cache.recordEviction(bucket, count),
     );
     this.guilds = new GuildManager(this);
     this.channels = new ChannelManager(this);

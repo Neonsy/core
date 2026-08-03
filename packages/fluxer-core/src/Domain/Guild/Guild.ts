@@ -123,9 +123,18 @@ export class Guild extends Base {
       maxSize: Number.POSITIVE_INFINITY,
       onEvict: (_id, channel) => client.cache.cascadeChannel(channel, 'guild'),
     });
-    this.roles = new LimitedCollection({ maxSize: client.cache.limits.roles });
-    this.emojis = new LimitedCollection({ maxSize: client.cache.limits.emojis });
-    this.stickers = new LimitedCollection({ maxSize: client.cache.limits.stickers });
+    this.roles = new LimitedCollection({
+      maxSize: client.cache.limits.roles,
+      onEvict: () => client.cache.recordEviction('roles'),
+    });
+    this.emojis = new LimitedCollection({
+      maxSize: client.cache.limits.emojis,
+      onEvict: () => client.cache.recordEviction('emojis'),
+    });
+    this.stickers = new LimitedCollection({
+      maxSize: client.cache.limits.stickers,
+      onEvict: () => client.cache.recordEviction('stickers'),
+    });
     this.name = data.name ?? '';
     this.icon = data.icon ?? null;
     this.banner = data.banner ?? null;

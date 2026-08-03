@@ -23,14 +23,30 @@ import {
 
 const PREFIX = '!';
 
-async function getModeratorPerms(message) {
-  const guild =
-    message.guild ??
-    (message.guildId ? await message.client.guilds.fetch(message.guildId).catch(() => null) : null);
-  if (!guild) return null;
+async function resolveGuild(message) {
+  if (!message.guildId) return null;
+  try {
+    return message.guild ?? (await message.resolveGuild());
+  } catch (err) {
+    if (err instanceof FluxerError && err.code === ErrorCodes.GuildNotFound) return null;
+    throw err;
+  }
+}
+
+async function resolveMember(guild, userId) {
+  const cached = guild.members.get(userId);
+  if (cached) return cached;
+  try {
+    return await guild.fetchMember(userId);
+  } catch (err) {
+    if (err instanceof FluxerError && err.code === ErrorCodes.MemberNotFound) return null;
+    throw err;
+  }
+}
+
+async function getModeratorPerms(message, guild) {
   const member =
-    guild.members.get(message.author.id) ??
-    (await guild.fetchMember(message.author.id).catch(() => null));
+    guild.members.get(message.author.id) ?? (await resolveMember(guild, message.author.id));
   return member?.permissions ?? null;
 }
 
@@ -44,7 +60,7 @@ client.on(Events.Ready, () => {
   console.log(`Logged in as ${client.user?.username}. Commands: !ban, !kick, !unban, !perms`);
 });
 
-client.on(Events.MessageCreate, async (message) => {
+async function handleMessageCreate(message) {
   if (message.author.bot || !message.content) return;
   const parsed = parsePrefixCommand(message.content, PREFIX);
   if (!parsed) return;
@@ -53,16 +69,14 @@ client.on(Events.MessageCreate, async (message) => {
   const targetArg = args[0];
   const reason = args.slice(1).join(' ') || null;
 
-  const guild =
-    message.guild ??
-    (message.guildId ? await message.client.guilds.fetch(message.guildId).catch(() => null) : null);
+  const guild = await resolveGuild(message);
   if (!guild) {
     await message.reply('Moderation commands only work in a server.');
     return;
   }
 
   const userId = targetArg ? parseUserMention(targetArg) : null;
-  const perms = await getModeratorPerms(message);
+  const perms = await getModeratorPerms(message, guild);
   if (!perms) {
     await message.reply(
       'Could not load your member data. The bot may need access to view server members.',
@@ -174,6 +188,12 @@ client.on(Events.MessageCreate, async (message) => {
       await message.reply(`Error: ${msg}`);
     }
   }
+}
+
+client.on(Events.MessageCreate, (message) => {
+  void handleMessageCreate(message).catch((err) => {
+    client.emit(Events.Error, err instanceof Error ? err : new Error(String(err)));
+  });
 });
 
 client.on(Events.Error, (err) => console.error('[fluxer]', err));

@@ -8,12 +8,20 @@ import {
 import { cacheMember } from '../Domain/Guild/Cache.js';
 import type { GuildMember } from '../Domain/Guild/GuildMember.js';
 import type { User } from '../Domain/User.js';
+import { httpStatus } from '../Helpers/HttpErrors.js';
 import type { Client } from './Client.js';
 import { type ProfilePayload, toProfilePayload } from './SdkOptions/index.js';
 
 type MemberPayload = APIGuildMember & { user: { id: string } };
 
-const soft = <T>(p: Promise<T>): Promise<T | null> => p.catch(() => null);
+async function optionalNotFound<T>(promise: Promise<T>): Promise<T | null> {
+  try {
+    return await promise;
+  } catch (error) {
+    if (httpStatus(error) === 404) return null;
+    throw error;
+  }
+}
 
 /** Result of {@link UserManager.fetchWithProfile}. */
 export interface FetchedUserWithProfile {
@@ -32,7 +40,10 @@ export interface FetchedUserWithProfile {
  */
 export class UserManager extends LimitedCollection<string, User> {
   constructor(private readonly client: Client) {
-    super({ maxSize: client.cache.limits.users });
+    super({
+      maxSize: client.cache.limits.users,
+      onEvict: () => client.cache.recordEviction('users'),
+    });
   }
 
   /** Remove matching users (skips `client.user`). Returns count removed. */
@@ -71,12 +82,14 @@ export class UserManager extends LimitedCollection<string, User> {
 
     const [userData, globalProfileRaw, serverProfileRaw, memberData] = await Promise.all([
       this.client.rest.get<APIUserPartial>(Routes.user(userId)),
-      soft<APIProfileResponse>(this.client.rest.get(Routes.userProfile(userId))),
+      optionalNotFound<APIProfileResponse>(this.client.rest.get(Routes.userProfile(userId))),
       guildId
-        ? soft<APIProfileResponse>(this.client.rest.get(Routes.userProfile(userId, guildId)))
+        ? optionalNotFound<APIProfileResponse>(
+            this.client.rest.get(Routes.userProfile(userId, guildId)),
+          )
         : null,
       guildId
-        ? soft<MemberPayload>(this.client.rest.get(Routes.guildMember(guildId, userId)))
+        ? optionalNotFound<MemberPayload>(this.client.rest.get(Routes.guildMember(guildId, userId)))
         : null,
     ]);
 
@@ -86,11 +99,7 @@ export class UserManager extends LimitedCollection<string, User> {
     if (memberData && guildId) {
       let guild = this.client.guilds.get(guildId);
       if (!guild) {
-        try {
-          guild = await this.client.guilds.fetch(guildId);
-        } catch {
-          guild = undefined;
-        }
+        guild = await this.client.guilds.fetch(guildId);
       }
       if (guild) {
         member = cacheMember(guild, memberData);

@@ -52,6 +52,7 @@ client.on(Events.MessageCreate, async (message) => {
         `users=${stats.users}`,
         `members=${stats.members}`,
         `messages=${stats.messages}`,
+        `guildEvictions=${stats.evictions.guilds}`,
         `limits.messages=${String(client.cache.limits.messages)}`,
       ].join(' · '),
     );

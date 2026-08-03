@@ -121,11 +121,7 @@ export class Message extends Base {
   /** Fetch and resolve the guild, or null if a DM. */
   async resolveGuild(): Promise<Guild | null> {
     if (!this.guildId) return null;
-    try {
-      return await this.client.guilds.resolve(this.guildId);
-    } catch {
-      return null;
-    }
+    return this.client.guilds.resolve(this.guildId);
   }
 
   /**

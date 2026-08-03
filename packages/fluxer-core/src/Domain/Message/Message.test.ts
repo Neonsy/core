@@ -1,7 +1,12 @@
 import type { APIMessage } from '@fluxerjs/types';
 import { describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../ClientCore/Client.js';
-import { createMessageStubClient, fixtureMessage, fixtureUser } from '../../TestKit/Fixtures.js';
+import {
+  createMessageStubClient,
+  createTestClient,
+  fixtureMessage,
+  fixtureUser,
+} from '../../TestKit/Fixtures.js';
 import { Message } from './Message.js';
 
 function makeMessage(client: Client, overrides: Partial<APIMessage> = {}): Message {
@@ -17,6 +22,26 @@ function makeMessage(client: Client, overrides: Partial<APIMessage> = {}): Messa
     }),
   );
 }
+
+describe('Message.resolveGuild', () => {
+  it('returns null for a direct message without resolving', async () => {
+    const client = createTestClient();
+    const resolve = vi.spyOn(client.guilds, 'resolve');
+    const message = makeMessage(client, { guild_id: undefined });
+
+    await expect(message.resolveGuild()).resolves.toBeNull();
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('preserves guild resolution failures', async () => {
+    const client = createTestClient();
+    const failure = new Error('connection refused');
+    vi.spyOn(client.guilds, 'resolve').mockRejectedValue(failure);
+    const message = makeMessage(client);
+
+    await expect(message.resolveGuild()).rejects.toBe(failure);
+  });
+});
 
 describe('Message._createMessageBody', () => {
   it('includes message_reference when replying', async () => {

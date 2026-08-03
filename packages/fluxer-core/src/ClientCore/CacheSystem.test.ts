@@ -49,6 +49,7 @@ describe('cache system', () => {
       gatewayDeferHandlers: false,
       cache: { guilds: 1, channels: 1, users: 1 },
     });
+    const debug = vi.spyOn(client.logger, 'debug');
 
     const g1 = new Guild(client, guildData('g1'));
     const g2 = new Guild(client, guildData('g2'));
@@ -63,6 +64,33 @@ describe('cache system', () => {
     client.channels.set('c1', { id: 'c1' } as never);
     client.channels.set('c2', { id: 'c2' } as never);
     expect([...client.channels.keys()]).toEqual(['c2']);
+    expect(client.cache.stats().evictions).toMatchObject({
+      guilds: 1,
+      channels: 1,
+      users: 1,
+    });
+    expect(debug).toHaveBeenCalledTimes(3);
+    expect(debug).toHaveBeenCalledWith(
+      'Cache entry evicted at configured FIFO limit',
+      expect.objectContaining({ bucket: 'guilds', limit: 1, evictions: 1 }),
+    );
+  });
+
+  it('counts message and message-channel capacity evictions', () => {
+    const client = new Client({
+      gatewayDeferHandlers: false,
+      cache: { channels: 1, messages: 2 },
+    });
+
+    client._addMessageToCache('c1', messageData('m1', 'c1'));
+    client._addMessageToCache('c1', messageData('m2', 'c1'));
+    client._addMessageToCache('c1', messageData('m3', 'c1'));
+    client._addMessageToCache('c2', messageData('m4', 'c2'));
+
+    expect(client.cache.stats().evictions).toMatchObject({
+      messages: 3,
+      messageChannels: 1,
+    });
   });
 
   it('guild delete cascades channels and message caches; dual indexes stay aligned', async () => {

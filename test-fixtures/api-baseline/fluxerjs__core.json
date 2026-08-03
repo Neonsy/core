@@ -1,6 +1,6 @@
 {
   "package": "@fluxerjs/core",
-  "generatedAt": "2026-08-02T12:53:12.276Z",
+  "generatedAt": "2026-08-02T13:00:53.473Z",
   "entries": [
     {
       "subpath": ".",
@@ -34,6 +34,7 @@
         "BulkFetchMessagesResult",
         "CDN_URL",
         "CacheController",
+        "CacheEvictionStats",
         "CacheSizeLimits",
         "CacheStats",
         "CategoryChannel",

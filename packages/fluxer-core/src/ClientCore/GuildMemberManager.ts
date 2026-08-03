@@ -11,7 +11,10 @@ import { type GuildMemberSearchOptions, toMemberSearchBody } from './SdkOptions/
  */
 export class GuildMemberManager extends LimitedCollection<string, GuildMember> {
   constructor(private readonly guild: Guild) {
-    super({ maxSize: guild.client.cache.limits.members });
+    super({
+      maxSize: guild.client.cache.limits.members,
+      onEvict: () => guild.client.cache.recordEviction('members'),
+    });
   }
 
   /**

@@ -24,6 +24,7 @@ export class MessageCache {
   constructor(
     private readonly getLimit: () => MessageLimit,
     private readonly getChannelLimit: () => number = () => Number.POSITIVE_INFINITY,
+    private readonly onEvict?: (bucket: 'messages' | 'messageChannels', count?: number) => void,
   ) {}
 
   /**
@@ -46,7 +47,12 @@ export class MessageCache {
       const channelLimit = this.getChannelLimit();
       if (Number.isFinite(channelLimit) && channelLimit > 0 && this.caches.size >= channelLimit) {
         const oldest = this.caches.keys().next().value;
-        if (oldest !== undefined) this.caches.delete(oldest);
+        if (oldest !== undefined) {
+          const evictedMessages = this.caches.get(oldest)?.size ?? 0;
+          this.caches.delete(oldest);
+          this.onEvict?.('messageChannels');
+          this.onEvict?.('messages', evictedMessages);
+        }
       }
       cache = new Map();
       this.caches.set(channelId, cache);
@@ -54,7 +60,10 @@ export class MessageCache {
 
     if (Number.isFinite(limit) && limit > 0 && cache.size >= limit && !cache.has(data.id)) {
       const firstKey = cache.keys().next().value;
-      if (firstKey !== undefined) cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        cache.delete(firstKey);
+        this.onEvict?.('messages');
+      }
     }
     cache.set(data.id, { ...data });
   }

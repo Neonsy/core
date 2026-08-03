@@ -59,6 +59,8 @@ client.cache.limits; // resolved numbers (`Infinity` when unbounded)
 
 **Breaking clarification:** `cache.messages: 0` is now **unbounded** (same as other buckets). Pass `messages: false` to turn message caching off. Passing `0` emits a one-time warning.
 
+The default guild limit is 200. A guild count that remains exactly at that value can mean older guilds are being FIFO-evicted. Set `cache.guilds: 0` for an unbounded guild cache, or choose a limit that fits the bot's workload.
+
 ## Get / fetch / resolve / force
 
 - **get** — cache only; `undefined` if missing
@@ -73,6 +75,9 @@ await client.guilds.fetch(guildId, { force: true });
 
 const member =
   guild.members.get(userId) ?? (await guild.members.resolve(userId));
+
+const messageGuild = message.guild ?? (await message.resolveGuild());
+// null means the message is a DM. REST failures reject with their original context.
 ```
 
 ## Identity and patching
@@ -91,7 +96,11 @@ References stay valid across reconnects and outage recovery **unless**:
 
 ```javascript
 client.cache.stats();
-// { guilds, channels, users, members, messages, messageChannels, roles, emojis, stickers }
+// {
+//   guilds, channels, users, members, messages, messageChannels,
+//   roles, emojis, stickers,
+//   evictions: { guilds, channels, users, members, messages, messageChannels, roles, emojis, stickers }
+// }
 
 client.cache.sweepMessages((msg) => Date.now() - Date.parse(msg.timestamp) > 3_600_000);
 client.cache.sweepMembers((member, guildId) => member.id !== client.user.id);
@@ -119,6 +128,7 @@ Fetch when correctness beats a round trip: bans, messages older than the per-cha
 
 | Symptom | Check |
 | ------- | ----- |
+| Guild count remains exactly at 200, or `message.guild` is unexpectedly `null` | Check `client.cache.limits.guilds` and `client.cache.stats().evictions.guilds`. Use `await message.resolveGuild()` when the message can outlive the cached guild. |
 | Memory keeps growing | Lower limits; periodic `sweepMessages` / `sweepMembers`; confirm `messages` is not `0` if you meant “off” (`false`) |
 | “Orphan” channels after leaving a guild | Permanent delete and FIFO eviction cascade; if you only marked unavailable, channels stay on purpose |
 | Channel missing from `guild.channels` but present on `client.channels` | Should not happen after sync — report if you see it; both indexes are written together |
