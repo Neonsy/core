@@ -1,5 +1,13 @@
 // Re-export builders for convenience
 export { AttachmentBuilder, EmbedBuilder, MessagePayload } from '@fluxerjs/builders';
+export {
+  FluxerAPIError,
+  HTTPError,
+  RateLimitError,
+  RESTRequestError,
+  type RESTRequestErrorKind,
+  type RESTRequestErrorOptions,
+} from '@fluxerjs/rest';
 export type {
   APIInstance,
   APIInstanceEndpoints,

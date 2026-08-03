@@ -1,5 +1,12 @@
 export { Routes } from '@fluxerjs/types';
-export { FluxerAPIError, HTTPError, RateLimitError } from './Errors/index.js';
+export {
+  FluxerAPIError,
+  HTTPError,
+  RateLimitError,
+  RESTRequestError,
+  type RESTRequestErrorKind,
+  type RESTRequestErrorOptions,
+} from './Errors/index.js';
 export { closeSharedFetch, sharedFetch } from './Fetch/SharedFetch.js';
 export { RateLimitManager, type RateLimitState } from './RateLimitManager.js';
 export {

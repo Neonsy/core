@@ -55,6 +55,12 @@ export function serializeError(err: unknown, depth = 0): Record<string, unknown>
     statusCode?: unknown;
     method?: unknown;
     path?: unknown;
+    attempts?: unknown;
+    kind?: unknown;
+    isRetryable?: unknown;
+    retryAfter?: unknown;
+    global?: unknown;
+    errors?: unknown;
     cause?: unknown;
   };
   const out: Record<string, unknown> = {
@@ -65,6 +71,24 @@ export function serializeError(err: unknown, depth = 0): Record<string, unknown>
   if (e.statusCode !== undefined) out.statusCode = e.statusCode;
   if (e.method !== undefined) out.method = e.method;
   if (e.path !== undefined) out.path = e.path;
+  if (e.attempts !== undefined) out.attempts = e.attempts;
+  if (e.kind !== undefined) out.kind = e.kind;
+  if (typeof e.isRetryable === 'boolean') out.isRetryable = e.isRetryable;
+  if (e.retryAfter !== undefined) out.retryAfter = e.retryAfter;
+  if (e.global !== undefined) out.global = e.global;
+  if (Array.isArray(e.errors)) {
+    out.errors = e.errors.slice(0, 10).map((item: unknown) => {
+      if (typeof item !== 'object' || item === null) return String(item).slice(0, 240);
+      const value = item as { path?: unknown; message?: unknown; code?: unknown };
+      return {
+        ...(typeof value.path === 'string' ? { path: value.path.slice(0, 120) } : {}),
+        ...(typeof value.message === 'string' ? { message: value.message.slice(0, 240) } : {}),
+        ...(typeof value.code === 'string' || typeof value.code === 'number'
+          ? { code: value.code }
+          : {}),
+      };
+    });
+  }
   if (e.cause !== undefined) out.cause = serializeError(e.cause, depth + 1);
   return out;
 }

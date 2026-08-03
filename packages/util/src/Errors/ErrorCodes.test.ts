@@ -13,6 +13,9 @@ describe('ErrorCodes', () => {
     expect(ErrorCodes.NotLoggedIn).toBe('NOT_LOGGED_IN');
     expect(ErrorCodes.InvalidEmoji).toBe('INVALID_EMOJI');
     expect(ErrorCodes.WebSocketLoadFailed).toBe('WEBSOCKET_LOAD_FAILED');
+    expect(ErrorCodes.RestRequestFailed).toBe('REST_REQUEST_FAILED');
+    expect(ErrorCodes.RestRequestTimeout).toBe('REST_REQUEST_TIMEOUT');
+    expect(ErrorCodes.RestInvalidResponse).toBe('REST_INVALID_RESPONSE');
     expect(ErrorCodes.InvalidInstanceDiscovery).toBe('INVALID_INSTANCE_DISCOVERY');
     expect(ErrorCodes.ConflictingInstanceConfig).toBe('CONFLICTING_INSTANCE_CONFIG');
     expect(ErrorCodes.DuplicateRuntimeId).toBe('DUPLICATE_RUNTIME_ID');

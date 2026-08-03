@@ -1,6 +1,7 @@
+import { serializeError } from '@fluxerjs/util';
 import { FormData } from 'undici';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FluxerAPIError, HTTPError, RateLimitError } from './Errors/index.js';
+import { FluxerAPIError, HTTPError, RateLimitError, RESTRequestError } from './Errors/index.js';
 import { sharedFetch } from './Fetch/SharedFetch.js';
 import { RequestManager } from './RequestManager.js';
 
@@ -76,7 +77,48 @@ describe('RequestManager', () => {
       .request('GET', `/webhooks/123456789012345678/${token}?signature=secret`)
       .catch((cause: unknown) => cause);
     expect(error).toBeInstanceOf(FluxerAPIError);
-    expect((error as FluxerAPIError).path).toBe('/webhooks/123456789012345678/:token');
+    expect((error as FluxerAPIError).path).toBe('/webhooks/:id/:token');
+    expect(error).toMatchObject({ method: 'GET', attempts: 1, statusCode: 404 });
+    expect((error as Error).message).not.toContain(token);
+  });
+
+  it('preserves API classification when validation metadata is malformed', async () => {
+    const rm = new RequestManager({ retries: 0 });
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        { code: 'BAD_REQUEST', message: 'Bad request', errors: 'not-an-array' },
+        { status: 400 },
+      ),
+    );
+
+    const error = await rm.request('GET', '/channels/1').catch((cause: unknown) => cause);
+
+    expect(error).toBeInstanceOf(FluxerAPIError);
+    expect(error).toMatchObject({
+      code: 'BAD_REQUEST',
+      statusCode: 400,
+      method: 'GET',
+      path: '/channels/1',
+      attempts: 1,
+      errors: undefined,
+    });
+    expect((error as Error).message).toContain('Bad request');
+  });
+
+  it.each([
+    ['/WEBHOOKS/123456789012345678/uppercase-secret', '/WEBHOOKS/:id/:token'],
+    ['/webhooks/not-a-snowflake/malformed-secret', '/webhooks/not-a-snowflake/:token'],
+  ])('redacts webhook tokens from non-canonical error paths', async (route, expectedPath) => {
+    const rm = new RequestManager({ retries: 0 });
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ code: 'UNKNOWN_WEBHOOK', message: 'Unknown Webhook' }, { status: 404 }),
+    );
+
+    const error = await rm.request('GET', route).catch((cause: unknown) => cause);
+
+    expect(error).toBeInstanceOf(FluxerAPIError);
+    expect((error as FluxerAPIError).path).toBe(expectedPath);
+    expect((error as Error).message).not.toContain(route.split('/').at(-1));
   });
 
   it('request throws HTTPError for non-JSON error body', async () => {
@@ -87,7 +129,9 @@ describe('RequestManager', () => {
       text: () => Promise.resolve('Internal Server Error'),
       headers: new Headers(),
     } as unknown as Response);
-    await expect(rm.request('GET', '/channels/1')).rejects.toThrow(HTTPError);
+    const error = await rm.request('GET', '/channels/1').catch((cause: unknown) => cause);
+    expect(error).toBeInstanceOf(HTTPError);
+    expect(error).toMatchObject({ method: 'GET', path: '/channels/1', attempts: 1 });
   });
 
   it('retries retryable 5xx HTTPError then succeeds', async () => {
@@ -125,6 +169,95 @@ describe('RequestManager', () => {
       jsonResponse({ code: 'RATE_LIMITED', message: 'slow down', retry_after: 1 }, { status: 429 }),
     );
     await expect(rm.request('GET', '/channels/1')).rejects.toThrow(RateLimitError);
+  });
+
+  it('preserves HTTP context when a rate-limit response body is unreadable', async () => {
+    const rm = new RequestManager({ retries: 0 });
+    const cause = new Error('response body stream failed');
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      text: () => Promise.reject(cause),
+      headers: new Headers({ 'Retry-After': '1' }),
+    } as unknown as Response);
+
+    const error = await rm.request('GET', '/channels/1').catch((caught) => caught);
+    expect(error).toBeInstanceOf(RESTRequestError);
+    expect(error).toMatchObject({
+      code: 'REST_INVALID_RESPONSE',
+      kind: 'response',
+      method: 'GET',
+      path: '/channels/1',
+      statusCode: 429,
+      attempts: 1,
+      isRetryable: true,
+    });
+    expect((error as RESTRequestError).cause).toMatchObject({
+      name: 'Error',
+      message: 'Response body could not be read',
+    });
+  });
+
+  it('honors Retry-After when a rate-limit response body is unreadable', async () => {
+    vi.useFakeTimers();
+    try {
+      const rm = new RequestManager({ retries: 1 });
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          text: () => Promise.reject(new Error('response body stream failed')),
+          headers: new Headers({ 'Retry-After': '2' }),
+        } as unknown as Response)
+        .mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+      const request = rm.request('GET', '/channels/1');
+      const result = expect(request).resolves.toEqual({ ok: true });
+      await vi.advanceTimersByTimeAsync(1_999);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1);
+      await result;
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('retries an unreadable retryable response then succeeds', async () => {
+    const rm = new RequestManager({ retries: 1 });
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        text: () => Promise.reject(new Error('response body stream failed')),
+        headers: new Headers(),
+      } as unknown as Response)
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    await expect(rm.request('GET', '/channels/1')).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry an unreadable authorization response', async () => {
+    const rm = new RequestManager({ retries: 3 });
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: () => Promise.reject(new Error('response body stream failed')),
+      headers: new Headers(),
+    } as unknown as Response);
+
+    const error = await rm.request('GET', '/gateway/bot').catch((cause: unknown) => cause);
+
+    expect(error).toBeInstanceOf(RESTRequestError);
+    expect(error).toMatchObject({
+      code: 'REST_INVALID_RESPONSE',
+      kind: 'response',
+      statusCode: 401,
+      attempts: 1,
+      isRetryable: false,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it('uses a request retry policy without changing the configured default', async () => {
@@ -166,6 +299,15 @@ describe('RequestManager', () => {
     });
     expect(JSON.stringify(retryPolicy.mock.lastCall)).not.toContain(webhookToken);
 
+    const nonCanonicalWebhookToken = 'non-canonical-webhook-secret';
+    await rm.request('POST', `/WEBHOOKS/not-a-snowflake/${nonCanonicalWebhookToken}`);
+    expect(retryPolicy).toHaveBeenLastCalledWith({
+      method: 'POST',
+      routeKey: '/WEBHOOKS/not-a-snowflake/:token',
+      defaultRetries: 3,
+    });
+    expect(JSON.stringify(retryPolicy.mock.lastCall)).not.toContain(nonCanonicalWebhookToken);
+
     await rm.request(
       'GET',
       '/users/123456789012345678/profile?guild_id=987654321098765432&token=query-secret',
@@ -190,7 +332,7 @@ describe('RequestManager', () => {
 
     await rm.request(
       'GET',
-      'https://user:password@cdn.example.com/private/path?signature=external-secret',
+      'HTTPS://user:password@cdn.example.com/private/path?signature=external-secret',
     );
     expect(retryPolicy).toHaveBeenLastCalledWith({
       method: 'GET',
@@ -246,7 +388,16 @@ describe('RequestManager', () => {
     const rm = new RequestManager({ retries: 3, retryPolicy: () => 0 });
     fetchMock.mockRejectedValueOnce(new TypeError('fetch failed'));
 
-    await expect(rm.request('POST', '/channels/1/messages')).rejects.toThrow('fetch failed');
+    const error = await rm.request('POST', '/channels/1/messages').catch((cause: unknown) => cause);
+    expect(error).toBeInstanceOf(RESTRequestError);
+    expect(error).toMatchObject({
+      code: 'REST_REQUEST_FAILED',
+      kind: 'transport',
+      method: 'POST',
+      path: '/channels/1/messages',
+      attempts: 1,
+    });
+    expect((error as Error).message).toContain('fetch failed');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -267,7 +418,12 @@ describe('RequestManager', () => {
       );
 
       const rejection = expect(rm.request('POST', '/channels/1/messages')).rejects.toMatchObject({
-        name: 'AbortError',
+        name: 'RESTRequestError',
+        code: 'REST_REQUEST_TIMEOUT',
+        kind: 'timeout',
+        method: 'POST',
+        path: '/channels/1/messages',
+        attempts: 1,
       });
       await vi.advanceTimersByTimeAsync(10);
       await rejection;
@@ -348,6 +504,14 @@ describe('RequestManager', () => {
       }),
     );
 
+    await rm.request('GET', 'HTTPS://cdn.example.com/asset/456');
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'HTTPS://cdn.example.com/asset/456',
+      expect.objectContaining({
+        headers: expect.not.objectContaining({ Authorization: expect.anything() }),
+      }),
+    );
+
     await rm.request('GET', 'https://api.fluxer.app/v1/gateway');
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://api.fluxer.app/v1/gateway',
@@ -388,6 +552,66 @@ describe('RequestManager', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('preserves a user abort while reading the response body', async () => {
+    const rm = new RequestManager({ retries: 3 });
+    const ac = new AbortController();
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: () => {
+        ac.abort();
+        return Promise.reject(Object.assign(new Error('Aborted'), { name: 'AbortError' }));
+      },
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+    } as unknown as Response);
+
+    await expect(rm.request('GET', '/channels/1', { signal: ac.signal })).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a timeout while reading the response body', async () => {
+    vi.useFakeTimers();
+    try {
+      const rm = new RequestManager({ timeout: 10, retries: 0 });
+      let bodyReadStarted: (() => void) | undefined;
+      const started = new Promise<void>((resolve) => {
+        bodyReadStarted = resolve;
+      });
+      fetchMock.mockImplementationOnce((_url, init) =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          text: () => {
+            bodyReadStarted?.();
+            return new Promise((_resolve, reject) => {
+              const signal = init?.signal as AbortSignal;
+              signal.addEventListener(
+                'abort',
+                () => reject(Object.assign(new Error('Aborted'), { name: 'AbortError' })),
+                { once: true },
+              );
+            });
+          },
+          headers: new Headers({ 'Content-Type': 'application/json' }),
+        } as unknown as Response),
+      );
+
+      const rejection = expect(rm.request('GET', '/channels/1')).rejects.toMatchObject({
+        name: 'RESTRequestError',
+        code: 'REST_REQUEST_TIMEOUT',
+        kind: 'timeout',
+        attempts: 1,
+      });
+      await started;
+      await vi.advanceTimersByTimeAsync(10);
+      await rejection;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('surfaces nested fetch cause in retry errors', async () => {
     const rm = new RequestManager({ retries: 1 });
     const root = Object.assign(new Error('invalid onRequestStart method'), {
@@ -395,9 +619,134 @@ describe('RequestManager', () => {
     });
     const mid = new TypeError('fetch failed', { cause: root });
     fetchMock.mockRejectedValue(mid);
-    await expect(rm.request('GET', '/gateway/bot')).rejects.toThrow(
-      /Retry 1 failed: fetch failed: invalid onRequestStart method/,
+    const error = await rm.request('GET', '/gateway/bot').catch((cause: unknown) => cause);
+    expect(error).toBeInstanceOf(RESTRequestError);
+    expect(error).toMatchObject({ attempts: 2, method: 'GET', path: '/gateway/bot' });
+    expect((error as Error).message).toContain('fetch failed: invalid onRequestStart method');
+  });
+
+  it('redacts credential-bearing URLs from transport errors and their causes', async () => {
+    const rm = new RequestManager({ retries: 0 });
+    const webhookToken = 'TEST WEBHOOK SECRET';
+    const queryToken = 'TEST QUERY SECRET';
+    const route = `HTTPS://media.example.test/webhooks/123456789012345678/${webhookToken}?token=${queryToken}`;
+    const normalizedRoute = new URL(route).href;
+    const root = Object.assign(new Error(`connect failed for ${normalizedRoute}`), {
+      code: 'UND_ERR_CONNECT_TIMEOUT',
+    });
+    fetchMock.mockRejectedValueOnce(
+      new TypeError(`fetch failed for ${normalizedRoute}`, { cause: root }),
     );
+
+    const error = await rm.request('GET', route).catch((cause: unknown) => cause);
+    expect(error).toBeInstanceOf(RESTRequestError);
+    expect(error).toMatchObject({ path: 'https://media.example.test/:external' });
+
+    const messages: string[] = [];
+    let current: unknown = error;
+    while (current instanceof Error) {
+      messages.push(current.message);
+      current = current.cause;
+    }
+    expect(messages.join('\n')).not.toContain(webhookToken);
+    expect(messages.join('\n')).not.toContain(queryToken);
+    expect(messages.join('\n')).not.toContain(encodeURIComponent(webhookToken));
+    expect(messages.join('\n')).not.toContain(encodeURIComponent(queryToken));
+    expect(messages.join('\n')).not.toContain(route);
+    expect(messages.join('\n')).toContain('https://media.example.test/:external');
+    expect(((error as RESTRequestError).cause as Error | undefined)?.cause).toMatchObject({
+      code: 'UND_ERR_CONNECT_TIMEOUT',
+    });
+  });
+
+  it('throws a contextual error for invalid JSON success responses', async () => {
+    const rm = new RequestManager({ retries: 0 });
+    const responseContent = 'sk_live_PRIVATE_RESPONSE';
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(responseContent),
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+    } as unknown as Response);
+
+    const error = await rm.request('GET', '/channels/123456789012345678').catch((cause) => cause);
+    expect(error).toBeInstanceOf(RESTRequestError);
+    expect(error).toMatchObject({
+      code: 'REST_INVALID_RESPONSE',
+      kind: 'response',
+      method: 'GET',
+      path: '/channels/:id',
+      statusCode: 200,
+      attempts: 1,
+    });
+    expect((error as RESTRequestError).cause).toBeInstanceOf(SyntaxError);
+    expect((error as RESTRequestError).cause).toMatchObject({
+      message: 'Response body was not valid JSON',
+    });
+    expect(JSON.stringify(serializeError(error))).not.toContain(responseContent.slice(0, 10));
+  });
+
+  it('retries invalid JSON from a successful safe request', async () => {
+    const rm = new RequestManager({ retries: 1 });
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve('{invalid'),
+        headers: new Headers({ 'Content-Type': 'application/json' }),
+      } as unknown as Response)
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    await expect(rm.request('GET', '/channels/1')).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves HTTP context when a successful response body is unreadable', async () => {
+    const rm = new RequestManager({ retries: 0 });
+    const privateDetail = 'PRIVATE_RESPONSE_MARKER_7f9e';
+    const cause = Object.assign(new Error(privateDetail), { code: 'E_RESPONSE_STREAM' });
+    cause.name = privateDetail;
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: () => Promise.reject(cause),
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+    } as unknown as Response);
+
+    const error = await rm.request('GET', '/channels/123456789012345678').catch((caught) => caught);
+    expect(error).toBeInstanceOf(RESTRequestError);
+    expect(error).toMatchObject({
+      code: 'REST_INVALID_RESPONSE',
+      kind: 'response',
+      method: 'GET',
+      path: '/channels/:id',
+      statusCode: 200,
+      attempts: 1,
+      isRetryable: true,
+    });
+    expect((error as RESTRequestError).cause).toMatchObject({
+      name: 'Error',
+      message: 'Response body could not be read',
+      code: 'E_RESPONSE_STREAM',
+    });
+    expect(JSON.stringify(serializeError(error))).not.toContain(privateDetail);
+  });
+
+  it('retries an unreadable successful response for a safe request', async () => {
+    const rm = new RequestManager({ retries: 1 });
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: () => Promise.reject(new Error('response body stream failed')),
+        headers: new Headers({ 'Content-Type': 'application/json' }),
+      } as unknown as Response)
+      .mockResolvedValueOnce(jsonResponse({ id: '123456789012345678' }));
+
+    await expect(rm.request('GET', '/channels/123456789012345678')).resolves.toEqual({
+      id: '123456789012345678',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('getRouteHash LRU keeps repeatedly used route when cache is full', () => {

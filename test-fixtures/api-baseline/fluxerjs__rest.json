@@ -1,6 +1,6 @@
 {
   "package": "@fluxerjs/rest",
-  "generatedAt": "2026-08-01T14:11:00.867Z",
+  "generatedAt": "2026-08-02T12:53:12.276Z",
   "entries": [
     {
       "subpath": ".",
@@ -14,6 +14,9 @@
         "HTTPError",
         "REST",
         "RESTOptions",
+        "RESTRequestError",
+        "RESTRequestErrorKind",
+        "RESTRequestErrorOptions",
         "RateLimitError",
         "RateLimitManager",
         "RateLimitState",

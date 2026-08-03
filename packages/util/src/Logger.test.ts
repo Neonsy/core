@@ -77,6 +77,25 @@ describe('serializeError', () => {
     });
   });
 
+  it('includes bounded request and validation metadata', () => {
+    const err = Object.assign(new Error('validation failed'), {
+      attempts: 2,
+      kind: 'response',
+      isRetryable: false,
+      retryAfter: 3,
+      global: true,
+      errors: [{ path: 'content', message: 'too long', code: 'MAX_LENGTH' }],
+    });
+    expect(serializeError(err)).toMatchObject({
+      attempts: 2,
+      kind: 'response',
+      isRetryable: false,
+      retryAfter: 3,
+      global: true,
+      errors: [{ path: 'content', message: 'too long', code: 'MAX_LENGTH' }],
+    });
+  });
+
   it('walks the cause chain', () => {
     const root = new Error('root');
     const wrapped = new Error('wrapped', { cause: root });

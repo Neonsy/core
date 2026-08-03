@@ -49,6 +49,7 @@
   },
   "dependencies": {
     "@fluxerjs/types": "workspace:*",
+    "@fluxerjs/util": "workspace:*",
     "undici": "^7.28.0"
   },
   "devDependencies": {

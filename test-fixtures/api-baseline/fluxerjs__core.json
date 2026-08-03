@@ -1,6 +1,6 @@
 {
   "package": "@fluxerjs/core",
-  "generatedAt": "2026-08-01T14:11:00.867Z",
+  "generatedAt": "2026-08-02T12:53:12.276Z",
   "entries": [
     {
       "subpath": ".",
@@ -79,6 +79,7 @@
         "FetchMessagesOptions",
         "FetchPinnedMessagesOptions",
         "FetchedUserWithProfile",
+        "FluxerAPIError",
         "FluxerError",
         "FluxerErrorOptions",
         "GatewayOpcodes",
@@ -103,6 +104,7 @@
         "GuildRoleUpdatePayload",
         "GuildSticker",
         "GuildStickersUpdatePayload",
+        "HTTPError",
         "Invite",
         "InviteDeletePayload",
         "InviteType",
@@ -161,6 +163,10 @@
         "PresenceUpdatePayload",
         "ProfilePayload",
         "PublicUserFlags",
+        "RESTRequestError",
+        "RESTRequestErrorKind",
+        "RESTRequestErrorOptions",
+        "RateLimitError",
         "ReactionCollector",
         "ReactionCollectorEndReason",
         "ReactionCollectorOptions",
@@ -216,8 +222,8 @@
         "parseUserMention",
         "resolveCacheLimits",
         "resolveInstanceEndpoints",
-        "resolvePermissionsToBitfield",
         "resolveKlipyToImageUrl",
+        "resolvePermissionsToBitfield",
         "serializeError",
         "toAttachmentUploadCompleteBody",
         "toAttachmentUploadPlanBody",
@@ -282,8 +288,14 @@
       "subpath": "./errors",
       "exports": [
         "ErrorCodes",
+        "FluxerAPIError",
         "FluxerError",
-        "FluxerErrorOptions"
+        "FluxerErrorOptions",
+        "HTTPError",
+        "RESTRequestError",
+        "RESTRequestErrorKind",
+        "RESTRequestErrorOptions",
+        "RateLimitError"
       ]
     },
     {

@@ -1,6 +1,7 @@
 import type { APIErrorBody, RateLimitErrorBody } from '@fluxerjs/types';
+import { ErrorCodes } from '@fluxerjs/util';
 import { FormData } from 'undici';
-import { FluxerAPIError, HTTPError, RateLimitError } from './Errors/index.js';
+import { FluxerAPIError, HTTPError, RateLimitError, RESTRequestError } from './Errors/index.js';
 import { sharedFetch } from './Fetch/SharedFetch.js';
 import { RateLimitManager } from './RateLimitManager.js';
 import {
@@ -53,8 +54,19 @@ export interface RestOptions {
 const ROUTE_HASH_CACHE_MAX = 1000;
 const SNOWFLAKE_RE = /\d{17,19}/g;
 const MAJOR_PARAMETER_RE = /\/(channels|guilds|webhooks)\/(\d{17,19})(?:\/|$)/;
-const WEBHOOK_TOKEN_RE = /(\/webhooks\/(?::id|\d{17,19})\/)[^/]+/;
+const WEBHOOK_TOKEN_RE = /(\/webhooks\/[^/]+\/)[^/]+/gi;
 const DEFAULT_RETRY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const HTTP_SCHEME_RE = /^https?:/i;
+
+function hasHttpScheme(route: string): boolean {
+  return HTTP_SCHEME_RE.test(route);
+}
+
+function isRetryableResponse(response: Response): boolean {
+  return (
+    response.ok || response.status === 429 || (response.status >= 500 && response.status < 600)
+  );
+}
 
 function abortError(): Error {
   const err = new Error('The operation was aborted');
@@ -147,7 +159,7 @@ function stripQueryAndFragment(route: string): string {
 }
 
 function getRetryPolicyRouteKey(route: string): string {
-  if (route.startsWith('http')) {
+  if (hasHttpScheme(route)) {
     try {
       return `${new URL(route).origin}/:external`;
     } catch {
@@ -162,7 +174,7 @@ function getRetryPolicyRouteKey(route: string): string {
 
 function getErrorPath(route: string, baseUrl: string): string {
   let path = stripQueryAndFragment(route);
-  if (route.startsWith('http')) {
+  if (hasHttpScheme(route)) {
     try {
       const url = new URL(route);
       if (url.origin !== new URL(baseUrl).origin) return `${url.origin}/:external`;
@@ -171,7 +183,7 @@ function getErrorPath(route: string, baseUrl: string): string {
       return ':external';
     }
   }
-  return path.replace(WEBHOOK_TOKEN_RE, '$1:token');
+  return path.replace(SNOWFLAKE_RE, ':id').replace(WEBHOOK_TOKEN_RE, '$1:token');
 }
 
 /** Flatten Error.cause chain so "fetch failed" surfaces the real undici/network reason. */
@@ -183,6 +195,56 @@ function formatErrorChain(err: Error, maxDepth = 4): string {
     current = current.cause;
   }
   return parts.join(': ') || 'Unknown error';
+}
+
+function redactRequestDetails(value: string, route: string, baseUrl: string): string {
+  const replacement = getErrorPath(route, baseUrl);
+  const candidates = [route, hasHttpScheme(route) ? route : `${baseUrl}${route}`];
+  try {
+    const parsed = new URL(route, baseUrl);
+    candidates.push(parsed.href, `${parsed.pathname}${parsed.search}${parsed.hash}`);
+  } catch {
+    // The original route still covers malformed URL diagnostics.
+  }
+  const uniqueCandidates = candidates
+    .filter((candidate, index, values) => candidate && values.indexOf(candidate) === index)
+    .sort((left, right) => right.length - left.length);
+  return uniqueCandidates.reduce(
+    (redacted, candidate) => redacted.split(candidate).join(replacement),
+    value,
+  );
+}
+
+function sanitizeTransportError(error: Error, route: string, baseUrl: string, depth = 0): Error {
+  const cause =
+    depth < 3 && error.cause instanceof Error
+      ? sanitizeTransportError(error.cause, route, baseUrl, depth + 1)
+      : undefined;
+  const sanitized = new Error(
+    redactRequestDetails(error.message, route, baseUrl),
+    cause ? { cause } : undefined,
+  );
+  sanitized.name = error.name;
+
+  const code = (error as Error & { code?: unknown }).code;
+  if (typeof code === 'string' || typeof code === 'number') {
+    (sanitized as Error & { code: string | number }).code = code;
+  }
+  return sanitized;
+}
+
+function sanitizeResponseCause(cause: unknown, message: string): Error {
+  const original = cause instanceof Error ? cause : new Error(String(cause));
+  const sanitized = original instanceof SyntaxError ? new SyntaxError(message) : new Error(message);
+
+  const code = (original as Error & { code?: unknown }).code;
+  if (
+    typeof code === 'number' ||
+    (typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(code))
+  ) {
+    (sanitized as Error & { code: string | number }).code = code;
+  }
+  return sanitized;
 }
 
 export class RequestManager {
@@ -226,7 +288,7 @@ export class RequestManager {
       return cached;
     }
     let path = stripQueryAndFragment(route);
-    if (route.startsWith('http')) {
+    if (hasHttpScheme(route)) {
       try {
         const url = new URL(route);
         path = `${url.origin}${url.pathname}`;
@@ -274,7 +336,7 @@ export class RequestManager {
       ...options.headers,
     };
     let useAuth = options.auth !== false;
-    if (useAuth && options.auth !== true && route.startsWith('http')) {
+    if (useAuth && options.auth !== true && hasHttpScheme(route)) {
       try {
         useAuth = new URL(route).origin === new URL(this.baseUrl).origin;
       } catch {
@@ -290,13 +352,41 @@ export class RequestManager {
     return headers;
   }
 
+  private async readResponseText(
+    response: Response,
+    method: string,
+    route: string,
+    attempts: number,
+  ): Promise<string> {
+    try {
+      return await response.text();
+    } catch (cause) {
+      if (isAbortError(cause)) throw cause;
+      const sanitizedCause = sanitizeResponseCause(cause, 'Response body could not be read');
+      throw new RESTRequestError(
+        `REST ${method.toUpperCase()} ${route} returned an unreadable response body (HTTP ${response.status})`,
+        {
+          code: ErrorCodes.RestInvalidResponse,
+          kind: 'response',
+          method: method.toUpperCase(),
+          path: route,
+          attempts,
+          statusCode: response.status,
+          retryable: isRetryableResponse(response),
+          cause: sanitizedCause,
+        },
+      );
+    }
+  }
+
   private async parseError(
     response: Response,
     method: string,
     route: string,
+    attempts: number,
   ): Promise<FluxerAPIError | HTTPError> {
-    const text = await response.text();
-    const ctx = { method, path: route };
+    const text = await this.readResponseText(response, method, route, attempts);
+    const ctx = { method: method.toUpperCase(), path: route, attempts };
     try {
       const parsed: unknown = text ? JSON.parse(text) : null;
       if (isAPIErrorBody(parsed)) return new FluxerAPIError(parsed, response.status, ctx);
@@ -306,17 +396,37 @@ export class RequestManager {
     return new HTTPError(response.status, text, ctx);
   }
 
-  private async parseSuccess(response: Response): Promise<unknown> {
+  private async parseSuccess(
+    response: Response,
+    method: string,
+    route: string,
+    attempts: number,
+  ): Promise<unknown> {
     if (response.status === 204) return undefined;
-    const text = await response.text();
+    const text = await this.readResponseText(response, method, route, attempts);
     if (!text) return undefined;
     const isJson = (response.headers.get('Content-Type') ?? '')
       .toLowerCase()
       .includes('application/json');
     try {
       return JSON.parse(text) as unknown;
-    } catch (err) {
-      if (isJson) throw err;
+    } catch (cause) {
+      if (isJson) {
+        const sanitizedCause = sanitizeResponseCause(cause, 'Response body was not valid JSON');
+        throw new RESTRequestError(
+          `REST ${method.toUpperCase()} ${route} returned invalid JSON (HTTP ${response.status})`,
+          {
+            code: ErrorCodes.RestInvalidResponse,
+            kind: 'response',
+            method: method.toUpperCase(),
+            path: route,
+            attempts,
+            statusCode: response.status,
+            retryable: true,
+            cause: sanitizedCause,
+          },
+        );
+      }
       return text;
     }
   }
@@ -325,7 +435,7 @@ export class RequestManager {
     const routeHash = this.getRouteHash(method, route);
     const retries = this.resolveRetries(method, getRetryPolicyRouteKey(route));
     const errorPath = getErrorPath(route, this.baseUrl);
-    const url = route.startsWith('http') ? route : `${this.baseUrl}${route}`;
+    const url = hasHttpScheme(route) ? route : `${this.baseUrl}${route}`;
     const body = this.buildBody(options);
     const headers = this.buildHeaders(options, body, route);
     const userSignal = options.signal;
@@ -366,8 +476,13 @@ export class RequestManager {
         this.rateLimiter.updateFromHeaders(routeHash, response.headers);
 
         if (response.status === 429) {
-          const data = parseRateLimitBody(await response.text(), response.headers);
-          const retryAfterSec = data.retry_after || headerInt(response.headers, 'Retry-After');
+          const headerRetryAfterSec = headerInt(response.headers, 'Retry-After');
+          if (headerRetryAfterSec > 0) {
+            this.rateLimiter.setBucket(routeHash, 1, 0, Date.now() + headerRetryAfterSec * 1000);
+          }
+          const text = await this.readResponseText(response, method, errorPath, attempt + 1);
+          const data = parseRateLimitBody(text, response.headers);
+          const retryAfterSec = data.retry_after || headerRetryAfterSec;
           const retryMs = Math.max(0, retryAfterSec * 1000);
           this.rateLimiter.setBucket(routeHash, 1, 0, Date.now() + retryMs);
           if (data.global) this.rateLimiter.setGlobalReset(Date.now() + retryMs);
@@ -375,7 +490,7 @@ export class RequestManager {
           const err = new RateLimitError(
             { ...data, code: 'RATE_LIMITED', retry_after: retryAfterSec },
             response.status,
-            { method, path: errorPath },
+            { method: method.toUpperCase(), path: errorPath, attempts: attempt + 1 },
           );
           if (attempt < retries) {
             lastError = err;
@@ -386,7 +501,7 @@ export class RequestManager {
         }
 
         if (!response.ok) {
-          const err = await this.parseError(response, method, errorPath);
+          const err = await this.parseError(response, method, errorPath, attempt + 1);
           if (err.isRetryable && attempt < retries) {
             lastError = err;
             await sleep(backoffMs(attempt), userSignal);
@@ -395,12 +510,34 @@ export class RequestManager {
           throw err;
         }
 
-        return (await this.parseSuccess(response)) as T;
+        return (await this.parseSuccess(response, method, errorPath, attempt + 1)) as T;
       } catch (err) {
         if (isAbortError(err)) {
           if (userSignal?.aborted) throw err;
+          const timeoutError = new RESTRequestError(
+            `REST ${method.toUpperCase()} ${errorPath} timed out after ${this.options.timeout}ms (attempt ${attempt + 1} of ${retries + 1})`,
+            {
+              code: ErrorCodes.RestRequestTimeout,
+              kind: 'timeout',
+              method: method.toUpperCase(),
+              path: errorPath,
+              attempts: attempt + 1,
+              retryable: true,
+              cause: err,
+            },
+          );
           if (timedOut && attempt < retries) {
-            lastError = err instanceof Error ? err : new Error(String(err));
+            lastError = timeoutError;
+            await sleep(backoffMs(attempt), userSignal);
+            continue;
+          }
+          if (timedOut) throw timeoutError;
+          throw err;
+        }
+
+        if (err instanceof RESTRequestError) {
+          if (err.isRetryable && attempt < retries) {
+            lastError = err;
             await sleep(backoffMs(attempt), userSignal);
             continue;
           }
@@ -416,13 +553,20 @@ export class RequestManager {
         }
 
         const wrapped = err instanceof Error ? err : new Error(String(err));
-        const detail = formatErrorChain(wrapped);
-        lastError =
-          attempt > 0
-            ? new Error(`Retry ${attempt} failed: ${detail}`, { cause: wrapped })
-            : detail === wrapped.message
-              ? wrapped
-              : new Error(detail, { cause: wrapped });
+        const sanitizedCause = sanitizeTransportError(wrapped, route, this.baseUrl);
+        const detail = formatErrorChain(sanitizedCause);
+        lastError = new RESTRequestError(
+          `REST ${method.toUpperCase()} ${errorPath} failed on attempt ${attempt + 1} of ${retries + 1}: ${detail}`,
+          {
+            code: ErrorCodes.RestRequestFailed,
+            kind: 'transport',
+            method: method.toUpperCase(),
+            path: errorPath,
+            attempts: attempt + 1,
+            retryable: true,
+            cause: sanitizedCause,
+          },
+        );
 
         if (attempt < retries) {
           await sleep(backoffMs(attempt), userSignal);
@@ -435,7 +579,16 @@ export class RequestManager {
       }
     }
 
-    throw lastError ?? new Error('Request failed');
+    throw (
+      lastError ??
+      new RESTRequestError(`REST ${method.toUpperCase()} ${errorPath} failed before dispatch`, {
+        code: ErrorCodes.RestRequestFailed,
+        kind: 'transport',
+        method: method.toUpperCase(),
+        path: errorPath,
+        attempts: 0,
+      })
+    );
   }
 
   private resolveRetries(method: string, routeKey: string): number {

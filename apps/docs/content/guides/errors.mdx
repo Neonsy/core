@@ -10,7 +10,14 @@ User-facing validation and not-found cases in `@fluxerjs/core` throw `FluxerErro
 ## Catch and inspect
 
 ```javascript
-import { FluxerError, ErrorCodes } from '@fluxerjs/core';
+import {
+  ErrorCodes,
+  FluxerAPIError,
+  FluxerError,
+  HTTPError,
+  RateLimitError,
+  RESTRequestError,
+} from '@fluxerjs/core';
 
 try {
   await guild.fetchMember(userId);
@@ -24,7 +31,14 @@ try {
 }
 ```
 
-`FluxerError` often wraps a REST failure in `cause`. HTTP status may live on `err.statusCode` or `err.cause?.statusCode` depending on the path.
+All SDK-owned error classes extend `FluxerError`. REST failures also expose stable request metadata:
+
+- `FluxerAPIError`: Fluxer returned a structured API error. Inspect `code`, `statusCode`, `errors`, `method`, and `path`.
+- `HTTPError`: Fluxer returned an HTTP error without a structured API body. The body remains available through `error.body` for explicit inspection but is excluded from the message and structured logger output.
+- `RateLimitError`: inspect `retryAfter` and `global`.
+- `RESTRequestError`: transport, timeout, or invalid-response failure. Inspect `kind`, `attempts`, `method`, `path`, and `cause`.
+
+Request paths remove query strings, fragments, webhook tokens, and Snowflake IDs before they are attached to an error. Request bodies and headers are not attached.
 
 ## Control automatic retries
 

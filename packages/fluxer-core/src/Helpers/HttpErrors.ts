@@ -27,13 +27,13 @@ export function rethrowMapped(
   },
 ): never {
   if (err instanceof RateLimitError) throw err;
-  if (err instanceof FluxerError) throw err;
   if (options.notFound && httpStatus(err) === 404) {
     throw new FluxerError(options.notFound.message, {
       code: options.notFound.code,
       cause: err,
     });
   }
+  if (err instanceof FluxerError) throw err;
   throw new FluxerError(errorMessage(err, options.fallback), {
     code: options.code,
     cause: err,
