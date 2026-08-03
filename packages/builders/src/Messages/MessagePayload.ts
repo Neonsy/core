@@ -1,6 +1,6 @@
 import type { APIAllowedMentions, APIMessageReference } from '@fluxerjs/types';
 import { AttachmentBuilder } from './AttachmentBuilder.js';
-import { EmbedBuilder, type RESTPostAPIEmbed } from './EmbedBuilder.js';
+import { EmbedBuilder, type RESTPostAPIEmbed, validateMessageEmbeds } from './EmbedBuilder.js';
 
 export interface MessagePayloadData {
   content?: string | null;
@@ -15,9 +15,6 @@ export interface MessagePayloadData {
 export type MessagePayloadCreateOptions = Omit<MessagePayloadData, 'embeds'> & {
   embeds?: (RESTPostAPIEmbed | EmbedBuilder)[] | null;
 };
-
-const CONTENT_MAX = 2000;
-const EMBEDS_MAX = 10;
 
 type AttachmentInput =
   | AttachmentBuilder
@@ -59,51 +56,51 @@ function toReply(reference: ReplyInput): APIMessageReference {
  * ```
  */
 export class MessagePayload {
-  /** Max content length (2000 characters). */
-  public static readonly ContentMaxLength = CONTENT_MAX;
   /** Partial message data (built incrementally via setters). */
   public readonly data: MessagePayloadData = {};
 
   /**
-   * Set message content (max 2000 characters). Pass null to clear.
+   * Set message content. Pass null to clear.
    * @param content - Text content or null
    * @returns This builder for chaining
-   * @throws {RangeError} If content exceeds 2000 characters
    */
   setContent(content: string | null): this {
-    if (content !== null && content.length > CONTENT_MAX) {
-      throw new RangeError(`Content must be ≤${CONTENT_MAX} characters`);
-    }
     this.data.content = content ?? undefined;
     return this;
   }
 
   /**
-   * Replace all embeds (max 10). Pass null or empty array to clear.
+   * Replace all embeds. Pass null or empty array to clear.
    * @param embeds - Array of embed objects or {@link EmbedBuilder} instances, or null
    * @returns This builder for chaining
-   * @throws {RangeError} If embeds array exceeds 10
    */
   setEmbeds(embeds: (RESTPostAPIEmbed | EmbedBuilder)[] | null): this {
-    if (!embeds?.length) {
+    if (embeds === null || (Array.isArray(embeds) && embeds.length === 0)) {
       this.data.embeds = undefined;
       return this;
     }
-    if (embeds.length > EMBEDS_MAX) throw new RangeError(`Embeds must be ≤${EMBEDS_MAX}`);
-    this.data.embeds = embeds.map((e) => (e instanceof EmbedBuilder ? e.toJSON() : e));
+    if (!Array.isArray(embeds)) {
+      throw new TypeError('Message embed list must be an array.');
+    }
+    const resolved = embeds.map((embed) =>
+      embed instanceof EmbedBuilder ? embed.toJSON() : embed,
+    );
+    validateMessageEmbeds(resolved);
+    this.data.embeds = resolved;
     return this;
   }
 
   /**
-   * Add an embed (up to 10 total). Existing embeds are preserved.
+   * Add an embed. Existing embeds are preserved.
    * @param embed - Embed object or {@link EmbedBuilder}
    * @returns This builder for chaining
-   * @throws {RangeError} If adding would exceed 10 embeds
    */
   addEmbed(embed: RESTPostAPIEmbed | EmbedBuilder): this {
-    const list = (this.data.embeds ?? []).slice();
-    if (list.length >= EMBEDS_MAX) throw new RangeError(`Embeds must be ≤${EMBEDS_MAX}`);
+    const existing = this.data.embeds ?? [];
+    validateMessageEmbeds(existing);
+    const list = existing.slice();
     list.push(embed instanceof EmbedBuilder ? embed.toJSON() : embed);
+    validateMessageEmbeds(list);
     this.data.embeds = list;
     return this;
   }
@@ -169,6 +166,7 @@ export class MessagePayload {
    * @returns API-ready message data
    */
   toJSON(): MessagePayloadData {
+    validateMessageEmbeds(this.data.embeds ?? []);
     return { ...this.data };
   }
 
@@ -185,7 +183,7 @@ export class MessagePayload {
     const { content, embeds, attachments, message_reference, allowed_mentions, tts, flags } =
       contentOrOptions;
     if (content !== undefined) payload.setContent(content ?? null);
-    if (embeds?.length) payload.setEmbeds(embeds);
+    if (embeds !== undefined) payload.setEmbeds(embeds);
     if (attachments?.length) payload.setAttachments(attachments);
     if (message_reference) payload.setReply(message_reference);
     if (allowed_mentions) payload.setAllowedMentions(allowed_mentions);

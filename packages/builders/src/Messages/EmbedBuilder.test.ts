@@ -75,15 +75,123 @@ describe('EmbedBuilder', () => {
 
   describe('validation', () => {
     it('setTitle throws for over 256 chars', () => {
-      expect(() => new EmbedBuilder().setTitle('x'.repeat(257))).toThrow(RangeError);
+      expect(() => new EmbedBuilder().setTitle('x'.repeat(257))).toThrow(
+        'Embed title has 257 characters. Maximum is 256.',
+      );
     });
 
     it('setDescription throws for over 4096 chars', () => {
-      expect(() => new EmbedBuilder().setDescription('x'.repeat(4097))).toThrow(RangeError);
+      expect(() => new EmbedBuilder().setDescription('x'.repeat(4097))).toThrow(
+        'Embed description has 4097 characters. Maximum is 4096.',
+      );
+    });
+
+    it('measures fixed limits after Fluxer string normalization', () => {
+      const acceptedAuthor = ` ${'a'.repeat(256)}`;
+      const acceptedTitle = `${'a'.repeat(256)}\u000C\u202E`;
+
+      expect(new EmbedBuilder().setAuthor({ name: acceptedAuthor }).toJSON().author?.name).toBe(
+        acceptedAuthor,
+      );
+      expect(new EmbedBuilder().setTitle(acceptedTitle).toJSON().title).toBe(acceptedTitle);
+      expect(() => new EmbedBuilder().setTitle(` ${'a'.repeat(257)}`)).toThrow(
+        'Embed title has 258 supplied characters (257 after Fluxer normalization). Maximum is 256.',
+      );
     });
 
     it('setURL throws for invalid URL', () => {
       expect(() => new EmbedBuilder().setURL('not-a-valid-url')).toThrow('Invalid embed URL');
+    });
+
+    it('rejects URL forms that Fluxer does not accept', () => {
+      for (const url of [
+        '',
+        'ftp://example.com/file.png',
+        'HTTPS://example.com/file.png',
+        'https://user:password@example.com/file.png',
+        'https://example.com./file.png',
+        'https://example..com/file.png',
+        'https://exa_mple.com/file.png',
+        'https://-example.com/file.png',
+        `https://${'a'.repeat(64)}.example.com/file.png`,
+        'https://ｅxample.com/file.png',
+        'http://123/file.png',
+        'https://example.com/a b',
+        'https://example.com/<tag>',
+        'https://example.com/a\tb',
+        'https://example.com:0/file.png',
+        'https://example.com:00000/file.png',
+      ]) {
+        expect(() => new EmbedBuilder().setURL(url)).toThrow('Invalid embed URL');
+        expect(() => new EmbedBuilder().setImage(url)).toThrow('Invalid embed media URL');
+      }
+      expect(() => new EmbedBuilder().setImage('attachment://file name.png')).toThrow(
+        'Invalid embed media URL: attachment filenames may contain only letters, numbers, marks, underscores, periods, and hyphens',
+      );
+      expect(() => new EmbedBuilder().setAuthor({ name: 'author', url: '' })).toThrow(
+        'Invalid embed URL',
+      );
+      expect(() => new EmbedBuilder().setFooter({ text: 'footer', iconURL: '' })).toThrow(
+        'Invalid embed URL',
+      );
+    });
+
+    it('accepts self-hosted HTTP URLs with valid local hosts', () => {
+      for (const url of [
+        'http://localhost:48763/image.png',
+        'http://myservice:8080/image.png',
+        'http://my-service:8080/image.png',
+        'http://127.0.0.1:48763/image.png',
+        'http://[::1]:48763/image.png',
+        'https://例え.テスト/image.png',
+      ]) {
+        expect(new EmbedBuilder().setURL(url).toJSON().url).toBe(url);
+        expect(new EmbedBuilder().setImage(url).toJSON().image?.url).toBe(url);
+      }
+    });
+
+    it('explains why an embed URL is invalid', () => {
+      expect(() => new EmbedBuilder().setURL('HTTPS://example.com/file.png')).toThrow(
+        'Invalid embed URL: Embed URL must start with lowercase http:// or https://',
+      );
+      expect(() =>
+        new EmbedBuilder().setImage('https://user:password@example.com/file.png'),
+      ).toThrow('Invalid embed media URL: Embed media URL must not include credentials');
+      expect(() => new EmbedBuilder().setURL('https://example.com./file.png')).toThrow(
+        'Invalid embed URL: Embed URL host must not end with a dot',
+      );
+      expect(() => new EmbedBuilder().setURL('https://exa_mple.com/file.png')).toThrow(
+        'Invalid embed URL: Embed URL host labels must not contain underscores',
+      );
+      expect(() => new EmbedBuilder().setURL('https://example.com/a b')).toThrow(
+        'Invalid embed URL: Embed URL must not contain whitespace',
+      );
+      expect(() => new EmbedBuilder().setImage('https://example.com/<tag>')).toThrow(
+        'Invalid embed media URL: Embed media URL must not contain angle brackets',
+      );
+      expect(() => new EmbedBuilder().setURL('https://example.com:0/file.png')).toThrow(
+        'Invalid embed URL: Embed URL port must be between 1 and 65535',
+      );
+    });
+
+    it('enforces Fluxer URL length boundaries', () => {
+      const prefix = 'https://example.com/';
+      const exact = `${prefix}${'a'.repeat(2048 - prefix.length)}`;
+      const over = `${exact}a`;
+
+      expect(new EmbedBuilder().setURL(exact).toJSON().url).toBe(exact);
+      expect(() => new EmbedBuilder().setURL(over)).toThrow(
+        'Invalid embed URL: Embed URL has 2049 characters. Maximum is 2048.',
+      );
+      expect(() => new EmbedBuilder().setImage(over)).toThrow(
+        'Invalid embed media URL: Embed media URL has 2049 characters. Maximum is 2048.',
+      );
+    });
+
+    it('does not clear existing media when an empty replacement URL is rejected', () => {
+      const embed = new EmbedBuilder().setImage('https://example.com/original.png');
+      expect(() => embed.setImage('')).toThrow('Invalid embed media URL');
+      expect(embed.data.image).toEqual({ url: 'https://example.com/original.png' });
     });
 
     it('setImage throws for invalid media URL', () => {
@@ -92,7 +200,39 @@ describe('EmbedBuilder', () => {
       );
     });
 
-    it('toJSON throws when total length exceeds 6000', () => {
+    it('rejects oversized media descriptions without partially mutating the builder', () => {
+      expect(
+        new EmbedBuilder()
+          .setThumbnail({
+            url: 'https://example.com/thumb.png',
+            description: 'x'.repeat(4096),
+          })
+          .toJSON().thumbnail?.description,
+      ).toHaveLength(4096);
+
+      const embed = new EmbedBuilder().setImage({
+        url: 'https://example.com/original.png',
+        description: 'original',
+      });
+      expect(() =>
+        embed.setImage({
+          url: 'https://example.com/replacement.png',
+          description: 'x'.repeat(4097),
+        }),
+      ).toThrow('Embed image description has 4097 characters. Maximum is 4096.');
+      expect(embed.data.image).toEqual({
+        url: 'https://example.com/original.png',
+        description: 'original',
+      });
+      expect(() =>
+        new EmbedBuilder().setThumbnail({
+          url: 'https://example.com/thumb.png',
+          description: 'x'.repeat(4097),
+        }),
+      ).toThrow('Embed thumbnail description has 4097 characters. Maximum is 4096.');
+    });
+
+    it('leaves account-dependent aggregate limits to the API', () => {
       const embed = new EmbedBuilder()
         .setTitle('x'.repeat(256))
         .setDescription('y'.repeat(2000))
@@ -103,7 +243,129 @@ describe('EmbedBuilder', () => {
           { name: 'n'.repeat(256), value: 'v'.repeat(600) },
           { name: 'n'.repeat(256), value: 'v'.repeat(500) },
         );
-      expect(() => embed.toJSON()).toThrow(RangeError);
+      expect(embed.toJSON()).toMatchObject({
+        title: 'x'.repeat(256),
+        description: 'y'.repeat(2000),
+      });
+    });
+
+    it('rejects oversized author and footer text instead of truncating it', () => {
+      expect(() => new EmbedBuilder().setAuthor({ name: 'x'.repeat(257) })).toThrow(
+        'Embed author name has 257 characters. Maximum is 256.',
+      );
+      expect(() => new EmbedBuilder().setFooter({ text: 'x'.repeat(2049) })).toThrow(
+        'Embed footer text has 2049 characters. Maximum is 2048.',
+      );
+    });
+
+    it('rejects required strings that are empty after Fluxer normalization', () => {
+      expect(() => new EmbedBuilder().setAuthor({ name: '  ' })).toThrow(
+        'Embed author name has 2 supplied characters (0 after Fluxer normalization). Minimum is 1.',
+      );
+      expect(() => new EmbedBuilder().setFooter({ text: '' })).toThrow(
+        'Embed footer text has 0 characters. Minimum is 1.',
+      );
+      expect(() =>
+        new EmbedBuilder().setImage({
+          url: 'https://example.com/image.png',
+          description: '',
+        }),
+      ).toThrow('Embed image description has 0 characters. Minimum is 1.');
+      expect(() => new EmbedBuilder().setFields({ name: '', value: 'value' })).toThrow(
+        'Embed field 1 name has 0 characters. Minimum is 1.',
+      );
+      expect(() => new EmbedBuilder().setDescription('  ')).toThrow(
+        'Embed description has 2 supplied characters (0 after Fluxer normalization). Minimum is 1.',
+      );
+    });
+
+    it('reports malformed JavaScript input at the public builder boundary', () => {
+      expect(() => new EmbedBuilder().setImage({} as { url: string })).toThrow(
+        'Embed media URL must be a string.',
+      );
+      expect(() =>
+        new EmbedBuilder().setFields(null as unknown as { name: string; value: string }),
+      ).toThrow('Embed field 1 must be an object.');
+      expect(() => new EmbedBuilder().setAuthor('' as unknown as { name: string })).toThrow(
+        'Embed author options must be an object.',
+      );
+      expect(() => new EmbedBuilder().setFooter('' as unknown as { text: string })).toThrow(
+        'Embed footer options must be an object.',
+      );
+
+      const embed = new EmbedBuilder();
+      Object.assign(embed.data, { fields: { length: 1 } });
+      expect(() => embed.addFields({ name: 'name', value: 'value' })).toThrow(
+        'Embed field list must be an array.',
+      );
+    });
+
+    it('rejects oversized field text with its position', () => {
+      expect(() =>
+        new EmbedBuilder().setFields(
+          { name: 'valid', value: 'value' },
+          { name: 'x'.repeat(257), value: 'value' },
+        ),
+      ).toThrow('Embed field 2 name has 257 characters. Maximum is 256.');
+      expect(() =>
+        new EmbedBuilder().addFields({ name: 'valid', value: 'x'.repeat(1025) }),
+      ).toThrow('Embed field 1 value has 1025 characters. Maximum is 1024.');
+    });
+
+    it('rejects excess fields without partially mutating the builder', () => {
+      const embed = new EmbedBuilder().addFields({ name: 'existing', value: 'value' });
+      const excess = Array.from({ length: 25 }, (_, index) => ({
+        name: `field-${index}`,
+        value: 'value',
+      }));
+
+      expect(() => embed.addFields(...excess)).toThrow(
+        'Embed field list has 26 entries. Maximum is 25.',
+      );
+      expect(embed.data.fields).toHaveLength(1);
+    });
+
+    it('setFields and spliceFields reject more than 25 fields', () => {
+      const fields = Array.from({ length: 26 }, (_, index) => ({
+        name: `field-${index}`,
+        value: 'value',
+      }));
+      const embed = new EmbedBuilder();
+      expect(() => embed.setFields(...fields)).toThrow(
+        'Embed field list has 26 entries. Maximum is 25.',
+      );
+      expect(embed.data.fields).toBeUndefined();
+
+      embed.setFields(...fields.slice(0, 25));
+      expect(() => embed.spliceFields(10, 0, { name: 'extra', value: 'value' })).toThrow(
+        'Embed field list has 26 entries. Maximum is 25.',
+      );
+      expect(embed.data.fields).toHaveLength(25);
+    });
+
+    it('validates data copied from API embeds before serialization', () => {
+      const embed = EmbedBuilder.from({
+        description: 'valid',
+        fields: [{ name: 'x'.repeat(257), value: 'value', inline: false }],
+      });
+
+      expect(() => embed.toJSON()).toThrow(
+        'Embed field 1 name has 257 characters. Maximum is 256.',
+      );
+    });
+
+    it('validates media descriptions copied from API embeds before serialization', () => {
+      const embed = EmbedBuilder.from({
+        description: null,
+        image: {
+          url: 'https://example.com/image.png',
+          description: 'x'.repeat(4097),
+        },
+      });
+
+      expect(() => embed.toJSON()).toThrow(
+        'Embed image description has 4097 characters. Maximum is 4096.',
+      );
     });
   });
 

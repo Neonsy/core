@@ -46,6 +46,19 @@ const embed = new EmbedBuilder()
 await message.reply({ embeds: [embed] });
 ```
 
+## Validation
+
+Builder setters reject text and field lists that exceed API limits. The `RangeError` message includes the supplied size and the maximum. Input is not truncated, and a failed setter leaves the previous builder state unchanged.
+
+Text lengths use Fluxer's request normalization. Form feed and U+202E characters are removed, and leading and trailing whitespace is trimmed before validation.
+
+Embed links use lowercase `http://` or `https://` URLs.
+Host labels cannot be empty, contain underscores, or start or end with a hyphen, and trailing dots are rejected.
+Localhost, TLD-less service names, IPv4, and IPv6 remain available for self-hosted instances.
+Image and thumbnail URLs also accept `attachment://filename` when the filename contains only Unicode letters, numbers, marks, underscores, periods, and hyphens.
+
+Fluxer applies message content length, embed count, and aggregate embed limits from server, account, and guild configuration. `MessagePayload` leaves those checks to the API, which returns a `FluxerAPIError` with request context when a configured limit is exceeded.
+
 ## Clearing fields
 
 `clearFields()` is gone. Reset with `setFields()` and no args (or an empty array).

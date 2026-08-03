@@ -99,7 +99,7 @@ Exact members live on `ErrorCodes`. Ones you will hit early:
 | Bad fetch limit | `INVALID_FETCH_LIMIT` |
 | Validation on a public method | named code for that check |
 
-Builders (`EmbedBuilder`, etc.) may still throw plain `RangeError` for length limits. That is intentional.
+Builders (`EmbedBuilder`, etc.) throw `RangeError` for fixed embed text and field-count limits. They reject invalid HTTP(S) and attachment URLs, required strings that normalize to empty, and malformed runtime input. Builder input is not truncated. Configured message-content, embed-count, and aggregate limits are reported by the API.
 
 ## Pattern for commands
 
