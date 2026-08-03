@@ -24,6 +24,7 @@ export const ErrorCodes = {
   WebSocketLoadFailed: 'WEBSOCKET_LOAD_FAILED',
   GatewayConnectionAborted: 'GATEWAY_CONNECTION_ABORTED',
   GatewayFetchFailed: 'GATEWAY_FETCH_FAILED',
+  GatewayFatalClose: 'GATEWAY_FATAL_CLOSE',
   RestRequestFailed: 'REST_REQUEST_FAILED',
   RestRequestTimeout: 'REST_REQUEST_TIMEOUT',
   RestInvalidResponse: 'REST_INVALID_RESPONSE',

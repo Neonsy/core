@@ -149,7 +149,7 @@ export class WebSocketManager extends EventEmitter {
       shard.on('ready', (data) => this.emit('ready', { shardId: id, data }));
       shard.on('resumed', () => this.emit('resumed', id));
       shard.on('dispatch', (payload) => this.emit('dispatch', { shardId: id, payload }));
-      shard.on('close', (code) => this.emit('close', { shardId: id, code }));
+      shard.on('close', (code, reason) => this.emit('close', { shardId: id, code, reason }));
       shard.on('error', (err) => this.emit('error', { shardId: id, error: err }));
       shard.on('debug', (msg) => this.emit('debug', msg));
 

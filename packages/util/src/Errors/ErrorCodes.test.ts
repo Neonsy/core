@@ -13,6 +13,7 @@ describe('ErrorCodes', () => {
     expect(ErrorCodes.NotLoggedIn).toBe('NOT_LOGGED_IN');
     expect(ErrorCodes.InvalidEmoji).toBe('INVALID_EMOJI');
     expect(ErrorCodes.WebSocketLoadFailed).toBe('WEBSOCKET_LOAD_FAILED');
+    expect(ErrorCodes.GatewayFatalClose).toBe('GATEWAY_FATAL_CLOSE');
     expect(ErrorCodes.RestRequestFailed).toBe('REST_REQUEST_FAILED');
     expect(ErrorCodes.RestRequestTimeout).toBe('REST_REQUEST_TIMEOUT');
     expect(ErrorCodes.RestInvalidResponse).toBe('REST_INVALID_RESPONSE');

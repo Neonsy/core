@@ -66,6 +66,7 @@ export {
   type UserFlagsResolvable,
   type UserFlagsString,
 } from '@fluxerjs/util';
+export { GatewayCloseError } from '@fluxerjs/ws';
 export type { CacheEvictionStats, CacheStats } from './ClientCore/CacheController.js';
 export { CacheController } from './ClientCore/CacheController.js';
 export { ChannelManager } from './ClientCore/ChannelManager.js';

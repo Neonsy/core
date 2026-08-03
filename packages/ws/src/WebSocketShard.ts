@@ -9,6 +9,7 @@ import type {
   GatewaySendPayload,
 } from '@fluxerjs/types';
 import { GatewayOpcodes } from '@fluxerjs/types';
+import { GatewayCloseError } from './GatewayCloseError.js';
 import { GatewayCloseCodes } from './Utils/Constants.js';
 import { getDefaultWebSocketSync } from './Utils/GetWebSocket.js';
 
@@ -17,7 +18,7 @@ export type WebSocketLike = {
   close(code?: number): void;
   readyState: number;
   addEventListener?(type: string, listener: (e: unknown) => void): void;
-  on?(event: string, cb: (data?: unknown) => void): void;
+  on?(event: string, cb: (...data: unknown[]) => void): void;
 };
 export type WebSocketConstructor = new (url: string) => WebSocketLike;
 
@@ -48,21 +49,21 @@ const RECONNECT_MAX_MS = 45_000;
 const FATAL_CLOSE = new Set<number>([
   GatewayCloseCodes.ProtocolError,
   GatewayCloseCodes.UnsupportedData,
-  GatewayCloseCodes.UnknownOpcode,
-  GatewayCloseCodes.DecodeError,
-  GatewayCloseCodes.NotAuthenticated,
   GatewayCloseCodes.AuthenticationFailed,
-  GatewayCloseCodes.AlreadyAuthenticated,
+  GatewayCloseCodes.InvalidShard,
+  GatewayCloseCodes.ShardingRequired,
+  GatewayCloseCodes.InvalidAPIVersion,
 ]);
 
 const RECOVERABLE_GATEWAY = new Set<number>([
   GatewayCloseCodes.UnknownError,
+  GatewayCloseCodes.UnknownOpcode,
+  GatewayCloseCodes.DecodeError,
+  GatewayCloseCodes.NotAuthenticated,
+  GatewayCloseCodes.AlreadyAuthenticated,
   GatewayCloseCodes.InvalidSeq,
   GatewayCloseCodes.RateLimited,
   GatewayCloseCodes.SessionTimeout,
-  GatewayCloseCodes.InvalidShard,
-  GatewayCloseCodes.ShardingRequired,
-  GatewayCloseCodes.InvalidAPIVersion,
   GatewayCloseCodes.AckBackpressure,
 ]);
 
@@ -107,6 +108,24 @@ function closeCodeFromEvent(event: unknown): number {
     if (typeof code === 'number') return code;
   }
   return 1006;
+}
+
+function normalizeCloseReason(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  try {
+    const reason = messageDataToString(value).replace(/\s+/g, ' ').trim();
+    if (!reason) return null;
+    return reason.length <= 500 ? reason : `${reason.slice(0, 499)}…`;
+  } catch {
+    return null;
+  }
+}
+
+function closeReasonFromEvent(event: unknown): string | null {
+  if (typeof event === 'object' && event !== null && 'reason' in event) {
+    return normalizeCloseReason((event as { reason: unknown }).reason);
+  }
+  return null;
 }
 
 function narrowHelloData(value: unknown): GatewayHelloData | null {
@@ -256,14 +275,18 @@ export class WebSocketShard extends EventEmitter {
     if (typeof ws.addEventListener === 'function') {
       ws.addEventListener('open', () => this.onOpen());
       ws.addEventListener('message', (e) => this.onMessage(e));
-      ws.addEventListener('close', (e) => this.onClose(closeCodeFromEvent(e)));
+      ws.addEventListener('close', (e) =>
+        this.onClose(closeCodeFromEvent(e), closeReasonFromEvent(e)),
+      );
       ws.addEventListener('error', () => this.onSocketError());
       return true;
     }
     if (typeof ws.on === 'function') {
       ws.on('open', () => this.onOpen());
       ws.on('message', (d) => this.onMessage(d));
-      ws.on('close', (code) => this.onClose(typeof code === 'number' ? code : 1006));
+      ws.on('close', (code, reason) =>
+        this.onClose(typeof code === 'number' ? code : 1006, normalizeCloseReason(reason)),
+      );
       ws.on('error', (err) => this.onSocketError(err));
       return true;
     }
@@ -291,14 +314,19 @@ export class WebSocketShard extends EventEmitter {
     }
   }
 
-  private onClose(code: number): void {
+  private onClose(code: number, reason: string | null): void {
     if (this.phase === Phase.Destroyed) return;
     this.phase = Phase.Idle;
     this.ws = null;
     this.stopHeartbeat();
-    this.emit('close', code);
-    this.debug(`Closed: ${code}`);
-    if (shouldReconnectOnClose(code)) this.scheduleReconnect();
+    this.emit('close', code, reason);
+    this.debug(`Closed: ${code}${reason ? ` (${reason})` : ''}`);
+    if (shouldReconnectOnClose(code)) {
+      this.scheduleReconnect();
+      return;
+    }
+    this.clearReconnectTimer();
+    this.emit('error', new GatewayCloseError(this.id, code, reason));
   }
 
   private onSocketError(err?: unknown): void {

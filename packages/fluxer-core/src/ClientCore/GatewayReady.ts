@@ -7,6 +7,7 @@ import type {
   GatewayReceivePayload,
   GatewayVoiceStateUpdateDispatchData,
 } from '@fluxerjs/types';
+import { serializeError } from '@fluxerjs/util';
 import { WebSocketManager } from '@fluxerjs/ws';
 import type { GatewayGuildPayload } from '../Domain/Guild/Payload.js';
 import { applyGuildSnapshotFromGateway } from '../Domain/Guild/Snapshot.js';
@@ -133,8 +134,8 @@ export async function connectClientGateway(
   ws.on('ready', ({ data }: { data: ReadyPayload }) => {
     handleReadyPayload(client, data);
   });
-  ws.on('error', ({ error }: { error: Error }) => {
-    client.logger.error('gateway error', { error: error.message, name: error.name });
+  ws.on('error', ({ shardId, error }: { shardId: number; error: Error }) => {
+    client.logger.error('gateway error', { shardId, error: serializeError(error) });
     client.emit(Events.Error, error);
   });
   ws.on('debug', (msg: string) => {

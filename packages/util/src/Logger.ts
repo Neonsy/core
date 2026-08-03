@@ -61,6 +61,9 @@ export function serializeError(err: unknown, depth = 0): Record<string, unknown>
     retryAfter?: unknown;
     global?: unknown;
     errors?: unknown;
+    shardId?: unknown;
+    closeCode?: unknown;
+    reason?: unknown;
     cause?: unknown;
   };
   const out: Record<string, unknown> = {
@@ -76,6 +79,9 @@ export function serializeError(err: unknown, depth = 0): Record<string, unknown>
   if (typeof e.isRetryable === 'boolean') out.isRetryable = e.isRetryable;
   if (e.retryAfter !== undefined) out.retryAfter = e.retryAfter;
   if (e.global !== undefined) out.global = e.global;
+  if (e.shardId !== undefined) out.shardId = e.shardId;
+  if (e.closeCode !== undefined) out.closeCode = e.closeCode;
+  if (e.reason !== undefined) out.reason = e.reason;
   if (Array.isArray(e.errors)) {
     out.errors = e.errors.slice(0, 10).map((item: unknown) => {
       if (typeof item !== 'object' || item === null) return String(item).slice(0, 240);

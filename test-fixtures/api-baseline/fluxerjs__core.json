@@ -1,6 +1,6 @@
 {
   "package": "@fluxerjs/core",
-  "generatedAt": "2026-08-02T13:00:53.473Z",
+  "generatedAt": "2026-08-02T13:07:24.866Z",
   "entries": [
     {
       "subpath": ".",
@@ -83,6 +83,7 @@
         "FluxerAPIError",
         "FluxerError",
         "FluxerErrorOptions",
+        "GatewayCloseError",
         "GatewayOpcodes",
         "Guild",
         "GuildBan",
@@ -292,6 +293,7 @@
         "FluxerAPIError",
         "FluxerError",
         "FluxerErrorOptions",
+        "GatewayCloseError",
         "HTTPError",
         "RESTRequestError",
         "RESTRequestErrorKind",

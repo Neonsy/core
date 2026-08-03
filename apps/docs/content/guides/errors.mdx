@@ -12,8 +12,10 @@ User-facing validation and not-found cases in `@fluxerjs/core` throw `FluxerErro
 ```javascript
 import {
   ErrorCodes,
+  Events,
   FluxerAPIError,
   FluxerError,
+  GatewayCloseError,
   HTTPError,
   RateLimitError,
   RESTRequestError,
@@ -39,6 +41,20 @@ All SDK-owned error classes extend `FluxerError`. REST failures also expose stab
 - `RESTRequestError`: transport, timeout, or invalid-response failure. Inspect `kind`, `attempts`, `method`, `path`, and `cause`.
 
 Request paths remove query strings, fragments, webhook tokens, and Snowflake IDs before they are attached to an error. Request bodies and headers are not attached.
+
+## Terminal gateway closes
+
+A shard close that cannot be retried emits `Events.Error` with a `GatewayCloseError`. It includes `shardId`, `closeCode`, `reason`, and `isRetryable: false`.
+
+```javascript
+client.on(Events.Error, (err) => {
+  if (err instanceof GatewayCloseError) {
+    console.error(`Shard ${err.shardId} stopped: ${err.closeCode} ${err.reason ?? ''}`);
+  }
+});
+```
+
+Recoverable close codes reconnect without emitting `GatewayCloseError`.
 
 ## Control automatic retries
 
@@ -79,6 +95,7 @@ Exact members live on `ErrorCodes`. Ones you will hit early:
 | Situation | Typical code |
 | --------- | ------------ |
 | Channel / message / member missing | `*NotFound` family |
+| Gateway shard stopped permanently | `GATEWAY_FATAL_CLOSE` |
 | Bad fetch limit | `INVALID_FETCH_LIMIT` |
 | Validation on a public method | named code for that check |
 

@@ -96,6 +96,19 @@ describe('serializeError', () => {
     });
   });
 
+  it('includes gateway close context', () => {
+    const err = Object.assign(new Error('gateway closed'), {
+      shardId: 2,
+      closeCode: 4004,
+      reason: 'authentication failed',
+    });
+    expect(serializeError(err)).toMatchObject({
+      shardId: 2,
+      closeCode: 4004,
+      reason: 'authentication failed',
+    });
+  });
+
   it('walks the cause chain', () => {
     const root = new Error('root');
     const wrapped = new Error('wrapped', { cause: root });
