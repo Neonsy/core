@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   description:
     'Modern TypeScript SDK for building Fluxer bots. Guides, SDK reference, and REST docs for 2.0.',
   icons: { icon: '/favicon.svg' },
+  verification: {
+    google: '6trlbvjiKKRY2o294Vr5KJvciDt_y_OudSDkjsX5FtM',
+  },
 };
 
 export default function RootLayout({
